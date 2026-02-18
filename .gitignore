@@ -17,6 +17,7 @@
 # misc
 .DS_Store
 *.pem
+references
 
 # editor / IDE / tool-specific
 .claude/
