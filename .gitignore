@@ -18,6 +18,11 @@
 .DS_Store
 *.pem
 
+# editor / IDE / tool-specific
+.claude/
+.vscode/
+.idea/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
