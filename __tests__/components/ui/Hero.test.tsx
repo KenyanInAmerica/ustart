@@ -23,17 +23,17 @@ describe("Hero", () => {
     ).toBeInTheDocument();
   });
 
-  it("renders a Create Account link pointing to /signup", () => {
-    render(<Hero />);
-    const cta = screen.getByRole("link", { name: /create account/i });
-    expect(cta).toBeInTheDocument();
-    expect(cta).toHaveAttribute("href", "/signup");
-  });
-
   it("renders the 'See what's inside' link pointing to #features", () => {
     render(<Hero />);
     const link = screen.getByRole("link", { name: /see what.s inside/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "#features");
+  });
+
+  it("does not render a Get Started link", () => {
+    render(<Hero />);
+    expect(
+      screen.queryByRole("link", { name: /get started/i })
+    ).not.toBeInTheDocument();
   });
 });

@@ -31,7 +31,7 @@ npm run test         # Run test suite
   /api
     /webhooks/stripe        # Stripe webhook handler (signature validation required)
   /(auth)                   # Auth-related pages
-    /login                  # Magic link request
+    /sign-in                # Magic link request
     /magic-link             # Post-send confirmation
   /dashboard                # Authenticated user dashboard
   /content                  # Gated content pages per product
