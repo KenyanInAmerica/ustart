@@ -34,7 +34,7 @@ const features = [
   },
   {
     title: "Parent Pack",
-    desc: "An optional add-on that gives a parent their own separate login for access to specialized resources.",
+    desc: "An optional add-on that gives a parent their own separate account for access to specialized resources.",
     icon: (
       <svg className="w-9 h-9 opacity-70" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" aria-hidden="true">
         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />

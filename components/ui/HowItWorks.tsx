@@ -2,12 +2,12 @@ const steps = [
   {
     num: "01",
     title: "Choose your plan",
-    desc: "Pick the tier that matches where you are in your US journey.",
+    desc: "Pick the tier that fits your needs for where you are in your US journey.",
   },
   {
     num: "02",
     title: "Access your portal",
-    desc: "Log in instantly and unlock resources and content.",
+    desc: "Sign in instantly and unlock resources and content.",
   },
   {
     num: "03",

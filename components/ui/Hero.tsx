@@ -18,7 +18,7 @@ export function Hero() {
         aria-hidden="true"
       />
 
-      {/* Content stack: badge → headline → subtext → CTAs, each with a staggered fadeUp delay */}
+      {/* Content stack: badge → headline → subtext → CTA, each with a staggered fadeUp delay */}
       <div className="relative z-[2] max-w-[760px]">
         {/* Pill badge */}
         <div className="inline-flex items-center gap-2 px-[14px] py-[5px] border border-[rgba(255,255,255,0.15)] rounded-full text-[12px] font-medium text-[rgba(255,255,255,0.70)] tracking-[0.04em] uppercase mb-8 animate-fade-up">
@@ -38,14 +38,8 @@ export function Hero() {
           matters.
         </p>
 
-        {/* CTAs: primary signup + ghost link that smooth-scrolls to the #features section */}
-        <div className="flex items-center justify-center gap-5 flex-wrap animate-fade-up-3">
-          <Link
-            href="/signup"
-            className="inline-flex items-center bg-white text-[#05080F] font-medium text-[15px] py-3 px-7 rounded-lg hover:opacity-90 hover:-translate-y-px transition-all duration-200"
-          >
-            Create Account
-          </Link>
+        {/* Ghost CTA — smooth-scrolls to the features section */}
+        <div className="flex items-center justify-center animate-fade-up-3">
           <Link
             href="#features"
             className="inline-flex items-center gap-1.5 text-sm text-[rgba(255,255,255,0.70)] hover:text-white transition-colors duration-200"
