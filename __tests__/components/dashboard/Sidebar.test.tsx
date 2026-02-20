@@ -5,6 +5,7 @@ const defaultProps = {
   userEmail: "student@example.com",
   userInitials: "SE",
   planName: "UStart Lite",
+  hasMembership: true,
 };
 
 jest.mock("next/navigation", () => ({
@@ -59,6 +60,21 @@ describe("Sidebar", () => {
     // Parent Pack, Explore, Concierge, Community are locked — rendered as div, not link
     expect(screen.queryByRole("link", { name: /parent pack/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /explore/i })).not.toBeInTheDocument();
+  });
+
+  it("renders UStart Lite as a clickable link when hasMembership is true", () => {
+    render(<Sidebar {...defaultProps} hasMembership={true} />);
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute(
+      "href",
+      "/dashboard/lite"
+    );
+  });
+
+  it("renders UStart Lite as locked when hasMembership is false", () => {
+    render(<Sidebar {...defaultProps} hasMembership={false} />);
+    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
+    // Locked badge count increases by one (UStart Lite joins the locked group)
+    expect(screen.getAllByText("Locked").length).toBeGreaterThan(1);
   });
 
   it("renders the user email and plan name", () => {

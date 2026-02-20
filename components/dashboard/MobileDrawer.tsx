@@ -11,12 +11,13 @@ type Props = {
   userEmail: string;
   userInitials: string;
   planName: string;
+  hasMembership: boolean;
 };
 
 // Slide-in mobile nav drawer, shown when isOpen is true.
 // The semi-transparent overlay covers the page and closes the drawer on click.
 // Nav items mirror the desktop Sidebar exactly — both import from navItems.tsx.
-export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planName }: Props) {
+export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planName, hasMembership }: Props) {
   const pathname = usePathname();
 
   if (!isOpen) return null;
@@ -65,8 +66,11 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
 
               {section.items.map((item) => {
                 const isActive = pathname === item.href;
+                // UStart Lite is unlocked in the static nav definition but must be
+                // treated as locked at runtime until the user has a membership.
+                const isLocked = item.locked || (item.href === "/dashboard/lite" && !hasMembership);
 
-                if (item.locked) {
+                if (isLocked) {
                   return (
                     <div
                       key={item.href}

@@ -1,20 +1,13 @@
-// Main dashboard page — placeholder layout for the 5 upcoming feature sections.
-// Each block reserves space and labels exactly where the feature will be dropped in.
+import { Greeting } from "@/components/dashboard/Greeting";
+
+// Main dashboard page.
+// Feature 2 (Greeting) is live — remaining sections are placeholders for
+// Features 3–6 which will be dropped in sequentially.
 export default function DashboardPage() {
   return (
     <>
       {/* Feature 2: Greeting & User State */}
-      <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px]">
-        Overview
-      </p>
-      <div className="bg-[#0C1220] border border-dashed border-white/[0.12] rounded-[14px] p-12 text-center mb-4">
-        <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/20 mb-2">
-          Feature 2
-        </p>
-        <p className="text-[13px] text-white/20">
-          Greeting &amp; user state — name, plan, time-aware welcome
-        </p>
-      </div>
+      <Greeting />
 
       {/* Feature 3: Start Here */}
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">

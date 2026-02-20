@@ -2,6 +2,13 @@ import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
 
+// Maps DB tier slugs to sidebar display names.
+const TIER_NAMES: Record<string, string> = {
+  lite: "Lite",
+  pro: "Pro",
+  premium: "Premium",
+};
+
 // Derive two-letter initials from an email address.
 // Splits the local part on . _ - to get name segments; falls back to first two chars.
 function getInitials(email: string): string {
@@ -14,8 +21,8 @@ function getInitials(email: string): string {
 }
 
 // Persistent dashboard shell — wraps all /dashboard/* routes.
-// Server Component: fetches the user session server-side so Sidebar and
-// MobileDrawer receive real user data without a client-side fetch.
+// Server Component: fetches the user session and membership tier server-side
+// so the Sidebar and MobileDrawer receive real data without a client-side fetch.
 // Route protection is handled by middleware — no redirect needed here.
 export default async function DashboardLayout({
   children,
@@ -27,10 +34,22 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  // Fetch the user's membership tier from the user_access view.
+  // maybeSingle() returns null data (no error) when no row exists.
+  const { data: access } = await supabase
+    .from("user_access")
+    .select("membership_tier")
+    .maybeSingle();
+
+  const rawTier =
+    (access as { membership_tier: string | null } | null)?.membership_tier ??
+    null;
+
   const userEmail = user?.email ?? "";
   const userInitials = userEmail ? getInitials(userEmail) : "U";
-  // Plan name is hardcoded for now — dynamic entitlement gating comes in Feature 4
-  const planName = "UStart Lite";
+  const planName = rawTier ? (TIER_NAMES[rawTier] ?? rawTier) : "No active plan";
+  // True when the user has any active membership row — used to gate UStart Lite in the nav.
+  const hasMembership = rawTier !== null;
 
   return (
     <div className="flex min-h-screen bg-[#05080F]">
@@ -39,6 +58,7 @@ export default async function DashboardLayout({
         userEmail={userEmail}
         userInitials={userInitials}
         planName={planName}
+        hasMembership={hasMembership}
       />
 
       {/* Mobile top bar + drawer — only visible below 860px */}
@@ -46,6 +66,7 @@ export default async function DashboardLayout({
         userEmail={userEmail}
         userInitials={userInitials}
         planName={planName}
+        hasMembership={hasMembership}
       />
 
       {/* Main content area */}
