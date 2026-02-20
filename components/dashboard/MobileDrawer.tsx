@@ -86,6 +86,25 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
                   );
                 }
 
+                // Hard navigation for the dashboard link — same reason as Sidebar.tsx.
+                if (item.href === "/dashboard") {
+                  return (
+                    <a
+                      key={item.href}
+                      href={item.href}
+                      onClick={onClose}
+                      className={`flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors duration-150 ${
+                        isActive
+                          ? "bg-white/[0.07] text-white font-medium"
+                          : "text-white/[0.68] hover:bg-white/[0.05] hover:text-white"
+                      }`}
+                    >
+                      {item.icon}
+                      {item.label}
+                    </a>
+                  );
+                }
+
                 return (
                   <Link
                     key={item.href}

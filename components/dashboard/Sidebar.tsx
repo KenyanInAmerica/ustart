@@ -62,6 +62,27 @@ export function Sidebar({ userEmail, userInitials, planName, hasMembership }: Pr
                 );
               }
 
+              // The dashboard link uses a hard <a> instead of <Link> so it always
+              // bypasses the Next.js client-side router cache and fetches fresh
+              // entitlement data (membership, onboarding steps). All other links
+              // use <Link> so pages like the PDF viewer can keep their state.
+              if (item.href === "/dashboard") {
+                return (
+                  <a
+                    key={item.href}
+                    href={item.href}
+                    className={`flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors duration-150 ${
+                      isActive
+                        ? "bg-white/[0.07] text-white font-medium"
+                        : "text-white/[0.68] hover:bg-white/[0.05] hover:text-white"
+                    }`}
+                  >
+                    {item.icon}
+                    {item.label}
+                  </a>
+                );
+              }
+
               return (
                 <Link
                   key={item.href}

@@ -41,9 +41,8 @@ export default async function DashboardLayout({
     .select("membership_tier")
     .maybeSingle();
 
-  const rawTier =
-    (access as { membership_tier: string | null } | null)?.membership_tier ??
-    null;
+  const rawAccess = access as { membership_tier: string | null } | null;
+  const rawTier = rawAccess?.membership_tier ?? null;
 
   const userEmail = user?.email ?? "";
   const userInitials = userEmail ? getInitials(userEmail) : "U";
