@@ -9,11 +9,12 @@ type Props = {
   userEmail: string;
   userInitials: string;
   planName: string;
+  hasMembership: boolean;
 };
 
 // Desktop sidebar — fixed 240px left column, hidden below 860px via the layout.
 // "use client" so usePathname() can highlight the active nav item.
-export function Sidebar({ userEmail, userInitials, planName }: Props) {
+export function Sidebar({ userEmail, userInitials, planName, hasMembership }: Props) {
   const pathname = usePathname();
 
   return (
@@ -39,8 +40,11 @@ export function Sidebar({ userEmail, userInitials, planName }: Props) {
 
             {section.items.map((item) => {
               const isActive = pathname === item.href;
+              // UStart Lite is unlocked in the static nav definition but must be
+              // treated as locked at runtime until the user has a membership.
+              const isLocked = item.locked || (item.href === "/dashboard/lite" && !hasMembership);
 
-              if (item.locked) {
+              if (isLocked) {
                 // Locked items are non-interactive — rendered as a div to avoid
                 // creating a real link that could be keyboard-navigated.
                 return (

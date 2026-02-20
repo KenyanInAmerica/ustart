@@ -7,6 +7,7 @@ const defaultProps = {
   userEmail: "student@example.com",
   userInitials: "SE",
   planName: "UStart Lite",
+  hasMembership: true,
 };
 
 jest.mock("next/navigation", () => ({
@@ -47,6 +48,20 @@ describe("MobileDrawer", () => {
   it("renders Locked badges for locked items", () => {
     render(<MobileDrawer {...defaultProps} />);
     expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
+  });
+
+  it("renders UStart Lite as a clickable link when hasMembership is true", () => {
+    render(<MobileDrawer {...defaultProps} hasMembership={true} />);
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute(
+      "href",
+      "/dashboard/lite"
+    );
+  });
+
+  it("renders UStart Lite as locked when hasMembership is false", () => {
+    render(<MobileDrawer {...defaultProps} hasMembership={false} />);
+    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Locked").length).toBeGreaterThan(1);
   });
 
   it("calls onClose when the overlay backdrop is clicked", () => {

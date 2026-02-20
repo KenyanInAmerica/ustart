@@ -120,6 +120,12 @@ Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, 
 - Responsive breakpoint: `md-900` (900px) is registered as a custom Tailwind screen — use `md-900:` prefix for desktop layouts
 - Mobile-first: default styles are mobile, `md-900:` overrides are desktop
 
+## Desktop / Mobile Parity
+
+Any feature that affects navigation, access gating, or UI state must be implemented consistently across both the desktop Sidebar and the mobile MobileDrawer. When a prop or behaviour is added to one, apply it to the other in the same PR. Tests for both components must cover the new behaviour.
+
+---
+
 ## Comments & Tests (Required for Every Feature)
 
 For every component or feature implemented:
