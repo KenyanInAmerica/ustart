@@ -17,7 +17,7 @@ describe("Pricing", () => {
   it("renders all three plan names", () => {
     render(<Pricing />);
     expect(screen.getByText("Lite")).toBeInTheDocument();
-    expect(screen.getByText("Basic")).toBeInTheDocument();
+    expect(screen.getByText("Pro")).toBeInTheDocument();
     expect(screen.getByText("Premium")).toBeInTheDocument();
   });
 
@@ -28,16 +28,16 @@ describe("Pricing", () => {
     expect(screen.getByText("$199")).toBeInTheDocument();
   });
 
-  it("shows the Most Popular badge on the Basic plan only", () => {
+  it("shows the Most Popular badge on the Pro plan only", () => {
     render(<Pricing />);
     const badges = screen.getAllByText("Most Popular");
     expect(badges).toHaveLength(1);
   });
 
-  it("renders Get Started links pointing to /signup", () => {
+  it("renders Get Started links pointing to /sign-in", () => {
     render(<Pricing />);
     const links = screen.getAllByRole("link", { name: /get started/i });
     expect(links).toHaveLength(3);
-    links.forEach((link) => expect(link).toHaveAttribute("href", "/signup"));
+    links.forEach((link) => expect(link).toHaveAttribute("href", "/sign-in"));
   });
 });

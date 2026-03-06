@@ -18,8 +18,8 @@ function CheckIcon() {
   );
 }
 
-// All plans are one-time lifetime purchases. Subscriptions are only available
-// as add-ons for existing members and are not shown here.
+// All plans are one-time lifetime purchases. Subscriptions (Explore, Concierge)
+// and add-ons (Parent Pack) are only surfaced inside the dashboard after purchase.
 const plans = [
   {
     name: "Lite",
@@ -33,14 +33,13 @@ const plans = [
     ],
   },
   {
-    name: "Basic",
+    name: "Pro",
     price: "$99",
     cadence: "one-time · lifetime access",
     featured: true, // Highlighted with "Most Popular" pill and an inverted CTA button
     features: [
       "Everything in Lite",
       "Full content library access",
-      "Parent Pack (optional add-on)",
       "Community access",
     ],
   },
@@ -50,10 +49,9 @@ const plans = [
     cadence: "one-time · lifetime access",
     featured: false,
     features: [
-      "Everything in Basic",
+      "Everything in Pro",
       "Priority support",
       "1-on-1 guidance sessions",
-      "Parent Pack add-on included",
     ],
   },
 ];
@@ -111,7 +109,7 @@ export function Pricing() {
 
             {/* Featured plan uses a solid white CTA; others use a ghost button */}
             <Link
-              href="/signup"
+              href="/sign-in"
               className={[
                 "block w-full text-center py-3 rounded-lg text-sm font-medium transition-all duration-200",
                 plan.featured

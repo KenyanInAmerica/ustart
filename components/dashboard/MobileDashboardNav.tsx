@@ -4,17 +4,19 @@ import { useState } from "react";
 import { MobileTopBar } from "@/components/dashboard/MobileTopBar";
 import { MobileDrawer } from "@/components/dashboard/MobileDrawer";
 
+import type { DashboardAccess } from "@/types";
+
 type Props = {
   userEmail: string;
   userInitials: string;
   planName: string;
-  hasMembership: boolean;
+  access: DashboardAccess;
 };
 
 // Thin client wrapper that owns the drawer open/closed state.
 // The Server Component layout can't hold useState, so this component
 // bridges between the Server Component tree and the two mobile UI pieces.
-export function MobileDashboardNav({ userEmail, userInitials, planName, hasMembership }: Props) {
+export function MobileDashboardNav({ userEmail, userInitials, planName, access }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
@@ -26,7 +28,7 @@ export function MobileDashboardNav({ userEmail, userInitials, planName, hasMembe
         userEmail={userEmail}
         userInitials={userInitials}
         planName={planName}
-        hasMembership={hasMembership}
+        access={access}
       />
     </>
   );

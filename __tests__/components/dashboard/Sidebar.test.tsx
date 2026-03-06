@@ -1,11 +1,34 @@
 import { render, screen } from "@testing-library/react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import type { DashboardAccess } from "@/types";
+
+const fullAccess: DashboardAccess = {
+  membershipRank: 3,
+  membershipTier: "premium",
+  hasMembership: true,
+  hasParentSeat: true,
+  hasExplore: true,
+  hasConcierge: true,
+  hasAgreedToCommunity: true,
+  hasAccessedContent: true,
+};
+
+const noAccess: DashboardAccess = {
+  membershipRank: 0,
+  membershipTier: null,
+  hasMembership: false,
+  hasParentSeat: false,
+  hasExplore: false,
+  hasConcierge: false,
+  hasAgreedToCommunity: false,
+  hasAccessedContent: false,
+};
 
 const defaultProps = {
   userEmail: "student@example.com",
   userInitials: "SE",
   planName: "UStart Lite",
-  hasMembership: true,
+  access: fullAccess,
 };
 
 jest.mock("next/navigation", () => ({
@@ -34,7 +57,6 @@ describe("Sidebar", () => {
     render(<Sidebar {...defaultProps} />);
     expect(screen.getByText("Main")).toBeInTheDocument();
     expect(screen.getByText("My Content")).toBeInTheDocument();
-    // "Community" appears as both section label and nav item — assert at least one exists
     expect(screen.getAllByText("Community").length).toBeGreaterThan(0);
     expect(screen.getByText("Account")).toBeInTheDocument();
   });
@@ -43,7 +65,6 @@ describe("Sidebar", () => {
     render(<Sidebar {...defaultProps} />);
     const dashLink = screen.getByRole("link", { name: /dashboard/i });
     expect(dashLink).toHaveAttribute("href", "/dashboard");
-    // Active link has bg-white/[0.07] applied — check the class contains the token
     expect(dashLink.className).toMatch(/bg-white/);
   });
 
@@ -53,34 +74,47 @@ describe("Sidebar", () => {
     expect(link).toHaveAttribute("href", "/dashboard/account");
   });
 
-  it("renders locked items with a Locked badge and no link", () => {
-    render(<Sidebar {...defaultProps} />);
-    const badges = screen.getAllByText("Locked");
-    expect(badges.length).toBeGreaterThan(0);
-    // Parent Pack, Explore, Concierge, Community are locked — rendered as div, not link
+  it("unlocks Lite, Pro, Premium when membershipRank is 3", () => {
+    render(<Sidebar {...defaultProps} access={{ ...fullAccess, membershipRank: 3 }} />);
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/lite");
+    expect(screen.getByRole("link", { name: /ustart pro/i })).toHaveAttribute("href", "/dashboard/pro");
+    expect(screen.getByRole("link", { name: /ustart premium/i })).toHaveAttribute("href", "/dashboard/premium");
+  });
+
+  it("locks Pro and Premium when membershipRank is 1", () => {
+    render(<Sidebar {...defaultProps} access={{ ...noAccess, membershipRank: 1 }} />);
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart pro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart premium/i })).not.toBeInTheDocument();
+  });
+
+  it("locks all content nav when membershipRank is 0", () => {
+    render(<Sidebar {...defaultProps} access={noAccess} />);
+    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
+    expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
+  });
+
+  it("locks Parent Pack, Explore, Concierge when addons are false", () => {
+    render(<Sidebar {...defaultProps} access={noAccess} />);
     expect(screen.queryByRole("link", { name: /parent pack/i })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /explore/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /concierge/i })).not.toBeInTheDocument();
   });
 
-  it("renders UStart Lite as a clickable link when hasMembership is true", () => {
-    render(<Sidebar {...defaultProps} hasMembership={true} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute(
-      "href",
-      "/dashboard/lite"
-    );
+  it("unlocks Parent Pack when hasParentSeat is true", () => {
+    render(<Sidebar {...defaultProps} access={{ ...noAccess, hasParentSeat: true }} />);
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute("href", "/dashboard/parent-pack");
   });
 
-  it("renders UStart Lite as locked when hasMembership is false", () => {
-    render(<Sidebar {...defaultProps} hasMembership={false} />);
-    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
-    // Locked badge count increases by one (UStart Lite joins the locked group)
-    expect(screen.getAllByText("Locked").length).toBeGreaterThan(1);
+  it("locks Community when hasAgreedToCommunity is false", () => {
+    render(<Sidebar {...defaultProps} access={{ ...fullAccess, hasAgreedToCommunity: false }} />);
+    expect(screen.queryByRole("link", { name: /^community$/i })).not.toBeInTheDocument();
   });
 
   it("renders the user email and plan name", () => {
     render(<Sidebar {...defaultProps} />);
     expect(screen.getByText("student@example.com")).toBeInTheDocument();
-    // "UStart Lite" appears as both nav item label and footer plan name
+    // "UStart Lite" appears as both a nav item label and the footer plan name
     expect(screen.getAllByText("UStart Lite").length).toBeGreaterThan(0);
   });
 

@@ -16,7 +16,7 @@ describe("Features", () => {
 
   it("renders all six feature titles", () => {
     render(<Features />);
-    expect(screen.getByText("Gated Content Library")).toBeInTheDocument();
+    expect(screen.getByText("Content Library")).toBeInTheDocument();
     expect(screen.getByText("PDF Resources & Downloads")).toBeInTheDocument();
     expect(screen.getByText("Flexible Payment Plans")).toBeInTheDocument();
     expect(screen.getByText("Parent Pack")).toBeInTheDocument();

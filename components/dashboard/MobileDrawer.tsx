@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navSections } from "@/components/dashboard/navItems";
+import { navSections, isNavItemLocked } from "@/components/dashboard/navItems";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import type { DashboardAccess } from "@/types";
 
 type Props = {
   isOpen: boolean;
@@ -11,13 +12,13 @@ type Props = {
   userEmail: string;
   userInitials: string;
   planName: string;
-  hasMembership: boolean;
+  access: DashboardAccess;
 };
 
 // Slide-in mobile nav drawer, shown when isOpen is true.
 // The semi-transparent overlay covers the page and closes the drawer on click.
 // Nav items mirror the desktop Sidebar exactly — both import from navItems.tsx.
-export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planName, hasMembership }: Props) {
+export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planName, access }: Props) {
   const pathname = usePathname();
 
   if (!isOpen) return null;
@@ -66,9 +67,9 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
 
               {section.items.map((item) => {
                 const isActive = pathname === item.href;
-                // UStart Lite is unlocked in the static nav definition but must be
-                // treated as locked at runtime until the user has a membership.
-                const isLocked = item.locked || (item.href === "/dashboard/lite" && !hasMembership);
+                // Lock state is computed from the user's full entitlement snapshot
+                // rather than static flags, so each item reflects real access.
+                const isLocked = isNavItemLocked(item, access);
 
                 if (isLocked) {
                   return (

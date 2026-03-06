@@ -1,7 +1,7 @@
 // Icons are inline SVGs — no image loading, no external dependency.
 const features = [
   {
-    title: "Gated Content Library",
+    title: "Content Library",
     desc: "Access curated guides on banking, credit cards, SSN, taxes, and more.",
     icon: (
       <svg className="w-9 h-9 opacity-70" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" aria-hidden="true">
@@ -55,7 +55,7 @@ const features = [
   },
   {
     title: "Account & Billing Portal",
-    desc: "Manage your subscription, update payment details, and view your plan — all in one place.",
+    desc: "Manage your plan and billing details in one place. Recurring add-ons are available inside the dashboard for existing members.",
     icon: (
       <svg className="w-9 h-9 opacity-70" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" aria-hidden="true">
         <circle cx="12" cy="12" r="3" />

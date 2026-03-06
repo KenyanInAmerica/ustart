@@ -1,5 +1,28 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { MobileDrawer } from "@/components/dashboard/MobileDrawer";
+import type { DashboardAccess } from "@/types";
+
+const fullAccess: DashboardAccess = {
+  membershipRank: 3,
+  membershipTier: "premium",
+  hasMembership: true,
+  hasParentSeat: true,
+  hasExplore: true,
+  hasConcierge: true,
+  hasAgreedToCommunity: true,
+  hasAccessedContent: true,
+};
+
+const noAccess: DashboardAccess = {
+  membershipRank: 0,
+  membershipTier: null,
+  hasMembership: false,
+  hasParentSeat: false,
+  hasExplore: false,
+  hasConcierge: false,
+  hasAgreedToCommunity: false,
+  hasAccessedContent: false,
+};
 
 const defaultProps = {
   isOpen: true,
@@ -7,7 +30,7 @@ const defaultProps = {
   userEmail: "student@example.com",
   userInitials: "SE",
   planName: "UStart Lite",
-  hasMembership: true,
+  access: fullAccess,
 };
 
 jest.mock("next/navigation", () => ({
@@ -35,39 +58,36 @@ describe("MobileDrawer", () => {
     expect(container.firstChild).toBeNull();
   });
 
-  it("renders all nav items", () => {
+  it("renders all nav items with full access", () => {
     render(<MobileDrawer {...defaultProps} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    // "UStart Lite" and "Community" each appear as both section/nav label and footer text
-    expect(screen.getAllByText("UStart Lite").length).toBeGreaterThan(0);
-    expect(screen.getByText("Parent Pack")).toBeInTheDocument();
-    expect(screen.getAllByText("Community").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ustart pro/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ustart premium/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /parent pack/i })).toBeInTheDocument();
     expect(screen.getByText("Account & Billing")).toBeInTheDocument();
   });
 
-  it("renders Locked badges for locked items", () => {
-    render(<MobileDrawer {...defaultProps} />);
+  it("renders Locked badges when access is restricted", () => {
+    render(<MobileDrawer {...defaultProps} access={noAccess} />);
     expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
   });
 
-  it("renders UStart Lite as a clickable link when hasMembership is true", () => {
-    render(<MobileDrawer {...defaultProps} hasMembership={true} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute(
-      "href",
-      "/dashboard/lite"
-    );
+  it("locks all content items when membershipRank is 0", () => {
+    render(<MobileDrawer {...defaultProps} access={noAccess} />);
+    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart pro/i })).not.toBeInTheDocument();
   });
 
-  it("renders UStart Lite as locked when hasMembership is false", () => {
-    render(<MobileDrawer {...defaultProps} hasMembership={false} />);
-    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
-    expect(screen.getAllByText("Locked").length).toBeGreaterThan(1);
+  it("unlocks Lite only when membershipRank is 1", () => {
+    render(<MobileDrawer {...defaultProps} access={{ ...noAccess, membershipRank: 1 }} />);
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart pro/i })).not.toBeInTheDocument();
   });
 
   it("calls onClose when the overlay backdrop is clicked", () => {
     const onClose = jest.fn();
     render(<MobileDrawer {...defaultProps} onClose={onClose} />);
-    // The backdrop is the first div with aria-hidden
     const backdrop = document.querySelector('[aria-hidden="true"]') as HTMLElement;
     fireEvent.click(backdrop);
     expect(onClose).toHaveBeenCalledTimes(1);
