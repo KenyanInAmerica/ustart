@@ -11,7 +11,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
   const { data } = await supabase
     .from("user_access")
     .select(
-      "membership_rank, membership_tier, has_membership, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, first_content_visit_at"
+      "membership_rank, membership_tier, has_membership, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, first_content_visit_at, phone_number"
     )
     .maybeSingle();
 
@@ -24,6 +24,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     has_concierge: boolean | null;
     has_agreed_to_community: boolean | null;
     first_content_visit_at: string | null;
+    phone_number: string | null;
   } | null;
 
   return {
@@ -35,5 +36,20 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     hasConcierge: raw?.has_concierge === true,
     hasAgreedToCommunity: raw?.has_agreed_to_community === true,
     hasAccessedContent: raw?.first_content_visit_at != null,
+    phoneNumber: raw?.phone_number ?? null,
   };
+});
+
+// Fetches the WhatsApp invite link from the config table.
+// Wrapped in React.cache so the layout (which calls it to warm the cache)
+// and the page (which uses the result) share a single DB round-trip.
+export const fetchWhatsappLink = cache(async (): Promise<string> => {
+  const supabase = createClient();
+  const { data } = await supabase
+    .from("config")
+    .select("value")
+    .eq("key", "whatsapp_invite_link")
+    .single();
+  const row = data as { value: string } | null;
+  return row?.value ?? "";
 });
