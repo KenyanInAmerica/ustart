@@ -1,22 +1,27 @@
 import { render, screen } from "@testing-library/react";
 import DashboardPage from "@/app/dashboard/page";
+import type { DashboardAccess } from "@/types";
 
-const mockMaybeSingle = jest.fn();
+const mockAccess: DashboardAccess = {
+  membershipRank: 1,
+  membershipTier: "lite",
+  hasMembership: true,
+  hasParentSeat: false,
+  hasExplore: false,
+  hasConcierge: false,
+  hasAgreedToCommunity: false,
+  hasAccessedContent: false,
+};
 
-// page.tsx queries user_access for all entitlement fields in one round-trip.
-jest.mock("../../../lib/supabase/server", () => ({
-  createClient: jest.fn(() => ({
-    from: jest.fn(() => ({
-      select: jest.fn(() => ({
-        maybeSingle: mockMaybeSingle,
-      })),
-    })),
-  })),
+// page.tsx uses fetchDashboardAccess (React.cache wrapper) — mock the module
+// so tests don't require a live Supabase client.
+jest.mock("../../../lib/dashboard/access", () => ({
+  fetchDashboardAccess: jest.fn(),
 }));
 
-// Greeting and StartHere are async/data-fetching Server Components.
-// Stub them so the page test focuses on page-level composition only.
-// Their own behaviour is covered by dedicated test files.
+import { fetchDashboardAccess } from "../../../lib/dashboard/access";
+
+// Greeting and StartHere are async Server Components tested in their own files.
 jest.mock("../../../components/dashboard/Greeting", () => ({
   Greeting: () => <div data-testid="greeting-stub" />,
 }));
@@ -25,12 +30,14 @@ jest.mock("../../../components/dashboard/StartHere", () => ({
   StartHere: () => <div data-testid="start-here-stub" />,
 }));
 
+// ContentCards is a pure presentational Server Component tested in its own file.
+jest.mock("../../../components/dashboard/ContentCards", () => ({
+  ContentCards: () => <div data-testid="content-cards-stub" />,
+}));
+
 describe("DashboardPage", () => {
   beforeEach(() => {
-    mockMaybeSingle.mockResolvedValue({
-      data: { membership_tier: "lite", has_agreed_to_community: false, first_content_visit_at: null },
-      error: null,
-    });
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue(mockAccess);
   });
 
   it("renders without error", async () => {
@@ -48,24 +55,21 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("start-here-stub")).toBeInTheDocument();
   });
 
-  it("renders remaining section headings", async () => {
+  it("renders the ContentCards component", async () => {
+    render(await DashboardPage());
+    expect(screen.getByTestId("content-cards-stub")).toBeInTheDocument();
+  });
+
+  it("renders section headings", async () => {
     render(await DashboardPage());
     expect(screen.getByText("Your Content")).toBeInTheDocument();
     expect(screen.getByText(/^Community$/)).toBeInTheDocument();
     expect(screen.getByText(/^Account$/)).toBeInTheDocument();
   });
 
-  it("renders remaining feature placeholder labels", async () => {
+  it("renders feature placeholder labels for remaining features", async () => {
     render(await DashboardPage());
-    expect(screen.getByText("Feature 4")).toBeInTheDocument();
     expect(screen.getByText("Feature 5")).toBeInTheDocument();
     expect(screen.getByText("Feature 6")).toBeInTheDocument();
-  });
-
-  it("renders feature descriptions", async () => {
-    render(await DashboardPage());
-    expect(screen.getByText(/content cards/i)).toBeInTheDocument();
-    // Feature 3 placeholder was replaced by the StartHere component
-    expect(screen.queryByText(/onboarding progress strip/i)).not.toBeInTheDocument();
   });
 });

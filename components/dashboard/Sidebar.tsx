@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { navSections } from "@/components/dashboard/navItems";
+import { navSections, isNavItemLocked } from "@/components/dashboard/navItems";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import type { DashboardAccess } from "@/types";
 
 type Props = {
   userEmail: string;
   userInitials: string;
   planName: string;
-  hasMembership: boolean;
+  access: DashboardAccess;
 };
 
 // Desktop sidebar — fixed 240px left column, hidden below 860px via the layout.
 // "use client" so usePathname() can highlight the active nav item.
-export function Sidebar({ userEmail, userInitials, planName, hasMembership }: Props) {
+export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
   const pathname = usePathname();
 
   return (
@@ -40,9 +41,9 @@ export function Sidebar({ userEmail, userInitials, planName, hasMembership }: Pr
 
             {section.items.map((item) => {
               const isActive = pathname === item.href;
-              // UStart Lite is unlocked in the static nav definition but must be
-              // treated as locked at runtime until the user has a membership.
-              const isLocked = item.locked || (item.href === "/dashboard/lite" && !hasMembership);
+              // Lock state is computed from the user's full entitlement snapshot
+              // rather than static flags, so each item reflects real access.
+              const isLocked = isNavItemLocked(item, access);
 
               if (isLocked) {
                 // Locked items are non-interactive — rendered as a div to avoid

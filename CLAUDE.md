@@ -68,8 +68,8 @@ Three **lifetime purchase** tiers — customers pay once and keep access forever
 | Plan    | Price | Includes |
 | ------- | ----- | -------- |
 | Lite    | $49   | Core content library, PDF resources, student account |
-| Basic   | $99   | Everything in Lite + full library, community access |
-| Premium | $199  | Everything in Basic + priority support, 1-on-1 sessions, Parent Pack |
+| Pro     | $99   | Everything in Lite + full library, community access |
+| Premium | $199  | Everything in Pro + priority support, 1-on-1 sessions, Parent Pack |
 
 - **Parent Pack** is an optional add-on (separate Supabase account, not a role/flag)
 - **Subscriptions** are available only as an add-on for existing lifetime members — not sold standalone
@@ -98,7 +98,7 @@ Required env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, 
 | Product       | Access Type              | Revoke On              |
 | ------------- | ------------------------ | ---------------------- |
 | Lite          | Lifetime (one-time)      | Never                  |
-| Basic         | Lifetime (one-time)      | Never                  |
+| Pro           | Lifetime (one-time)      | Never                  |
 | Premium       | Lifetime (one-time)      | Never                  |
 | Parent Pack   | Lifetime add-on          | Never                  |
 | Subscriptions | Active only              | Cancellation / failure |
