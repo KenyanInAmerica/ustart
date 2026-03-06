@@ -11,15 +11,17 @@ const mockAccess: DashboardAccess = {
   hasConcierge: false,
   hasAgreedToCommunity: false,
   hasAccessedContent: false,
+  phoneNumber: null,
 };
 
-// page.tsx uses fetchDashboardAccess (React.cache wrapper) — mock the module
-// so tests don't require a live Supabase client.
+// page.tsx uses fetchDashboardAccess and fetchWhatsappLink (React.cache wrappers)
+// — mock the module so tests don't require a live Supabase client.
 jest.mock("../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
+  fetchWhatsappLink: jest.fn(),
 }));
 
-import { fetchDashboardAccess } from "../../../lib/dashboard/access";
+import { fetchDashboardAccess, fetchWhatsappLink } from "../../../lib/dashboard/access";
 
 // Greeting and StartHere are async Server Components tested in their own files.
 jest.mock("../../../components/dashboard/Greeting", () => ({
@@ -35,9 +37,15 @@ jest.mock("../../../components/dashboard/ContentCards", () => ({
   ContentCards: () => <div data-testid="content-cards-stub" />,
 }));
 
+// CommunitySection is a Client Component with interactive state, tested in its own file.
+jest.mock("../../../components/dashboard/CommunitySection", () => ({
+  CommunitySection: () => <div data-testid="community-section-stub" />,
+}));
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(mockAccess);
+    (fetchWhatsappLink as jest.Mock).mockResolvedValue("https://chat.whatsapp.com/test");
   });
 
   it("renders without error", async () => {
@@ -60,6 +68,11 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("content-cards-stub")).toBeInTheDocument();
   });
 
+  it("renders the CommunitySection component", async () => {
+    render(await DashboardPage());
+    expect(screen.getByTestId("community-section-stub")).toBeInTheDocument();
+  });
+
   it("renders section headings", async () => {
     render(await DashboardPage());
     expect(screen.getByText("Your Content")).toBeInTheDocument();
@@ -67,9 +80,8 @@ describe("DashboardPage", () => {
     expect(screen.getByText(/^Account$/)).toBeInTheDocument();
   });
 
-  it("renders feature placeholder labels for remaining features", async () => {
+  it("renders the Feature 6 placeholder for the account section", async () => {
     render(await DashboardPage());
-    expect(screen.getByText("Feature 5")).toBeInTheDocument();
     expect(screen.getByText("Feature 6")).toBeInTheDocument();
   });
 });

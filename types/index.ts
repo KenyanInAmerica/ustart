@@ -27,4 +27,6 @@ export interface DashboardAccess {
   hasAgreedToCommunity: boolean;
   // True once trackContentVisit() has stamped first_content_visit_at
   hasAccessedContent: boolean;
+  // Phone number on file — used to pre-fill the community WhatsApp modal
+  phoneNumber: string | null;
 }

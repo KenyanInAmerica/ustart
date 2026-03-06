@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
-import { fetchDashboardAccess } from "@/lib/dashboard/access";
+import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
 
 // Maps DB tier slugs to sidebar footer display names.
 const TIER_NAMES: Record<string, string> = {
@@ -35,9 +35,11 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // fetchDashboardAccess is memoised with React.cache — the page calling it too
-  // won't trigger a second DB round-trip within the same request.
+  // Both calls are memoised with React.cache — the page calling them too
+  // won't trigger additional DB round-trips within the same request.
   const access = await fetchDashboardAccess();
+  // Warm the whatsappLink cache here so page.tsx gets the result from cache.
+  await fetchWhatsappLink();
 
   const userEmail = user?.email ?? "";
   const userInitials = userEmail ? getInitials(userEmail) : "U";
