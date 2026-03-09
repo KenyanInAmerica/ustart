@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
 import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
+import { SignOutButton } from "@/components/dashboard/SignOutButton";
 
 // Maps DB tier slugs to sidebar footer display names.
 const TIER_NAMES: Record<string, string> = {
@@ -67,6 +68,12 @@ export default async function DashboardLayout({
 
       {/* Main content area */}
       <main className="flex-1 min-[860px]:ml-[240px] px-5 pt-[80px] pb-8 min-[860px]:px-[56px] min-[860px]:py-[48px] max-w-full min-[860px]:max-w-[1100px]">
+        {/* Desktop-only top bar with sign out — mobile nav has its own drawer */}
+        <div className="hidden min-[860px]:flex justify-end mb-6">
+          <div className="w-fit">
+            <SignOutButton />
+          </div>
+        </div>
         {children}
       </main>
     </div>

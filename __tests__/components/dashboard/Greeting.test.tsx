@@ -31,7 +31,7 @@ describe("Greeting", () => {
     // Default: authenticated user with a Lite membership
     mockGetUser.mockResolvedValue({ data: { user: mockUser }, error: null });
     mockMaybeSingle.mockResolvedValue({
-      data: { membership_tier: "lite" },
+      data: { membership_tier: "lite", first_name: null },
       error: null,
     });
   });
@@ -41,15 +41,28 @@ describe("Greeting", () => {
     expect(container).toBeTruthy();
   });
 
-  it("renders a time-aware greeting with the user's first name", async () => {
+  it("renders a time-aware greeting with the stored first name", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { membership_tier: "lite", first_name: "Randy" },
+      error: null,
+    });
     render(await Greeting());
-    // First name derived from "randy.smith@example.com" → "Randy"
     const heading = screen.getByRole("heading");
     expect(heading.textContent).toMatch(/Randy/);
     // Must contain one of the four time-of-day strings
     expect(heading.textContent).toMatch(
       /Good morning|Good afternoon|Good evening|Working late/
     );
+  });
+
+  it("renders a greeting without a name when first_name is null", async () => {
+    render(await Greeting());
+    const heading = screen.getByRole("heading");
+    // No name — just the time-of-day string plus punctuation
+    expect(heading.textContent).toMatch(
+      /Good morning\.|Good afternoon\.|Good evening\.|Working late\?/
+    );
+    expect(heading.textContent).not.toMatch(/,/);
   });
 
   it("renders the plan name in the subheading when the user has a membership", async () => {
@@ -75,6 +88,15 @@ describe("Greeting", () => {
     const link = screen.getByRole("link", { name: /view plans/i });
     expect(link).toBeInTheDocument();
     expect(link).toHaveAttribute("href", "/pricing");
+  });
+
+  it("uses first_name from the DB when available, over email-derived name", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({
+      data: { membership_tier: "lite", first_name: "Kai" },
+      error: null,
+    });
+    render(await Greeting());
+    expect(screen.getByRole("heading").textContent).toMatch(/Kai/);
   });
 
   it("renders 'Good morning' for hours 5–11", async () => {
@@ -104,12 +126,12 @@ describe("Greeting", () => {
     jest.restoreAllMocks();
   });
 
-  it("renders 'Working late' for hours 0–4", async () => {
+  it("renders 'Working late?' for hours 0–4 when no first_name", async () => {
     jest.spyOn(global, "Date").mockImplementation(
       () => ({ getHours: () => 2 }) as unknown as Date
     );
     render(await Greeting());
-    expect(screen.getByRole("heading").textContent).toMatch(/Working late, Randy\?/);
+    expect(screen.getByRole("heading").textContent).toMatch(/Working late\?/);
     jest.restoreAllMocks();
   });
 });

@@ -29,4 +29,6 @@ export interface DashboardAccess {
   hasAccessedContent: boolean;
   // Phone number on file — used to pre-fill the community WhatsApp modal
   phoneNumber: string | null;
+  // ISO timestamp of the active membership purchase — used in the account strip and billing section
+  membershipPurchasedAt: string | null;
 }

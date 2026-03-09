@@ -12,6 +12,7 @@ const mockAccess: DashboardAccess = {
   hasAgreedToCommunity: false,
   hasAccessedContent: false,
   phoneNumber: null,
+  membershipPurchasedAt: null,
 };
 
 // page.tsx uses fetchDashboardAccess and fetchWhatsappLink (React.cache wrappers)
@@ -40,6 +41,11 @@ jest.mock("../../../components/dashboard/ContentCards", () => ({
 // CommunitySection is a Client Component with interactive state, tested in its own file.
 jest.mock("../../../components/dashboard/CommunitySection", () => ({
   CommunitySection: () => <div data-testid="community-section-stub" />,
+}));
+
+// AccountStrip is a Server Component tested in its own file.
+jest.mock("../../../components/dashboard/AccountStrip", () => ({
+  AccountStrip: () => <div data-testid="account-strip-stub" />,
 }));
 
 describe("DashboardPage", () => {
@@ -73,15 +79,15 @@ describe("DashboardPage", () => {
     expect(screen.getByTestId("community-section-stub")).toBeInTheDocument();
   });
 
+  it("renders the AccountStrip component", async () => {
+    render(await DashboardPage());
+    expect(screen.getByTestId("account-strip-stub")).toBeInTheDocument();
+  });
+
   it("renders section headings", async () => {
     render(await DashboardPage());
     expect(screen.getByText("Your Content")).toBeInTheDocument();
     expect(screen.getByText(/^Community$/)).toBeInTheDocument();
     expect(screen.getByText(/^Account$/)).toBeInTheDocument();
-  });
-
-  it("renders the Feature 6 placeholder for the account section", async () => {
-    render(await DashboardPage());
-    expect(screen.getByText("Feature 6")).toBeInTheDocument();
   });
 });

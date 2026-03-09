@@ -8,38 +8,26 @@ const TIER_NAMES: Record<string, string> = {
   premium: "Premium",
 };
 
-// Extracts a capitalised first name from an email address.
-// Splits on common delimiters (. _ -) and takes the first segment,
-// so "randy.smith@email.com" → "Randy", not "Randy.smith".
-function getFirstName(email: string): string {
-  const local = email.split("@")[0];
-  const first = local.split(/[._-]/)[0];
-  return first.charAt(0).toUpperCase() + first.slice(1);
-}
-
 // Async Server Component — fetches session and membership tier server-side
 // so the greeting is fully rendered in the initial HTML with no client flash.
 export async function Greeting() {
   const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
 
   // Query the user_access view for the current user's tier.
   // maybeSingle() returns null data (no error) when no membership row exists.
   const { data: access } = await supabase
     .from("user_access")
-    .select("membership_tier")
+    .select("membership_tier, first_name")
     .maybeSingle();
 
   // Supabase returns untyped data without a generated schema — cast to the
   // shape we expect. No `any` used; the assertion is a known structure.
-  const rawTier =
-    (access as { membership_tier: string | null } | null)?.membership_tier ??
-    null;
+  const raw = access as { membership_tier: string | null; first_name: string | null } | null;
+  const rawTier = raw?.membership_tier ?? null;
   const planName = rawTier ? (TIER_NAMES[rawTier] ?? rawTier) : null;
 
-  const firstName = user?.email ? getFirstName(user.email) : "";
+  // Only use the stored first_name — no email-derived fallback.
+  const firstName = raw?.first_name ?? null;
 
   const hour = new Date().getHours();
   const timeOfDay =
