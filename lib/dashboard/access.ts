@@ -11,13 +11,14 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
   const { data } = await supabase
     .from("user_access")
     .select(
-      "membership_rank, membership_tier, has_membership, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, first_content_visit_at, phone_number"
+      "membership_rank, membership_tier, membership_purchased_at, has_membership, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, first_content_visit_at, phone_number"
     )
     .maybeSingle();
 
   const raw = data as {
     membership_rank: number | null;
     membership_tier: string | null;
+    membership_purchased_at: string | null;
     has_membership: boolean | null;
     has_parent_seat: boolean | null;
     has_explore: boolean | null;
@@ -30,6 +31,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
   return {
     membershipRank: raw?.membership_rank ?? 0,
     membershipTier: raw?.membership_tier ?? null,
+    membershipPurchasedAt: raw?.membership_purchased_at ?? null,
     hasMembership: raw?.has_membership === true,
     hasParentSeat: raw?.has_parent_seat === true,
     hasExplore: raw?.has_explore === true,

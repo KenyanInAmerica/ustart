@@ -2,6 +2,7 @@ import { Greeting } from "@/components/dashboard/Greeting";
 import { StartHere } from "@/components/dashboard/StartHere";
 import { ContentCards } from "@/components/dashboard/ContentCards";
 import { CommunitySection } from "@/components/dashboard/CommunitySection";
+import { AccountStrip } from "@/components/dashboard/AccountStrip";
 import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
 
 // Main dashboard page — all fetches are memoised with React.cache so the
@@ -44,14 +45,7 @@ export default async function DashboardPage() {
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
         Account
       </p>
-      <div className="bg-[#0C1220] border border-dashed border-white/[0.12] rounded-[14px] p-12 text-center mb-4">
-        <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/20 mb-2">
-          Feature 6
-        </p>
-        <p className="text-[13px] text-white/20">
-          Account &amp; billing strip — links to Stripe customer portal
-        </p>
-      </div>
+      <AccountStrip access={access} />
     </>
   );
 }

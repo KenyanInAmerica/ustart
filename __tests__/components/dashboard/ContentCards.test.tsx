@@ -12,6 +12,7 @@ const noAccess: DashboardAccess = {
   hasAgreedToCommunity: false,
   hasAccessedContent: false,
   phoneNumber: null,
+  membershipPurchasedAt: null,
 };
 
 const fullAccess: DashboardAccess = {
@@ -24,6 +25,7 @@ const fullAccess: DashboardAccess = {
   hasAgreedToCommunity: true,
   hasAccessedContent: true,
   phoneNumber: null,
+  membershipPurchasedAt: null,
 };
 
 jest.mock("next/navigation", () => ({
