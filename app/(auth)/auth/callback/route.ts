@@ -1,5 +1,5 @@
-import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -11,29 +11,31 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get("code");
 
   if (code) {
-    const cookieStore = cookies();
+    const supabase = createClient();
+    const { data: sessionData, error } = await supabase.auth.exchangeCodeForSession(code);
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          getAll() {
-            return cookieStore.getAll();
-          },
-          setAll(cookiesToSet: { name: string; value: string; options: CookieOptions }[]) {
-            // Route Handlers can write cookies, so no try/catch needed here
-            cookiesToSet.forEach(({ name, value, options }) =>
-              cookieStore.set(name, value, options)
-            );
-          },
-        },
+    if (!error && sessionData?.user) {
+      const user = sessionData.user;
+      const meta = user.user_metadata as { student_id?: string; role?: string } | null;
+
+      // If the OTP was issued via a parent invitation, the metadata carries
+      // `role: "parent"` and `student_id`. Use the service role to update the
+      // parent's profile and mark the invitation as accepted, bypassing RLS.
+      if (meta?.role === "parent" && meta?.student_id) {
+        const service = createServiceClient();
+
+        await service
+          .from("profiles")
+          .update({ role: "parent", student_id: meta.student_id })
+          .eq("id", user.id);
+
+        await service
+          .from("parent_invitations")
+          .update({ status: "accepted", accepted_at: new Date().toISOString() })
+          .eq("student_id", meta.student_id)
+          .eq("status", "pending");
       }
-    );
 
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
-
-    if (!error) {
       return NextResponse.redirect(`${origin}/dashboard`);
     }
   }

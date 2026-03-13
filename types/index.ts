@@ -31,4 +31,10 @@ export interface DashboardAccess {
   phoneNumber: string | null;
   // ISO timestamp of the active membership purchase — used in the account strip and billing section
   membershipPurchasedAt: string | null;
+  // Parent seat invitation fields — only relevant for student accounts with has_parent_seat
+  invitedParentEmail: string | null;
+  parentInvitationStatus: string | null;
+  parentInvitationAcceptedAt: string | null;
+  // 'student' | 'parent' — parents see content driven by their linked student's entitlements
+  role: string;
 }

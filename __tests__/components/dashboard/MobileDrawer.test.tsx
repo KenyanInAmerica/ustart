@@ -13,6 +13,10 @@ const fullAccess: DashboardAccess = {
   hasAccessedContent: true,
   phoneNumber: null,
   membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 const noAccess: DashboardAccess = {
@@ -26,6 +30,10 @@ const noAccess: DashboardAccess = {
   hasAccessedContent: false,
   phoneNumber: null,
   membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 const defaultProps = {
@@ -108,5 +116,15 @@ describe("MobileDrawer", () => {
     render(<MobileDrawer {...defaultProps} />);
     expect(screen.getByText("student@example.com")).toBeInTheDocument();
     expect(screen.getByText("SE")).toBeInTheDocument();
+  });
+
+  it("shows Parent Account badge when role is parent", () => {
+    render(<MobileDrawer {...defaultProps} access={{ ...fullAccess, role: "parent" }} />);
+    expect(screen.getByText("Parent Account")).toBeInTheDocument();
+  });
+
+  it("does not show Parent Account badge for student role", () => {
+    render(<MobileDrawer {...defaultProps} />);
+    expect(screen.queryByText("Parent Account")).not.toBeInTheDocument();
   });
 });

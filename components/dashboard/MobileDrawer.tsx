@@ -137,6 +137,14 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
               <div className="text-[11px] text-white/30">{planName}</div>
             </div>
           </div>
+          {/* Badge shown only on parent accounts to distinguish their session */}
+          {access.role === "parent" && (
+            <div className="px-3 mb-2">
+              <span className="text-[10px] font-semibold bg-white/[0.06] border border-white/[0.10] text-white/[0.54] px-2 py-[3px] rounded-full">
+                Parent Account
+              </span>
+            </div>
+          )}
           <SignOutButton />
         </div>
       </div>
