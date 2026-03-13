@@ -1,3 +1,7 @@
+// Server actions for the parent invitation flow on the Parent Pack page.
+// Students invite a parent by email; the parent receives a magic link that signs
+// them in and links their account to the student's entitlements.
+
 "use server";
 
 import { headers } from "next/headers";
@@ -49,9 +53,6 @@ export async function sendParentInvitation(
       email: parentEmail,
       options: {
         shouldCreateUser: true,
-        // /auth/callback passes the code through to /auth/confirm, which only
-        // calls exchangeCodeForSession when the parent clicks the button — prevents
-        // email pre-fetchers (Gmail, Outlook) from consuming the code early.
         emailRedirectTo: `${getSiteUrl()}/auth/callback`,
         data: { student_id: user.id, role: "parent" },
       },
@@ -104,7 +105,7 @@ export async function resendParentInvitation(): Promise<
       },
     });
 
-    if (otpError) return { success: false, error: otpError.message };
+    if (otpError) return { success: false, error: "Failed to send invitation email. Please try again shortly." };
 
     // Refresh invited_at so the parent knows a new link was issued.
     await supabase

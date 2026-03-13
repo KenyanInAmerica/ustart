@@ -13,16 +13,20 @@ const TIER_NAMES: Record<string, string> = {
 export async function Greeting() {
   const supabase = createClient();
 
-  // Query the user_access view for the current user's tier.
-  // maybeSingle() returns null data (no error) when no membership row exists.
+  // Get the authenticated user's ID to scope the user_access query.
+  // .eq("id", user.id) is required — without it the query returns null.
+  const { data: { user } } = await supabase.auth.getUser();
+
   const { data: access } = await supabase
     .from("user_access")
     .select("membership_tier, first_name")
+    .eq("id", user!.id)
     .maybeSingle();
 
   // Supabase returns untyped data without a generated schema — cast to the
   // shape we expect. No `any` used; the assertion is a known structure.
   const raw = access as { membership_tier: string | null; first_name: string | null } | null;
+
   const rawTier = raw?.membership_tier ?? null;
   const planName = rawTier ? (TIER_NAMES[rawTier] ?? rawTier) : null;
 

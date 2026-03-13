@@ -1,3 +1,7 @@
+// Content section cards for the dashboard — one card per product the user may access.
+// Unlocked cards are full links; locked cards are inert divs with an inner pricing CTA.
+// Pure Server Component: access flags are computed upstream in fetchDashboardAccess.
+
 import Link from "next/link";
 import type { DashboardAccess } from "@/types";
 
@@ -22,6 +26,44 @@ function LockIcon() {
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
+  );
+}
+
+// Defined at module scope so React doesn't recreate it on every ContentCards render.
+function CardBody({ card }: { card: CardDef }) {
+  return (
+    <>
+      {/* Icon + badge row */}
+      <div className="flex items-start justify-between mb-4">
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${card.unlocked ? "bg-white/[0.07] text-white" : "bg-white/[0.03] text-white/[0.28]"}`}>
+          {card.unlocked ? card.icon : <LockIcon />}
+        </div>
+        <span className={`text-[10px] font-bold tracking-[0.1em] uppercase px-[7px] py-[2px] rounded-full border ${card.unlocked ? "text-white/[0.42] bg-white/[0.04] border-white/[0.07]" : "text-white/[0.28] bg-white/[0.02] border-white/[0.05]"}`}>
+          {card.badge}
+        </span>
+      </div>
+
+      {/* Title + description */}
+      <p className={`font-syne text-sm font-bold mb-1 ${card.unlocked ? "text-white" : "text-white/[0.28]"}`}>
+        {card.label}
+      </p>
+      <p className={`font-dm-sans text-xs leading-relaxed mb-4 ${card.unlocked ? "text-white/[0.42]" : "text-white/[0.20]"}`}>
+        {card.description}
+      </p>
+
+      {/* CTA */}
+      {card.unlocked ? (
+        <span className="text-xs font-medium text-white/[0.42]">Access content →</span>
+      ) : (
+        // Locked cards show an inner link to /pricing; the card wrapper itself is not a link.
+        <Link
+          href="/pricing"
+          className="text-xs text-white/[0.28] hover:text-white/[0.42] transition-colors"
+        >
+          {card.lockedCta}
+        </Link>
+      )}
+    </>
   );
 }
 
@@ -118,44 +160,6 @@ export function ContentCards({ access }: Props) {
       ),
     },
   ];
-
-  // Shared card body content — identical structure for locked and unlocked states.
-  function CardBody({ card }: { card: CardDef }) {
-    return (
-      <>
-        {/* Icon + badge row */}
-        <div className="flex items-start justify-between mb-4">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${card.unlocked ? "bg-white/[0.07] text-white" : "bg-white/[0.03] text-white/[0.28]"}`}>
-            {card.unlocked ? card.icon : <LockIcon />}
-          </div>
-          <span className={`text-[10px] font-bold tracking-[0.1em] uppercase px-[7px] py-[2px] rounded-full border ${card.unlocked ? "text-white/[0.42] bg-white/[0.04] border-white/[0.07]" : "text-white/[0.28] bg-white/[0.02] border-white/[0.05]"}`}>
-            {card.badge}
-          </span>
-        </div>
-
-        {/* Title + description */}
-        <p className={`font-syne text-sm font-bold mb-1 ${card.unlocked ? "text-white" : "text-white/[0.28]"}`}>
-          {card.label}
-        </p>
-        <p className={`font-dm-sans text-xs leading-relaxed mb-4 ${card.unlocked ? "text-white/[0.42]" : "text-white/[0.20]"}`}>
-          {card.description}
-        </p>
-
-        {/* CTA */}
-        {card.unlocked ? (
-          <span className="text-xs font-medium text-white/[0.42]">Access content →</span>
-        ) : (
-          // Locked cards show an inner link to /pricing; the card wrapper itself is not a link.
-          <Link
-            href="/pricing"
-            className="text-xs text-white/[0.28] hover:text-white/[0.42] transition-colors"
-          >
-            {card.lockedCta}
-          </Link>
-        )}
-      </>
-    );
-  }
 
   return (
     // 3-column grid on desktop, 2 on tablet, 1 on mobile

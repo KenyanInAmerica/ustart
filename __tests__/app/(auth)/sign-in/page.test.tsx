@@ -1,6 +1,11 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import SignInPage from "@/app/(auth)/sign-in/page";
 
+// Mock useSearchParams — jsdom has no router context so the hook returns null without this.
+jest.mock("next/navigation", () => ({
+  useSearchParams: jest.fn(() => new URLSearchParams()),
+}));
+
 // Mock @supabase/ssr so createBrowserClient returns a controlled fake client
 const mockSignInWithOtp = jest.fn();
 jest.mock("@supabase/ssr", () => ({

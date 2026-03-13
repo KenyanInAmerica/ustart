@@ -27,7 +27,7 @@ export function Footer() {
       </div>
 
       <span className="text-[13px] text-[rgba(255,255,255,0.45)]">
-        &copy; 2026 UStart. All rights reserved.
+        &copy; {new Date().getFullYear()} UStart. All rights reserved.
       </span>
     </footer>
   );

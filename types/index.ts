@@ -1,11 +1,14 @@
+// Reserved for the Stripe webhook handler — not used by the dashboard access layer.
 export type ProductSlug = "ustart-lite" | "parent-pack" | "explore" | "concierge";
 
+// Reserved for the Stripe webhook handler — not used by the dashboard access layer.
 export interface User {
   id: string;
   email: string;
   stripeCustomerId: string | null;
 }
 
+// Reserved for the Stripe webhook handler — not used by the dashboard access layer.
 export interface Entitlement {
   userId: string;
   product: ProductSlug;
@@ -33,8 +36,8 @@ export interface DashboardAccess {
   membershipPurchasedAt: string | null;
   // Parent seat invitation fields — only relevant for student accounts with has_parent_seat
   invitedParentEmail: string | null;
-  parentInvitationStatus: string | null;
+  parentInvitationStatus: "pending" | "accepted" | null;
   parentInvitationAcceptedAt: string | null;
-  // 'student' | 'parent' — parents see content driven by their linked student's entitlements
-  role: string;
+  // parents see content driven by their linked student's entitlements
+  role: "student" | "parent";
 }

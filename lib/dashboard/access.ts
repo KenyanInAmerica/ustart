@@ -1,3 +1,7 @@
+// Data-fetching layer for the dashboard shell and page components.
+// Both exported functions are memoised with React.cache so that the layout
+// and any page calling them share a single Supabase round-trip per request.
+
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase";
@@ -89,7 +93,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     accepted_at: string | null;
   } | null;
 
-  const role = profile?.role ?? "student";
+  const role = (profile?.role ?? "student") as "student" | "parent";
 
   // Start with the user's own entitlements — will be overridden for parent accounts.
   let membershipRank = raw?.membership_rank ?? 0;
@@ -135,7 +139,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     hasAccessedContent: raw?.first_content_visit_at != null,
     phoneNumber: raw?.phone_number ?? null,
     invitedParentEmail: invitation?.parent_email ?? null,
-    parentInvitationStatus: invitation?.status ?? null,
+    parentInvitationStatus: (invitation?.status ?? null) as "pending" | "accepted" | null,
     parentInvitationAcceptedAt: invitation?.accepted_at ?? null,
     role,
   };
