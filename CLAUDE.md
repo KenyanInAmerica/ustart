@@ -163,6 +163,30 @@ For every component or feature implemented:
 
 ---
 
+## Git Commits
+
+When asked to commit, stage all changed and untracked files relevant to the feature, then write a commit message in this style:
+
+- **Subject line**: imperative verb + short noun phrase — e.g. `add parent invitation flow`. 50 chars max, no period.
+- **Body**: 3–4 short paragraphs covering *what* changed and *why*. Mention new files/components by name where it aids understanding. No bullet lists, no markdown — plain prose only.
+- No co-author trailer.
+
+Pass the message via heredoc to avoid shell quoting issues:
+```bash
+git commit -m "$(cat <<'EOF'
+subject line here
+
+Body paragraph one — what and why.
+
+Body paragraph two if needed.
+EOF
+)"
+```
+
+Before committing: run `npm run typecheck`, `npm run lint`, and `npm run test` — all must pass.
+
+---
+
 ## Out of Scope (Do Not Implement)
 
 - WhatsApp group creation or management

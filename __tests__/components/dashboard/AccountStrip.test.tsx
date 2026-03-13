@@ -13,6 +13,10 @@ const withPlan: DashboardAccess = {
   hasAccessedContent: false,
   phoneNumber: null,
   membershipPurchasedAt: "2026-01-12T00:00:00Z",
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 const noPlan: DashboardAccess = {
@@ -26,6 +30,10 @@ const noPlan: DashboardAccess = {
   hasAccessedContent: false,
   phoneNumber: null,
   membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 describe("AccountStrip", () => {

@@ -8,6 +8,7 @@ interface StartHereProps {
   // Decoupled from hasMembership so users who purchase but haven't clicked through stay on step 3.
   hasAccessedContent: boolean;
   hasAgreedToCommunity: boolean;
+  role: string;
 }
 
 interface Step {
@@ -56,7 +57,9 @@ function CheckPending() {
   );
 }
 
-export function StartHere({ hasMembership, hasAccessedContent, hasAgreedToCommunity }: StartHereProps) {
+export function StartHere({ hasMembership, hasAccessedContent, hasAgreedToCommunity, role }: StartHereProps) {
+  // Parent accounts don't have their own onboarding steps — skip the card entirely.
+  if (role === "parent") return null;
   // All steps complete — collapse the card so the content sections shift up naturally.
   if (hasMembership && hasAccessedContent && hasAgreedToCommunity) return null;
 

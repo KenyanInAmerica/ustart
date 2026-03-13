@@ -13,6 +13,10 @@ const noAccess: DashboardAccess = {
   hasAccessedContent: false,
   phoneNumber: null,
   membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 const fullAccess: DashboardAccess = {
@@ -26,6 +30,10 @@ const fullAccess: DashboardAccess = {
   hasAccessedContent: true,
   phoneNumber: null,
   membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 jest.mock("next/navigation", () => ({

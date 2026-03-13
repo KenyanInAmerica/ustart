@@ -23,6 +23,7 @@ export default async function DashboardPage() {
         hasMembership={access.hasMembership}
         hasAccessedContent={access.hasAccessedContent}
         hasAgreedToCommunity={access.hasAgreedToCommunity}
+        role={access.role}
       />
 
       {/* Feature 4: Content Cards */}

@@ -13,6 +13,10 @@ const mockAccess: DashboardAccess = {
   hasAccessedContent: false,
   phoneNumber: null,
   membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
 };
 
 // page.tsx uses fetchDashboardAccess and fetchWhatsappLink (React.cache wrappers)
