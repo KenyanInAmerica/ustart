@@ -1,3 +1,7 @@
+// Profile section for the account page — personal info and contact/background fields.
+// Each subsection has an independent edit/save/cancel flow backed by the updateProfile
+// server action. Country of origin uses a lightweight filter-as-you-type combobox.
+
 "use client";
 
 import { useState } from "react";
@@ -6,6 +10,9 @@ import { updateProfile } from "@/lib/actions/updateProfile";
 
 // Mirrors the server action's regex — strips spaces before testing.
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
+
+// Maximum number of countries shown in the filter dropdown at once.
+const COUNTRY_DROPDOWN_LIMIT = 8;
 
 // Full list of world countries (UN members + commonly recognised states).
 const COUNTRIES = [
@@ -51,6 +58,54 @@ const COUNTRIES = [
   "Vanuatu", "Vatican City", "Venezuela", "Vietnam", "Yemen",
   "Zambia", "Zimbabwe",
 ];
+
+// Defined at module scope so React doesn't recreate it on every ProfileSection render.
+function SubsectionHeader({
+  title,
+  editing,
+  loading,
+  onEdit,
+  onSave,
+  onCancel,
+}: {
+  title: string;
+  editing: boolean;
+  loading: boolean;
+  onEdit: () => void;
+  onSave: () => void;
+  onCancel: () => void;
+}) {
+  return (
+    <div className="flex items-center justify-between mb-4">
+      <p className="font-syne text-sm font-bold text-white">{title}</p>
+      {editing ? (
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onCancel}
+            disabled={loading}
+            className="font-dm-sans text-xs text-white/[0.42] hover:text-white transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={onSave}
+            disabled={loading}
+            className="font-dm-sans text-xs text-white bg-white/[0.1] border border-white/[0.12] px-3 py-1 rounded-lg hover:bg-white/[0.15] transition-colors disabled:opacity-50"
+          >
+            {loading ? "Saving…" : "Save"}
+          </button>
+        </div>
+      ) : (
+        <button
+          onClick={onEdit}
+          className="font-dm-sans text-xs text-white/[0.42] hover:text-white transition-colors"
+        >
+          Edit
+        </button>
+      )}
+    </div>
+  );
+}
 
 interface Props {
   firstName: string | null;
@@ -128,7 +183,7 @@ export function ProfileSection({
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const filteredCountries = COUNTRIES.filter((c) =>
     c.toLowerCase().includes(countryQuery.toLowerCase())
-  ).slice(0, 8); // cap at 8 options to keep the dropdown compact
+  ).slice(0, COUNTRY_DROPDOWN_LIMIT);
 
   function handleEditContact() {
     setDraftPhone(savedPhone);
@@ -177,55 +232,6 @@ export function ProfileSection({
     } else {
       setContactError(result.error);
     }
-  }
-
-  // ── Shared sub-component helpers ──────────────────────────────────────────
-
-  function SubsectionHeader({
-    title,
-    editing,
-    loading,
-    onEdit,
-    onSave,
-    onCancel,
-  }: {
-    title: string;
-    editing: boolean;
-    loading: boolean;
-    onEdit: () => void;
-    onSave: () => void;
-    onCancel: () => void;
-  }) {
-    return (
-      <div className="flex items-center justify-between mb-4">
-        <p className="font-syne text-sm font-bold text-white">{title}</p>
-        {editing ? (
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onCancel}
-              disabled={loading}
-              className="font-dm-sans text-xs text-white/[0.42] hover:text-white transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              onClick={onSave}
-              disabled={loading}
-              className="font-dm-sans text-xs text-white bg-white/[0.1] border border-white/[0.12] px-3 py-1 rounded-lg hover:bg-white/[0.15] transition-colors disabled:opacity-50"
-            >
-              {loading ? "Saving…" : "Save"}
-            </button>
-          </div>
-        ) : (
-          <button
-            onClick={onEdit}
-            className="font-dm-sans text-xs text-white/[0.42] hover:text-white transition-colors"
-          >
-            Edit
-          </button>
-        )}
-      </div>
-    );
   }
 
   // ── Render ────────────────────────────────────────────────────────────────

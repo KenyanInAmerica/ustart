@@ -66,15 +66,19 @@ export default async function DashboardLayout({
         access={access}
       />
 
-      {/* Main content area */}
-      <main className="flex-1 min-[860px]:ml-[240px] px-5 pt-[80px] pb-8 min-[860px]:px-[56px] min-[860px]:py-[48px] max-w-full min-[860px]:max-w-[1100px]">
-        {/* Desktop-only top bar with sign out — mobile nav has its own drawer */}
-        <div className="hidden min-[860px]:flex justify-end mb-6">
-          <div className="w-fit">
-            <SignOutButton />
+      {/* Main content area — fills remaining width; inner wrapper constrains line length */}
+      <main className="flex-1 min-[860px]:ml-[240px] px-5 pt-[80px] pb-8 min-[860px]:px-[56px] min-[860px]:py-[48px]">
+        {/* max-w-5xl + mx-auto centres the content and prevents it from sprawling
+            too wide on large monitors without constraining the sidebar. */}
+        <div className="max-w-5xl mx-auto w-full">
+          {/* Desktop-only top bar with sign out — mobile nav has its own drawer */}
+          <div className="hidden min-[860px]:flex justify-end mb-6">
+            <div className="w-fit">
+              <SignOutButton />
+            </div>
           </div>
+          {children}
         </div>
-        {children}
       </main>
     </div>
   );

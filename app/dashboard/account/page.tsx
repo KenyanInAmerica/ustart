@@ -12,6 +12,7 @@ interface ActiveAddon {
 // Inside the dashboard layout — no auth guard needed (middleware protects /dashboard/*).
 export default async function AccountPage() {
   const supabase = createClient();
+
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -21,6 +22,7 @@ export default async function AccountPage() {
     .select(
       "first_name, last_name, email, phone_number, university_name, country_of_origin, membership_tier, membership_purchased_at, active_addons, has_parent_seat"
     )
+    .eq("id", user!.id)  // scope to the authenticated user
     .maybeSingle();
 
   const raw = data as {
@@ -41,7 +43,6 @@ export default async function AccountPage() {
       <h1 className="font-syne text-2xl font-bold tracking-[-0.03em] text-white mb-8">
         Account
       </h1>
-
       <ProfileSection
         firstName={raw?.first_name ?? null}
         lastName={raw?.last_name ?? null}
@@ -50,7 +51,6 @@ export default async function AccountPage() {
         universityName={raw?.university_name ?? null}
         countryOfOrigin={raw?.country_of_origin ?? null}
       />
-
       <BillingSection
         membershipTier={raw?.membership_tier ?? null}
         membershipPurchasedAt={raw?.membership_purchased_at ?? null}

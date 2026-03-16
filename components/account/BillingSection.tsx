@@ -1,4 +1,6 @@
-"use client";
+// Billing section for the account page — displays the current plan, active add-ons,
+// and placeholder rows for payment method and invoices.
+// Pure Server Component: all data is passed as props, no client-side state needed.
 
 import Link from "next/link";
 
@@ -108,8 +110,8 @@ export function BillingSection({
           <p className="font-dm-sans text-sm text-white/[0.42]">No active add-ons</p>
         ) : (
           <ul className="space-y-2">
-            {allAddons.map((addon, idx) => (
-              <li key={idx} className="flex items-center justify-between">
+            {allAddons.map((addon) => (
+              <li key={addon.type} className="flex items-center justify-between">
                 <span className="font-dm-sans text-sm text-white/[0.68]">
                   {addon.label}
                 </span>

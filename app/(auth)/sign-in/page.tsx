@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
@@ -23,16 +24,19 @@ function friendlyError(message: string): string {
   return "Something went wrong. Please try again.";
 }
 
-export default function SignInPage() {
+// Inner component reads search params — must be wrapped in Suspense so Next.js
+// can statically render the outer shell without blocking on the params read.
+function SignInContent() {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Check for ?error=auth_failed appended by the callback route on failure
-  const urlError =
-    typeof window !== "undefined" &&
-    new URLSearchParams(window.location.search).get("error") === "auth_failed";
+  // Check for ?error=auth_failed appended by the callback route on failure.
+  // useSearchParams() is safe here — the Suspense boundary in the default export
+  // prevents the params read from blocking static rendering.
+  const searchParams = useSearchParams();
+  const urlError = searchParams.get("error") === "auth_failed";
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -171,5 +175,13 @@ export default function SignInPage() {
         </form>
       </div>
     </div>
+  );
+}
+
+export default function SignInPage() {
+  return (
+    <Suspense>
+      <SignInContent />
+    </Suspense>
   );
 }
