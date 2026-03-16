@@ -1,10 +1,18 @@
+import { redirect } from "next/navigation";
 import { trackContentVisit } from "@/lib/actions/trackContentVisit";
+import { fetchDashboardAccess } from "@/lib/dashboard/access";
 
 // Placeholder for the UStart Pro content page (Feature 4).
 // trackContentVisit() records the user's first content visit timestamp
 // which drives the "Access your content" step in the StartHere card.
 export default async function ProPage() {
-  await trackContentVisit();
+  const [access] = await Promise.all([
+    fetchDashboardAccess(),
+    trackContentVisit(),
+  ]);
+
+  // Server-side entitlement guard — Pro requires membership_rank >= 2.
+  if (access.membershipRank < 2) redirect("/dashboard");
 
   return (
     <div>

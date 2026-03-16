@@ -1,9 +1,17 @@
+import { redirect } from "next/navigation";
 import { trackContentVisit } from "@/lib/actions/trackContentVisit";
+import { fetchDashboardAccess } from "@/lib/dashboard/access";
 
 // Placeholder for the Explore content page (Feature 4).
 // trackContentVisit() records the user's first content visit timestamp.
 export default async function ExplorePage() {
-  await trackContentVisit();
+  const [access] = await Promise.all([
+    fetchDashboardAccess(),
+    trackContentVisit(),
+  ]);
+
+  // Server-side entitlement guard — Explore requires the has_explore add-on.
+  if (!access.hasExplore) redirect("/dashboard");
 
   return (
     <div>

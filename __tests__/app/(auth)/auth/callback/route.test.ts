@@ -1,8 +1,7 @@
 /** @jest-environment node */
 
 const mockExchangeCodeForSession = jest.fn();
-const mockProfilesUpdate = jest.fn();
-const mockInvitationsUpdate = jest.fn();
+const mockServiceFrom = jest.fn();
 
 // Must use relative paths — @/ alias doesn't resolve in the node jest environment.
 jest.mock("../../../../../lib/supabase/server", () => ({
@@ -13,21 +12,10 @@ jest.mock("../../../../../lib/supabase/server", () => ({
   })),
 }));
 
-// Service client is used for cross-user writes when handling parent OTP callbacks.
-jest.mock("../../../../../lib/supabase", () => ({
+// Service client is used for read/write guards when handling parent OTP callbacks.
+jest.mock("../../../../../lib/supabase/service", () => ({
   createServiceClient: jest.fn(() => ({
-    from: jest.fn((table: string) => {
-      if (table === "profiles") {
-        const chain = { update: mockProfilesUpdate, eq: jest.fn() };
-        (chain.eq as jest.Mock).mockReturnValue(chain);
-        mockProfilesUpdate.mockReturnValue(chain);
-        return chain;
-      }
-      const chain = { update: mockInvitationsUpdate, eq: jest.fn() };
-      (chain.eq as jest.Mock).mockReturnValue(chain);
-      mockInvitationsUpdate.mockReturnValue(chain);
-      return chain;
-    }),
+    from: mockServiceFrom,
   })),
 }));
 
@@ -41,11 +29,32 @@ jest.mock("next/headers", () => ({
 import { GET } from "@/app/(auth)/auth/callback/route";
 import { NextRequest } from "next/server";
 
+// Creates a read chain that resolves maybeSingle() with `result`.
+function makeReadChain(result: unknown) {
+  const chain: Record<string, jest.Mock> = {} as Record<string, jest.Mock>;
+  const eqFn = jest.fn(() => chain);
+  chain.select = jest.fn(() => chain);
+  chain.eq = eqFn;
+  chain.maybeSingle = jest.fn().mockResolvedValue(result);
+  return chain;
+}
+
+// Creates a write chain — update().eq() resolves cleanly.
+function makeWriteChain() {
+  const chain: Record<string, unknown> = {};
+  const eqFn = jest.fn(() => chain);
+  chain.update = jest.fn(() => chain);
+  chain.eq = eqFn;
+  // Thenable so `await ...update(...).eq(...)` resolves without error.
+  const resolved = Promise.resolve(undefined);
+  chain.then = resolved.then.bind(resolved);
+  return chain;
+}
+
 describe("GET /auth/callback", () => {
   beforeEach(() => {
     mockExchangeCodeForSession.mockReset();
-    mockProfilesUpdate.mockReset();
-    mockInvitationsUpdate.mockReset();
+    mockServiceFrom.mockReset();
   });
 
   it("redirects to /dashboard on successful code exchange (student)", async () => {
@@ -76,6 +85,14 @@ describe("GET /auth/callback", () => {
       error: null,
     });
 
+    // profiles read → not yet linked; invitations read → pending exists;
+    // then profiles write + invitations write.
+    mockServiceFrom
+      .mockReturnValueOnce(makeReadChain({ data: { student_id: null } }))
+      .mockReturnValueOnce(makeReadChain({ data: { id: "inv-1" } }))
+      .mockReturnValueOnce(makeWriteChain())
+      .mockReturnValueOnce(makeWriteChain());
+
     const request = new NextRequest(
       "http://localhost:3000/auth/callback?code=parent-code"
     );
@@ -85,12 +102,66 @@ describe("GET /auth/callback", () => {
     expect(response.headers.get("location")).toBe(
       "http://localhost:3000/dashboard"
     );
-    expect(mockProfilesUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ role: "parent", student_id: "student-123" })
+    // Two reads + two writes = 4 service client calls.
+    expect(mockServiceFrom).toHaveBeenCalledTimes(4);
+  });
+
+  it("skips re-linking when parent profile is already linked to a student", async () => {
+    mockExchangeCodeForSession.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: "parent-user-id",
+          user_metadata: { role: "parent", student_id: "student-123" },
+        },
+      },
+      error: null,
+    });
+
+    // profiles read → already linked; both reads made but link block is skipped.
+    mockServiceFrom
+      .mockReturnValueOnce(makeReadChain({ data: { student_id: "student-123" } }))
+      .mockReturnValueOnce(makeReadChain({ data: { id: "inv-1" } }));
+
+    const request = new NextRequest(
+      "http://localhost:3000/auth/callback?code=relogin-code"
     );
-    expect(mockInvitationsUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ status: "accepted" })
+    const response = await GET(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/dashboard"
     );
+    // Only 2 reads — no writes because profile already has student_id set.
+    expect(mockServiceFrom).toHaveBeenCalledTimes(2);
+  });
+
+  it("skips re-linking when no pending invitation exists", async () => {
+    mockExchangeCodeForSession.mockResolvedValueOnce({
+      data: {
+        user: {
+          id: "parent-user-id",
+          user_metadata: { role: "parent", student_id: "student-123" },
+        },
+      },
+      error: null,
+    });
+
+    // profiles read → unlinked; invitations read → cancelled/consumed (null).
+    mockServiceFrom
+      .mockReturnValueOnce(makeReadChain({ data: { student_id: null } }))
+      .mockReturnValueOnce(makeReadChain({ data: null }));
+
+    const request = new NextRequest(
+      "http://localhost:3000/auth/callback?code=unlinked-code"
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/dashboard"
+    );
+    // Only 2 reads — no writes because no pending invitation exists.
+    expect(mockServiceFrom).toHaveBeenCalledTimes(2);
   });
 
   it("redirects to /sign-in?error=auth_failed when exchange fails", async () => {
