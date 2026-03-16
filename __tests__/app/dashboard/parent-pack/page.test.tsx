@@ -9,12 +9,17 @@ jest.mock("../../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
 }));
 
+jest.mock("next/navigation", () => ({
+  redirect: jest.fn(),
+}));
+
 // ParentInvitationSection is a client component tested in its own file.
 jest.mock("../../../../components/dashboard/ParentInvitationSection", () => ({
   ParentInvitationSection: () => <div data-testid="invitation-section-stub" />,
 }));
 
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
+import { redirect } from "next/navigation";
 import type { DashboardAccess } from "@/types";
 
 const studentAccess: DashboardAccess = {
@@ -42,6 +47,7 @@ const parentAccess: DashboardAccess = {
 describe("ParentPackPage", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(studentAccess);
+    (redirect as unknown as jest.Mock).mockReset();
   });
 
   it("renders without error", async () => {
@@ -68,5 +74,14 @@ describe("ParentPackPage", () => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(parentAccess);
     render(await ParentPackPage());
     expect(screen.queryByTestId("invitation-section-stub")).not.toBeInTheDocument();
+  });
+
+  it("redirects to /dashboard when hasParentSeat is false", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({
+      ...studentAccess,
+      hasParentSeat: false,
+    });
+    await ParentPackPage();
+    expect(redirect).toHaveBeenCalledWith("/dashboard");
   });
 });

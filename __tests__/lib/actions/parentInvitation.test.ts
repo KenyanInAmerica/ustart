@@ -3,6 +3,8 @@
 const mockGetUser = jest.fn();
 const mockSignInWithOtp = jest.fn();
 const mockFrom = jest.fn();
+const mockServiceFrom = jest.fn();
+const mockAdminDeleteUser = jest.fn();
 
 jest.mock("../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
@@ -11,6 +13,19 @@ jest.mock("../../../lib/supabase/server", () => ({
       signInWithOtp: mockSignInWithOtp,
     },
     from: mockFrom,
+  })),
+}));
+
+// Service client is used in sendParentInvitation (email validation) and
+// unlinkParent (auth.admin.deleteUser to fully remove the parent account).
+jest.mock("../../../lib/supabase/service", () => ({
+  createServiceClient: jest.fn(() => ({
+    from: mockServiceFrom,
+    auth: {
+      admin: {
+        deleteUser: mockAdminDeleteUser,
+      },
+    },
   })),
 }));
 
@@ -53,11 +68,24 @@ function makeChain(returnValue: unknown): Record<string, unknown> {
 
 const AUTHENTICATED_USER = { id: "student-123" };
 
+// Returns a chain that resolves maybeSingle() with `result` — used for service client reads.
+function makeServiceReadChain(result: unknown) {
+  const chain: Record<string, jest.Mock> = {} as Record<string, jest.Mock>;
+  const eqFn = jest.fn(() => chain);
+  chain.select = jest.fn(() => chain);
+  chain.eq = eqFn;
+  chain.maybeSingle = jest.fn().mockResolvedValue(result);
+  return chain;
+}
+
 describe("sendParentInvitation", () => {
   beforeEach(() => {
     mockGetUser.mockReset();
     mockSignInWithOtp.mockReset();
     mockFrom.mockReset();
+    mockServiceFrom.mockReset();
+    // Default: invited email doesn't belong to any existing account.
+    mockServiceFrom.mockReturnValue(makeServiceReadChain({ data: null }));
   });
 
   it("returns error when not authenticated", async () => {
@@ -93,6 +121,38 @@ describe("sendParentInvitation", () => {
 
     const result = await sendParentInvitation("parent@example.com");
     expect(result).toEqual({ success: true });
+  });
+
+  it("returns error when invited email belongs to an existing student account", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    // user_access lookup finds a row → account exists
+    mockServiceFrom
+      .mockReturnValueOnce(makeServiceReadChain({ data: { id: "existing-user-id" } }))
+      // profiles lookup → role is student
+      .mockReturnValueOnce(makeServiceReadChain({ data: { role: "student", student_id: null } }));
+
+    const result = await sendParentInvitation("student@example.com");
+    expect(result).toEqual({
+      success: false,
+      error: "This email belongs to an existing student account and cannot be invited as a parent.",
+    });
+  });
+
+  it("returns error when invited email belongs to a parent linked to another student", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    // user_access lookup finds a row → account exists
+    mockServiceFrom
+      .mockReturnValueOnce(makeServiceReadChain({ data: { id: "other-parent-id" } }))
+      // profiles lookup → role is parent, linked to a different student
+      .mockReturnValueOnce(
+        makeServiceReadChain({ data: { role: "parent", student_id: "other-student-id" } })
+      );
+
+    const result = await sendParentInvitation("taken-parent@example.com");
+    expect(result).toEqual({
+      success: false,
+      error: "This parent account is already linked to another student.",
+    });
   });
 });
 
@@ -157,6 +217,8 @@ describe("unlinkParent", () => {
   beforeEach(() => {
     mockGetUser.mockReset();
     mockFrom.mockReset();
+    mockServiceFrom.mockReset();
+    mockAdminDeleteUser.mockReset();
   });
 
   it("returns error when not authenticated", async () => {
@@ -167,38 +229,48 @@ describe("unlinkParent", () => {
 
   it("returns success even when no parent profile found (still cancels invitation)", async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
-    // profiles.maybeSingle() returns no row; parent_invitations update succeeds.
-    const profileFindChain = makeChain({ data: null, error: null });
+    // profiles query uses the service client — no row found, skip deletion.
+    mockServiceFrom.mockReturnValueOnce(makeServiceReadChain({ data: null }));
     const invitationUpdateChain = makeChain({ error: null });
-    mockFrom
-      .mockReturnValueOnce(profileFindChain)
-      .mockReturnValueOnce(invitationUpdateChain);
+    mockFrom.mockReturnValueOnce(invitationUpdateChain);
 
     const result = await unlinkParent();
     expect(result).toEqual({ success: true });
+    expect(mockAdminDeleteUser).not.toHaveBeenCalled();
   });
 
-  it("returns success when parent is unlinked", async () => {
+  it("returns success when parent account is deleted and invitation is cancelled", async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
-    const profileFindChain = makeChain({ data: { id: "parent-profile-id" }, error: null });
-    const profileUpdateChain = makeChain({ error: null });
+    // profiles query via service client returns the parent's ID.
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({ data: { id: "parent-profile-id" } })
+    );
+    mockAdminDeleteUser.mockResolvedValue({ error: null });
     const invitationUpdateChain = makeChain({ error: null });
-    mockFrom
-      .mockReturnValueOnce(profileFindChain)
-      .mockReturnValueOnce(profileUpdateChain)
-      .mockReturnValueOnce(invitationUpdateChain);
+    mockFrom.mockReturnValueOnce(invitationUpdateChain);
 
     const result = await unlinkParent();
     expect(result).toEqual({ success: true });
+    expect(mockAdminDeleteUser).toHaveBeenCalledWith("parent-profile-id");
+  });
+
+  it("returns error when parent account deletion fails", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({ data: { id: "parent-profile-id" } })
+    );
+    mockAdminDeleteUser.mockResolvedValue({ error: { message: "Auth error" } });
+
+    const result = await unlinkParent();
+    expect(result).toEqual({ success: false, error: "Failed to remove parent account." });
   });
 
   it("returns error when invitation update fails", async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
-    const profileFindChain = makeChain({ data: null, error: null });
+    // No parent profile — skip deletion, go straight to invitation cancel.
+    mockServiceFrom.mockReturnValueOnce(makeServiceReadChain({ data: null }));
     const invitationUpdateChain = makeChain({ error: { message: "DB error" } });
-    mockFrom
-      .mockReturnValueOnce(profileFindChain)
-      .mockReturnValueOnce(invitationUpdateChain);
+    mockFrom.mockReturnValueOnce(invitationUpdateChain);
 
     const result = await unlinkParent();
     expect(result).toEqual({ success: false, error: "Failed to update invitation status." });

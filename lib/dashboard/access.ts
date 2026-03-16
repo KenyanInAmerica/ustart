@@ -4,7 +4,7 @@
 
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 import type { DashboardAccess } from "@/types";
 
 // React.cache deduplicates this call within a single render pass — both the

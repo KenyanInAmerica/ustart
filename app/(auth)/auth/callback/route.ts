@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -24,16 +24,38 @@ export async function GET(request: NextRequest) {
       if (meta?.role === "parent" && meta?.student_id) {
         const service = createServiceClient();
 
-        await service
+        // Guard against persistent metadata re-linking after unlinkParent():
+        // raw_user_meta_data is never cleared on the auth.users row, so a parent
+        // who has been unlinked would be re-linked on every subsequent sign-in
+        // without these checks.
+        const { data: currentProfile } = await service
           .from("profiles")
-          .update({ role: "parent", student_id: meta.student_id })
-          .eq("id", user.id);
+          .select("student_id")
+          .eq("id", user.id)
+          .maybeSingle();
 
-        await service
+        const { data: pendingInvitation } = await service
           .from("parent_invitations")
-          .update({ status: "accepted", accepted_at: new Date().toISOString() })
+          .select("id")
           .eq("student_id", meta.student_id)
-          .eq("status", "pending");
+          .eq("status", "pending")
+          .maybeSingle();
+
+        const profile = currentProfile as { student_id: string | null } | null;
+        const invitation = pendingInvitation as { id: string } | null;
+
+        // Only link if not already linked to any student AND a pending invitation exists.
+        if (!profile?.student_id && invitation) {
+          await service
+            .from("profiles")
+            .update({ role: "parent", student_id: meta.student_id })
+            .eq("id", user.id);
+
+          await service
+            .from("parent_invitations")
+            .update({ status: "accepted", accepted_at: new Date().toISOString() })
+            .eq("id", invitation.id);
+        }
       }
 
       return NextResponse.redirect(`${origin}/dashboard`);

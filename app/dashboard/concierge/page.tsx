@@ -1,9 +1,17 @@
+import { redirect } from "next/navigation";
 import { trackContentVisit } from "@/lib/actions/trackContentVisit";
+import { fetchDashboardAccess } from "@/lib/dashboard/access";
 
 // Placeholder for the Concierge content page (Feature 4).
 // trackContentVisit() records the user's first content visit timestamp.
 export default async function ConciergePage() {
-  await trackContentVisit();
+  const [access] = await Promise.all([
+    fetchDashboardAccess(),
+    trackContentVisit(),
+  ]);
+
+  // Server-side entitlement guard — Concierge requires the has_concierge add-on.
+  if (!access.hasConcierge) redirect("/dashboard");
 
   return (
     <div>

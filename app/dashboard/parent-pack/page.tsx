@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { trackContentVisit } from "@/lib/actions/trackContentVisit";
 import { fetchDashboardAccess } from "@/lib/dashboard/access";
 import { ParentInvitationSection } from "@/components/dashboard/ParentInvitationSection";
@@ -7,6 +8,10 @@ export default async function ParentPackPage() {
     fetchDashboardAccess(),
     trackContentVisit(),
   ]);
+
+  // Server-side entitlement guard — Parent Pack requires has_parent_seat.
+  // For parent accounts, hasParentSeat is derived from the linked student's entitlements.
+  if (!access.hasParentSeat) redirect("/dashboard");
 
   return (
     <div>

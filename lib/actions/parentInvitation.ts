@@ -7,6 +7,7 @@
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -30,6 +31,40 @@ export async function sendParentInvitation(
 
     if (!EMAIL_REGEX.test(parentEmail)) {
       return { success: false, error: "Please enter a valid email address." };
+    }
+
+    // Validate that the invited email doesn't belong to an account that would be
+    // corrupted by the invitation. Use the service client to bypass RLS and check
+    // across all users — the regular client can only see the current user's data.
+    const service = createServiceClient();
+    const { data: existingUserRow } = await service
+      .from("user_access")
+      .select("id")
+      .eq("email", parentEmail)
+      .maybeSingle();
+
+    if (existingUserRow) {
+      const raw = existingUserRow as { id: string };
+      const { data: existingProfile } = await service
+        .from("profiles")
+        .select("role, student_id")
+        .eq("id", raw.id)
+        .maybeSingle();
+
+      const profile = existingProfile as { role: string | null; student_id: string | null } | null;
+      if (profile) {
+        const existingRole = profile.role ?? "student";
+
+        // Inviting an existing student would overwrite their profile and destroy access.
+        if (existingRole === "student") {
+          return { success: false, error: "This email belongs to an existing student account and cannot be invited as a parent." };
+        }
+
+        // Inviting a parent already linked to a different student would re-link them.
+        if (existingRole === "parent" && profile.student_id !== null && profile.student_id !== user.id) {
+          return { success: false, error: "This parent account is already linked to another student." };
+        }
+      }
     }
 
     // Prevent duplicate active invitations — one parent per student at a time.
@@ -154,24 +189,33 @@ export async function unlinkParent(): Promise<
     } = await supabase.auth.getUser();
     if (!user) return { success: false, error: "Not authenticated." };
 
+    // Initialise the service client here — RLS prevents the regular client from
+    // reading another user's profile row, so the profiles query must use service role.
+    const service = createServiceClient();
+
     // Find the linked parent profile — may already be absent if cleaned up externally.
-    const { data: parentProfile } = await supabase
+    const { data: parentProfile } = await service
       .from("profiles")
       .select("id")
       .eq("student_id", user.id)
       .eq("role", "parent")
       .maybeSingle();
 
-    // Reset the parent's profile if found — non-fatal if absent.
+    // Delete the parent's auth.users row via the service role — RLS prevents the
+    // regular client from deleting another user's account. Deleting from auth.users
+    // cascades and removes the profiles row automatically, and destroys the
+    // raw_user_meta_data that would otherwise re-link the parent on a future sign-in.
     if (parentProfile) {
-      await supabase
-        .from("profiles")
-        .update({ student_id: null, role: "student" })
-        .eq("id", parentProfile.id);
+      const raw = parentProfile as { id: string };
+      const { error: deleteError } = await service.auth.admin.deleteUser(raw.id);
+      if (deleteError) {
+        return { success: false, error: "Failed to remove parent account." };
+      }
+      // TODO: notify parent via Resend that their account has been removed
     }
 
     // Cancel the accepted invitation row so the student can invite again.
-    // Filter by status = 'accepted' to avoid touching already-cancelled rows.
+    // The parent account no longer exists so the same email can be re-invited immediately.
     const { error: invitationError } = await supabase
       .from("parent_invitations")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })

@@ -5,7 +5,41 @@ jest.mock("../../../../lib/actions/trackContentVisit", () => ({
   trackContentVisit: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock("../../../../lib/dashboard/access", () => ({
+  fetchDashboardAccess: jest.fn(),
+}));
+
+jest.mock("next/navigation", () => ({
+  redirect: jest.fn(),
+}));
+
+import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
+import { redirect } from "next/navigation";
+import type { DashboardAccess } from "@/types";
+
+const conciergeAccess: DashboardAccess = {
+  membershipRank: 1,
+  membershipTier: "lite",
+  hasMembership: true,
+  hasParentSeat: false,
+  hasExplore: false,
+  hasConcierge: true,
+  hasAgreedToCommunity: false,
+  hasAccessedContent: false,
+  phoneNumber: null,
+  membershipPurchasedAt: null,
+  role: "student",
+  invitedParentEmail: null,
+  parentInvitationStatus: null,
+  parentInvitationAcceptedAt: null,
+};
+
 describe("ConciergePage", () => {
+  beforeEach(() => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue(conciergeAccess);
+    (redirect as unknown as jest.Mock).mockReset();
+  });
+
   it("renders without error", async () => {
     const { container } = render(await ConciergePage());
     expect(container).toBeTruthy();
@@ -19,5 +53,14 @@ describe("ConciergePage", () => {
   it("renders the coming soon placeholder", async () => {
     render(await ConciergePage());
     expect(screen.getByText(/content coming soon/i)).toBeInTheDocument();
+  });
+
+  it("redirects to /dashboard when hasConcierge is false", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({
+      ...conciergeAccess,
+      hasConcierge: false,
+    });
+    await ConciergePage();
+    expect(redirect).toHaveBeenCalledWith("/dashboard");
   });
 });
