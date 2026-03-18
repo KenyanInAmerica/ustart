@@ -1,8 +1,13 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { createClient as createSupabaseServiceClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require an active session. Any sub-path also matches (startsWith check below).
 const PROTECTED_PATHS = ["/dashboard", "/content", "/account"];
+
+// /admin routes require both authentication AND is_admin = true on the profile.
+// Checked separately because it needs an extra DB query beyond session validation.
+const ADMIN_PATHS = ["/admin"];
 
 export async function middleware(request: NextRequest) {
   // Start with a passthrough response; may be replaced by a redirect below.
@@ -44,6 +49,43 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
+  // ── Admin route protection ──────────────────────────────────────────────────
+  // Checked before the generic protected-paths block so admin redirects take
+  // precedence (redirect to /sign-in rather than /dashboard for unauthenticated).
+  const isAdminPath = ADMIN_PATHS.some((path) => pathname.startsWith(path));
+  if (isAdminPath) {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/sign-in";
+      return NextResponse.redirect(url);
+    }
+
+    // Use the service role client to check is_admin — RLS on the profiles table
+    // may not permit the anon/authed client to read this column.
+    const serviceClient = createSupabaseServiceClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data: profileData } = await serviceClient
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    const profile = profileData as { is_admin: boolean | null } | null;
+
+    if (!profile?.is_admin) {
+      // Authenticated but not an admin — send to the user dashboard.
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+
+    return supabaseResponse;
+  }
+
+  // ── Standard protected routes ───────────────────────────────────────────────
   // Unauthenticated users attempting to access protected routes → redirect to sign-in
   const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
   if (isProtected && !user) {
