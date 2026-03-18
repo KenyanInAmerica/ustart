@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 
 // Async Server Component — reads the Supabase session server-side so the
@@ -9,6 +10,18 @@ export async function Navbar() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  // Check is_admin only when a user is present — one extra query for admins only.
+  let isAdmin = false;
+  if (user) {
+    const service = createServiceClient();
+    const { data: profile } = await service
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", user.id)
+      .maybeSingle();
+    isAdmin = (profile as { is_admin: boolean | null } | null)?.is_admin ?? false;
+  }
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-[100] flex items-center justify-between px-6 md-900:px-12 h-16 bg-[rgba(5,8,15,0.85)] backdrop-blur-[16px] border-b border-[rgba(255,255,255,0.07)]">
@@ -24,8 +37,16 @@ export async function Navbar() {
       <div className="flex items-center gap-6">
         {user ? (
           <>
-            {/* Authenticated: sign out text link + solid Dashboard CTA */}
+            {/* Authenticated: sign out text link + optional Admin + solid Dashboard CTA */}
             <SignOutButton />
+            {isAdmin && (
+              <Link
+                href="/admin"
+                className="inline-flex items-center bg-white text-[#05080F] text-sm font-medium px-5 py-[9px] rounded-lg hover:opacity-90 hover:-translate-y-px transition-all duration-[150ms]"
+              >
+                Admin
+              </Link>
+            )}
             <Link
               href="/dashboard"
               className="inline-flex items-center bg-white text-[#05080F] text-sm font-medium px-5 py-[9px] rounded-lg hover:opacity-90 hover:-translate-y-px transition-all duration-[150ms]"
