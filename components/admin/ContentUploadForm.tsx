@@ -13,6 +13,8 @@ const TIERS: { value: ContentItem["tier"]; label: string }[] = [
   { value: "pro", label: "Pro" },
   { value: "premium", label: "Premium" },
   { value: "parent_pack", label: "Parent Pack" },
+  { value: "explore", label: "Explore" },
+  { value: "concierge", label: "Concierge" },
 ];
 
 export function ContentUploadForm() {
@@ -71,14 +73,14 @@ export function ContentUploadForm() {
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[13px] text-white/60 mb-1.5">Tier</label>
+          <label className="block text-[13px] text-white/60 mb-1.5">Category</label>
           <select
             name="tier"
             required
             defaultValue=""
             className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-white/30"
           >
-            <option value="" disabled>Select tier…</option>
+            <option value="" disabled>Select category…</option>
             {TIERS.map((t) => (
               <option key={t.value} value={t.value}>{t.label}</option>
             ))}

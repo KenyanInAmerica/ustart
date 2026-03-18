@@ -19,6 +19,8 @@ const TIER_OPTIONS: { value: ContentItem["tier"] | ""; label: string }[] = [
   { value: "pro", label: "Pro" },
   { value: "premium", label: "Premium" },
   { value: "parent_pack", label: "Parent Pack" },
+  { value: "explore", label: "Explore" },
+  { value: "concierge", label: "Concierge" },
 ];
 
 export default async function AdminContentPage({ searchParams }: PageProps) {
@@ -36,7 +38,7 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
         Content
       </h1>
       <p className="text-[13px] text-white/40 mb-8">
-        Upload PDFs and manage the content library by tier.
+        Upload PDFs and manage the content library by category.
       </p>
 
       {/* ── Section A — Tier content library ─────────────────────────────────── */}
@@ -76,7 +78,7 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
             <thead>
               <tr className="border-b border-white/[0.07] bg-white/[0.02]">
                 <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Title</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Tier</th>
+                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Category</th>
                 <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">File</th>
                 <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Uploaded</th>
                 <th className="px-4 py-3" />

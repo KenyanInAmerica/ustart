@@ -52,7 +52,7 @@ export async function uploadContentItem(
       return { success: false, error: "All fields are required." };
     }
 
-    const validTiers: ContentItem["tier"][] = ["lite", "pro", "premium", "parent_pack"];
+    const validTiers: ContentItem["tier"][] = ["lite", "pro", "premium", "parent_pack", "explore", "concierge"];
     if (!validTiers.includes(tier as ContentItem["tier"])) {
       return { success: false, error: "Invalid tier." };
     }

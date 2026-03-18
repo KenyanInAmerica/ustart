@@ -23,7 +23,7 @@ describe("ContentUploadForm", () => {
     render(<ContentUploadForm />);
     expect(screen.getByPlaceholderText(/ssn application guide/i)).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/brief description/i)).toBeInTheDocument();
-    expect(screen.getByText(/select tier/i)).toBeInTheDocument();
+    expect(screen.getByText(/select category/i)).toBeInTheDocument();
     expect(screen.getByText(/choose pdf/i)).toBeInTheDocument();
   });
 
