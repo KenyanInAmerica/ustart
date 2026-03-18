@@ -18,6 +18,14 @@ jest.mock("../../../../components/dashboard/ParentInvitationSection", () => ({
   ParentInvitationSection: () => <div data-testid="invitation-section-stub" />,
 }));
 
+jest.mock("../../../../lib/dashboard/content", () => ({
+  fetchTierContent: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("../../../../components/dashboard/ContentGrid", () => ({
+  ContentGrid: () => <div data-testid="content-grid-stub" />,
+}));
+
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
 import { redirect } from "next/navigation";
 import type { DashboardAccess } from "@/types";
@@ -60,9 +68,9 @@ describe("ParentPackPage", () => {
     expect(screen.getByText("Parent Pack")).toBeInTheDocument();
   });
 
-  it("renders the Parent Resources section heading", async () => {
+  it("renders the content grid", async () => {
     render(await ParentPackPage());
-    expect(screen.getByText("Parent Resources")).toBeInTheDocument();
+    expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
   it("renders the invitation section for a student", async () => {

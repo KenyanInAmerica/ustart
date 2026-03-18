@@ -10,6 +10,14 @@ jest.mock("../../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
 }));
 
+jest.mock("../../../../lib/dashboard/content", () => ({
+  fetchTierContent: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("../../../../components/dashboard/ContentGrid", () => ({
+  ContentGrid: () => <div data-testid="content-grid-stub" />,
+}));
+
 jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
 }));
@@ -50,9 +58,9 @@ describe("ExplorePage", () => {
     expect(screen.getByText("Explore")).toBeInTheDocument();
   });
 
-  it("renders the coming soon placeholder", async () => {
+  it("renders the content grid", async () => {
     render(await ExplorePage());
-    expect(screen.getByText(/content coming soon/i)).toBeInTheDocument();
+    expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
   it("redirects to /dashboard when has_explore is false", async () => {

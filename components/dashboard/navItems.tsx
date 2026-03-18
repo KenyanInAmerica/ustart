@@ -27,8 +27,9 @@ export function isNavItemLocked(item: NavItem, access: DashboardAccess): boolean
     case "/dashboard/parent-pack": return !access.hasParentSeat;
     case "/dashboard/explore":     return !access.hasExplore;
     case "/dashboard/concierge":   return !access.hasConcierge;
-    case "/dashboard/community":   return !access.hasAgreedToCommunity;
-    default:                       return item.locked ?? false;
+    case "/dashboard/community":    return !access.hasAgreedToCommunity;
+    case "/dashboard/my-documents": return false;
+    default:                        return item.locked ?? false;
   }
 }
 
@@ -112,6 +113,20 @@ export const navSections: NavSection[] = [
           <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
             <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+        ),
+      },
+    ],
+  },
+  {
+    label: "My Files",
+    items: [
+      {
+        label: "My Documents",
+        href: "/dashboard/my-documents",
+        icon: (
+          <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
           </svg>
         ),
       },

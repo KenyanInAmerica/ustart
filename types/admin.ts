@@ -21,7 +21,7 @@ export interface ContentItem {
   id: string;
   title: string;
   description: string;
-  tier: "lite" | "pro" | "premium" | "parent_pack";
+  tier: "lite" | "pro" | "premium" | "parent_pack" | "explore" | "concierge";
   file_path: string;
   file_name: string;
   uploaded_by: string | null;
