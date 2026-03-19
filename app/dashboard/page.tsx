@@ -4,14 +4,28 @@ import { ContentCards } from "@/components/dashboard/ContentCards";
 import { CommunitySection } from "@/components/dashboard/CommunitySection";
 import { AccountStrip } from "@/components/dashboard/AccountStrip";
 import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
+import { getPricingById } from "@/lib/config/getPricing";
+import type { PricingItem, AddonId } from "@/lib/config/pricing";
 
 // Main dashboard page — all fetches are memoised with React.cache so the
 // layout's calls don't result in additional DB round-trips within the same request.
 export default async function DashboardPage() {
-  const [access, whatsappLink] = await Promise.all([
-    fetchDashboardAccess(),
-    fetchWhatsappLink(),
-  ]);
+  // Fetch access, whatsapp link, and add-on pricing in parallel.
+  // Add-on pricing is needed by ContentCards for the purchase modal.
+  const [access, whatsappLink, parentPack, explore, concierge] =
+    await Promise.all([
+      fetchDashboardAccess(),
+      fetchWhatsappLink(),
+      getPricingById("parent_pack"),
+      getPricingById("explore"),
+      getPricingById("concierge"),
+    ]);
+
+  const addonPricing: Partial<Record<AddonId, PricingItem>> = {
+    ...(parentPack ? { parent_pack: parentPack } : {}),
+    ...(explore ? { explore } : {}),
+    ...(concierge ? { concierge } : {}),
+  };
 
   return (
     <>
@@ -30,7 +44,7 @@ export default async function DashboardPage() {
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
         Your Content
       </p>
-      <ContentCards access={access} />
+      <ContentCards access={access} addonPricing={addonPricing} />
 
       {/* Feature 5: Community */}
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">

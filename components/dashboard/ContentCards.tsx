@@ -1,11 +1,21 @@
 // Content section cards for the dashboard — one card per product the user may access.
-// Unlocked cards are full links; locked cards are inert divs with an inner pricing CTA.
-// Pure Server Component: access flags are computed upstream in fetchDashboardAccess.
+// Locked tier cards link to /pricing; locked add-on cards open a purchase modal.
+// Client Component: needed for the add-on modal open/close state.
 
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { AddonModal } from "@/components/dashboard/AddonModal";
 import type { DashboardAccess } from "@/types";
+import type { PricingItem, AddonId } from "@/lib/config/pricing";
 
-type Props = { access: DashboardAccess };
+type Props = {
+  access: DashboardAccess;
+  // Pre-fetched pricing for the three add-ons — passed from the server component
+  // parent so this client component never calls a server-only function directly.
+  addonPricing: Partial<Record<AddonId, PricingItem>>;
+};
 
 type CardDef = {
   id: string;
@@ -14,10 +24,13 @@ type CardDef = {
   description: string;
   href: string;
   unlocked: boolean;
-  // CTA shown inside locked cards — links to /pricing.
-  lockedCta: string;
   icon: React.ReactNode;
 };
+
+// True if the card id is one of the three add-ons (not a membership tier).
+function isAddon(id: string): id is AddonId {
+  return id === "parent_pack" || id === "explore" || id === "concierge";
+}
 
 // Lock icon used on cards the user cannot yet access.
 function LockIcon() {
@@ -55,19 +68,16 @@ function CardBody({ card }: { card: CardDef }) {
       {card.unlocked ? (
         <span className="text-xs font-medium text-white/[0.42]">Access content →</span>
       ) : (
-        // Locked cards show an inner link to /pricing; the card wrapper itself is not a link.
-        <Link
-          href="/pricing"
-          className="text-xs text-white/[0.28] hover:text-white/[0.42] transition-colors"
-        >
-          {card.lockedCta}
-        </Link>
+        <span className="text-xs text-white/[0.28]">View plans →</span>
       )}
     </>
   );
 }
 
-export function ContentCards({ access }: Props) {
+export function ContentCards({ access, addonPricing }: Props) {
+  // Which add-on modal is currently open. Null when no modal is shown.
+  const [openAddon, setOpenAddon] = useState<AddonId | null>(null);
+
   const cards: CardDef[] = [
     {
       id: "lite",
@@ -76,7 +86,6 @@ export function ContentCards({ access }: Props) {
       description: "Core resources to get started — banking, SSN, credit cards, and student essentials.",
       href: "/dashboard/lite",
       unlocked: access.membershipRank >= 1,
-      lockedCta: "View plans →",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
@@ -91,7 +100,6 @@ export function ContentCards({ access }: Props) {
       description: "Everything in Lite plus deeper guides to help you settle in and thrive.",
       href: "/dashboard/pro",
       unlocked: access.membershipRank >= 2,
-      lockedCta: "View plans →",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -105,7 +113,6 @@ export function ContentCards({ access }: Props) {
       description: "Everything in Pro plus our most advanced resources for long-term success in the US.",
       href: "/dashboard/premium",
       unlocked: access.membershipRank >= 3,
-      lockedCta: "View plans →",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -113,13 +120,12 @@ export function ContentCards({ access }: Props) {
       ),
     },
     {
-      id: "parent-pack",
+      id: "parent_pack",
       label: "Parent Pack",
       badge: "Add-on",
       description: "Dedicated resources for parents supporting their student's journey in the US.",
       href: "/dashboard/parent-pack",
       unlocked: access.hasParentSeat,
-      lockedCta: "View plans →",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -136,7 +142,6 @@ export function ContentCards({ access }: Props) {
       description: "School-specific guides, city breakdowns, and living resources updated regularly.",
       href: "/dashboard/explore",
       unlocked: access.hasExplore,
-      lockedCta: "View plans →",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
@@ -151,7 +156,6 @@ export function ContentCards({ access }: Props) {
       description: "1-on-1 sessions with an advisor who knows the US system inside and out.",
       href: "/dashboard/concierge",
       unlocked: access.hasConcierge,
-      lockedCta: "View plans →",
       icon: (
         <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
@@ -162,28 +166,56 @@ export function ContentCards({ access }: Props) {
   ];
 
   return (
-    // 3-column grid on desktop, 2 on tablet, 1 on mobile
-    <div className="grid grid-cols-1 min-[560px]:grid-cols-2 min-[860px]:grid-cols-3 gap-3">
-      {cards.map((card) =>
-        card.unlocked ? (
-          // Entire card is a link for unlocked content
-          <Link
-            key={card.id}
-            href={card.href}
-            className="block bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 hover:border-white/[0.14] hover:bg-white/[0.02] transition-colors duration-150"
-          >
-            <CardBody card={card} />
-          </Link>
-        ) : (
-          // Locked cards are non-interactive divs — the pricing CTA inside is the only link
-          <div
-            key={card.id}
-            className="bg-[#0C1220] border border-white/[0.05] rounded-2xl p-5"
-          >
-            <CardBody card={card} />
-          </div>
-        )
+    <>
+      {/* 3-column grid on desktop, 2 on tablet, 1 on mobile */}
+      <div className="grid grid-cols-1 min-[560px]:grid-cols-2 min-[860px]:grid-cols-3 gap-3">
+        {cards.map((card) => {
+          if (card.unlocked) {
+            // Entire card is a link for unlocked content.
+            return (
+              <Link
+                key={card.id}
+                href={card.href}
+                className="block bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 hover:border-white/[0.14] hover:bg-white/[0.02] transition-colors duration-150"
+              >
+                <CardBody card={card} />
+              </Link>
+            );
+          }
+
+          if (isAddon(card.id)) {
+            // Locked add-on: whole card opens the purchase modal.
+            return (
+              <button
+                key={card.id}
+                onClick={() => setOpenAddon(card.id as AddonId)}
+                className="text-left bg-[#0C1220] border border-white/[0.05] rounded-2xl p-5 w-full hover:border-white/[0.10] transition-colors duration-150"
+              >
+                <CardBody card={card} />
+              </button>
+            );
+          }
+
+          // Locked tier card: whole card links to /pricing.
+          return (
+            <Link
+              key={card.id}
+              href="/pricing"
+              className="block bg-[#0C1220] border border-white/[0.05] rounded-2xl p-5 hover:border-white/[0.10] transition-colors duration-150"
+            >
+              <CardBody card={card} />
+            </Link>
+          );
+        })}
+      </div>
+
+      {/* Add-on purchase modal — only rendered when an add-on is selected */}
+      {openAddon && addonPricing[openAddon] && (
+        <AddonModal
+          item={addonPricing[openAddon]!}
+          onClose={() => setOpenAddon(null)}
+        />
       )}
-    </div>
+    </>
   );
 }

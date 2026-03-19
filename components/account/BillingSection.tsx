@@ -1,8 +1,13 @@
 // Billing section for the account page — displays the current plan, active add-ons,
-// and placeholder rows for payment method and invoices.
-// Pure Server Component: all data is passed as props, no client-side state needed.
+// available add-ons with purchase CTAs, and placeholder rows for payment/invoices.
+// Client Component: needed for the add-on purchase modal state.
 
+"use client";
+
+import { useState } from "react";
 import Link from "next/link";
+import { AddonModal } from "@/components/dashboard/AddonModal";
+import type { PricingItem } from "@/lib/config/pricing";
 
 interface ActiveAddon {
   type: string;
@@ -17,6 +22,8 @@ interface Props {
   activeAddons: ActiveAddon[];
   // Parent Pack comes from one_time_purchases, not the addons table — passed as a flag.
   hasParentSeat: boolean;
+  // Pre-fetched pricing for add-ons — passed from the server component parent.
+  addonPricing: PricingItem[];
 }
 
 const TIER_DISPLAY: Record<string, string> = {
@@ -27,6 +34,7 @@ const TIER_DISPLAY: Record<string, string> = {
 
 const ADDON_DISPLAY: Record<string, string> = {
   parent_seat: "Parent Pack",
+  parent_pack: "Parent Pack",
   explore: "Explore",
   concierge: "Concierge",
 };
@@ -46,7 +54,11 @@ export function BillingSection({
   membershipPurchasedAt,
   activeAddons,
   hasParentSeat,
+  addonPricing,
 }: Props) {
+  // Which add-on purchase modal is open. Null when none.
+  const [openAddon, setOpenAddon] = useState<PricingItem | null>(null);
+
   const hasMembership = membershipTier !== null;
   const tierName = membershipTier
     ? (TIER_DISPLAY[membershipTier] ?? membershipTier)
@@ -62,6 +74,15 @@ export function BillingSection({
       status: a.status,
     })),
   ];
+
+  // Determine which add-ons the user does NOT yet have, to show as purchasable.
+  const ownedAddonTypes = new Set([
+    ...(hasParentSeat ? ["parent_pack"] : []),
+    ...activeAddons.map((a) => a.type),
+  ]);
+  const availableAddons = addonPricing.filter(
+    (p) => !ownedAddonTypes.has(p.id)
+  );
 
   return (
     <section>
@@ -124,6 +145,39 @@ export function BillingSection({
         )}
       </div>
 
+      {/* Available add-ons — shown when the user is missing at least one add-on */}
+      {availableAddons.length > 0 && (
+        <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 mb-3">
+          <p className="font-syne text-sm font-bold text-white mb-3">
+            Available add-ons
+          </p>
+          <ul className="space-y-3">
+            {availableAddons.map((addon) => (
+              <li key={addon.id} className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="font-dm-sans text-sm text-white/[0.68]">{addon.name}</p>
+                  <p className="font-dm-sans text-xs text-white/[0.40] mt-0.5">
+                    ${addon.price}
+                    {addon.billing === "monthly"
+                      ? "/mo"
+                      : addon.billing === "yearly"
+                      ? "/yr"
+                      : " · lifetime"}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setOpenAddon(addon)}
+                  className="shrink-0 text-xs font-medium text-white/50 hover:text-white border border-white/[0.10] hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors"
+                >
+                  {/* TODO: replace with Stripe checkout session redirect (Feature 12) */}
+                  Buy Now
+                </button>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Placeholder rows — billing integration not yet connected. */}
       <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 mb-3">
         <p className="font-dm-sans text-sm text-white/[0.28]">
@@ -136,6 +190,11 @@ export function BillingSection({
           Invoices — available when billing is connected
         </p>
       </div>
+
+      {/* Add-on purchase modal */}
+      {openAddon && (
+        <AddonModal item={openAddon} onClose={() => setOpenAddon(null)} />
+      )}
     </section>
   );
 }

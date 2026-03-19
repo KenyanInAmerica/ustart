@@ -7,7 +7,10 @@ jest.mock("../../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
     auth: { getUser: mockGetUser },
     from: jest.fn(() => ({
-      select: jest.fn(() => ({ maybeSingle: mockMaybySingle })),
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({ maybeSingle: mockMaybySingle })),
+        maybeSingle: mockMaybySingle,
+      })),
     })),
   })),
 }));
@@ -20,6 +23,13 @@ jest.mock("../../../../components/account/ProfileSection", () => ({
 
 jest.mock("../../../../components/account/BillingSection", () => ({
   BillingSection: () => <div data-testid="billing-section-stub" />,
+}));
+
+// getPricing uses React.cache which is not available in Jest — mock the module.
+jest.mock("../../../../lib/config/getPricing", () => ({
+  getPricing: jest.fn().mockResolvedValue([]),
+  getPublicPricing: jest.fn().mockResolvedValue([]),
+  getPricingById: jest.fn().mockResolvedValue(null),
 }));
 
 import AccountPage from "@/app/dashboard/account/page";
