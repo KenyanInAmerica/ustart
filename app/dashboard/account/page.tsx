@@ -1,6 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileSection } from "@/components/account/ProfileSection";
 import { BillingSection } from "@/components/account/BillingSection";
+import { getPricing } from "@/lib/config/getPricing";
+import type { PricingItem, AddonId } from "@/lib/config/pricing";
 
 interface ActiveAddon {
   type: string;
@@ -9,13 +11,18 @@ interface ActiveAddon {
   cancel_at_period_end: boolean;
 }
 
+// Add-on product IDs — used to filter the pricing list down to add-ons only.
+const ADDON_IDS: AddonId[] = ["parent_pack", "explore", "concierge"];
+
 // Inside the dashboard layout — no auth guard needed (middleware protects /dashboard/*).
 export default async function AccountPage() {
   const supabase = createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // Run user data and pricing fetches in parallel — they are independent.
+  const [{ data: { user } }, allPricing] = await Promise.all([
+    supabase.auth.getUser(),
+    getPricing(),
+  ]);
 
   const { data } = await supabase
     .from("user_access")
@@ -24,6 +31,11 @@ export default async function AccountPage() {
     )
     .eq("id", user!.id)  // scope to the authenticated user
     .maybeSingle();
+
+  // Filter pricing down to just the three add-ons to pass to BillingSection.
+  const addonPricing: PricingItem[] = allPricing.filter((p) =>
+    (ADDON_IDS as string[]).includes(p.id)
+  );
 
   const raw = data as {
     first_name: string | null;
@@ -56,6 +68,7 @@ export default async function AccountPage() {
         membershipPurchasedAt={raw?.membership_purchased_at ?? null}
         activeAddons={raw?.active_addons ?? []}
         hasParentSeat={raw?.has_parent_seat ?? false}
+        addonPricing={addonPricing}
       />
     </div>
   );

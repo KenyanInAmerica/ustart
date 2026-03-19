@@ -52,6 +52,13 @@ jest.mock("../../../components/dashboard/AccountStrip", () => ({
   AccountStrip: () => <div data-testid="account-strip-stub" />,
 }));
 
+// getPricingById uses React.cache which is not available in Jest — mock the module.
+jest.mock("../../../lib/config/getPricing", () => ({
+  getPricing: jest.fn().mockResolvedValue([]),
+  getPublicPricing: jest.fn().mockResolvedValue([]),
+  getPricingById: jest.fn().mockResolvedValue(null),
+}));
+
 describe("DashboardPage", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(mockAccess);
