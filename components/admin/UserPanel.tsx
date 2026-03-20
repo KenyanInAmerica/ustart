@@ -81,6 +81,14 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
     setSaveSuccess(false);
   }, [user]);
 
+  // Auto-dismiss success banner after 3 seconds.
+  useEffect(() => {
+    if (saveSuccess) {
+      const timer = setTimeout(() => setSaveSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [saveSuccess]);
+
   // Close on Escape key.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {

@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useRef, useState, useTransition, useEffect } from "react";
 import { uploadContentItem } from "@/lib/actions/admin/content";
 import type { ContentItem } from "@/types/admin";
 
@@ -23,6 +23,14 @@ export function ContentUploadForm() {
   const [success, setSuccess] = useState(false);
   const [fileName, setFileName] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // Auto-dismiss success message after 3 seconds.
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

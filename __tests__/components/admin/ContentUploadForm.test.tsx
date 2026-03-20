@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { ContentUploadForm } from "@/components/admin/ContentUploadForm";
 
 const mockUploadContentItem = jest.fn();
@@ -42,6 +42,22 @@ describe("ContentUploadForm", () => {
     await waitFor(() => {
       expect(screen.getByText(/uploaded successfully/i)).toBeInTheDocument();
     });
+  });
+
+  it("auto-dismisses success message after 3 seconds", async () => {
+    jest.useFakeTimers();
+    mockUploadContentItem.mockResolvedValue({ success: true });
+    render(<ContentUploadForm />);
+
+    const form = screen.getByRole("button", { name: /upload/i }).closest("form")!;
+    fireEvent.submit(form);
+
+    await waitFor(() =>
+      expect(screen.getByText(/uploaded successfully/i)).toBeInTheDocument()
+    );
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(screen.queryByText(/uploaded successfully/i)).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it("shows error message on failure", async () => {

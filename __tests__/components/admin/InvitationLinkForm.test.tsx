@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { InvitationLinkForm } from "@/components/admin/InvitationLinkForm";
 
 const mockAdminLinkParent = jest.fn();
@@ -45,6 +45,27 @@ describe("InvitationLinkForm", () => {
       expect(screen.getByText(/linked successfully/i)).toBeInTheDocument();
     });
     expect(screen.getByPlaceholderText(/student@example/i)).toHaveValue("");
+  });
+
+  it("auto-dismisses success message after 3 seconds", async () => {
+    jest.useFakeTimers();
+    mockAdminLinkParent.mockResolvedValue({ success: true });
+    render(<InvitationLinkForm />);
+
+    fireEvent.change(screen.getByPlaceholderText(/student@example/i), {
+      target: { value: "student@test.com" },
+    });
+    fireEvent.change(screen.getByPlaceholderText(/parent@example/i), {
+      target: { value: "parent@test.com" },
+    });
+    fireEvent.submit(screen.getByRole("button", { name: /link parent/i }).closest("form")!);
+
+    await waitFor(() =>
+      expect(screen.getByText(/linked successfully/i)).toBeInTheDocument()
+    );
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(screen.queryByText(/linked successfully/i)).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it("shows error message on failure", async () => {

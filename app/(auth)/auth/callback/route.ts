@@ -62,6 +62,6 @@ export async function GET(request: NextRequest) {
     }
   }
 
-  // Missing code or exchange failure → back to sign-in with an error indicator
-  return NextResponse.redirect(`${origin}/sign-in?error=auth_failed`);
+  // Missing code or exchange failure → user-friendly error page.
+  return NextResponse.redirect(`${origin}/auth/error`);
 }

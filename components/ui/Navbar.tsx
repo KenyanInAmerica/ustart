@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { SignOutButton } from "@/components/ui/SignOutButton";
+import { GetStartedLink } from "@/components/ui/GetStartedLink";
 
 // Async Server Component — reads the Supabase session server-side so the
 // correct nav actions are rendered without a client-side flash or extra fetch.
@@ -37,8 +38,7 @@ export async function Navbar() {
       <div className="flex items-center gap-6">
         {user ? (
           <>
-            {/* Authenticated: sign out text link + optional Admin + solid Dashboard CTA */}
-            <SignOutButton />
+            {/* Authenticated: Admin (admins only) → Dashboard → Sign Out */}
             {isAdmin && (
               <Link
                 href="/admin"
@@ -53,6 +53,7 @@ export async function Navbar() {
             >
               Dashboard
             </Link>
+            <SignOutButton />
           </>
         ) : (
           <>
@@ -63,12 +64,7 @@ export async function Navbar() {
             >
               Sign In
             </Link>
-            <Link
-              href="/pricing"
-              className="inline-flex items-center bg-white text-[#05080F] text-sm font-medium px-5 py-[9px] rounded-lg hover:opacity-90 hover:-translate-y-px transition-all duration-[150ms]"
-            >
-              Get Started
-            </Link>
+            <GetStartedLink />
           </>
         )}
       </div>
