@@ -4,7 +4,7 @@
 
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/lib/actions/updateProfile";
 
@@ -134,11 +134,21 @@ export function ProfileSection({
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [personalLoading, setPersonalLoading] = useState(false);
   const [personalError, setPersonalError] = useState("");
+  const [personalSaved, setPersonalSaved] = useState(false);
+
+  // Auto-dismiss the personal info success message after 3 seconds.
+  useEffect(() => {
+    if (personalSaved) {
+      const timer = setTimeout(() => setPersonalSaved(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [personalSaved]);
 
   function handleEditPersonal() {
     setDraftFirstName(savedFirstName);
     setDraftLastName(savedLastName);
     setPersonalError("");
+    setPersonalSaved(false);
     setEditingPersonal(true);
   }
 
@@ -158,6 +168,7 @@ export function ProfileSection({
       setSavedFirstName(draftFirstName);
       setSavedLastName(draftLastName);
       setEditingPersonal(false);
+      setPersonalSaved(true);
       // Refresh the page's server components so the dashboard Greeting picks up
       // the new name on the next navigation (revalidatePath in the action
       // handles the dashboard cache; refresh() re-fetches this page's data).
@@ -177,6 +188,7 @@ export function ProfileSection({
   const [editingContact, setEditingContact] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
   const [contactError, setContactError] = useState("");
+  const [contactSaved, setContactSaved] = useState(false);
 
   // Combobox state — tracks the text in the country input and dropdown visibility.
   const [countryQuery, setCountryQuery] = useState(countryOfOrigin ?? "");
@@ -184,6 +196,14 @@ export function ProfileSection({
   const filteredCountries = COUNTRIES.filter((c) =>
     c.toLowerCase().includes(countryQuery.toLowerCase())
   ).slice(0, COUNTRY_DROPDOWN_LIMIT);
+
+  // Auto-dismiss the contact info success message after 3 seconds.
+  useEffect(() => {
+    if (contactSaved) {
+      const timer = setTimeout(() => setContactSaved(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [contactSaved]);
 
   function handleEditContact() {
     setDraftPhone(savedPhone);
@@ -200,6 +220,7 @@ export function ProfileSection({
     setDraftCountry(savedCountry);
     setCountryQuery(savedCountry);
     setContactError("");
+    setContactSaved(false);
     setShowCountryDropdown(false);
     setEditingContact(false);
   }
@@ -229,6 +250,7 @@ export function ProfileSection({
       setSavedCountry(draftCountry);
       setShowCountryDropdown(false);
       setEditingContact(false);
+      setContactSaved(true);
     } else {
       setContactError(result.error);
     }
@@ -302,6 +324,9 @@ export function ProfileSection({
         </div>
         {personalError && (
           <p className="font-dm-sans text-xs text-red-400 mt-3">{personalError}</p>
+        )}
+        {personalSaved && (
+          <p className="font-dm-sans text-xs text-emerald-400 mt-3">Profile updated.</p>
         )}
       </div>
 
@@ -407,6 +432,9 @@ export function ProfileSection({
         </div>
         {contactError && (
           <p className="font-dm-sans text-xs text-red-400 mt-3">{contactError}</p>
+        )}
+        {contactSaved && (
+          <p className="font-dm-sans text-xs text-emerald-400 mt-3">Profile updated.</p>
         )}
       </div>
     </section>

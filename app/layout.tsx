@@ -21,6 +21,16 @@ export const metadata: Metadata = {
   title: "UStart — Your university journey starts here",
   description:
     "UStart gives you the tools, resources, and guidance to navigate the application process with confidence — at your own pace.",
+  icons: {
+    // /favicon.ico is a static fallback for dev (ImageResponse doesn't serve in
+    // the dev pipeline); app/icon.tsx takes over in production builds.
+    icon: [
+      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
+      { url: "/icon.png", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

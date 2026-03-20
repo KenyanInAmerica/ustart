@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
 import { ProfileSection } from "@/components/account/ProfileSection";
 
 jest.mock("../../../lib/actions/updateProfile", () => ({
@@ -156,6 +156,20 @@ describe("ProfileSection", () => {
     // Email should not appear as an input, only as text
     expect(screen.queryByDisplayValue("randy@example.com")).not.toBeInTheDocument();
     expect(screen.getByText("randy@example.com")).toBeInTheDocument();
+  });
+
+  it("shows 'Profile updated.' success message after saving Personal Info", async () => {
+    jest.useFakeTimers();
+    (updateProfile as jest.Mock).mockResolvedValue({ success: true });
+    render(<ProfileSection {...baseProps} />);
+    fireEvent.click(screen.getAllByRole("button", { name: /^edit$/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+    await waitFor(() =>
+      expect(screen.getByText("Profile updated.")).toBeInTheDocument()
+    );
+    act(() => { jest.advanceTimersByTime(3000); });
+    expect(screen.queryByText("Profile updated.")).not.toBeInTheDocument();
+    jest.useRealTimers();
   });
 
   it("shows Not set placeholder when fields are null", () => {

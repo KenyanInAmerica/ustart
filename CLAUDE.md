@@ -139,7 +139,8 @@ For every component or feature implemented:
 - Create a test file under `__tests__/` that mirrors the source path (e.g. `components/ui/Foo.tsx` → `__tests__/components/ui/Foo.test.tsx`)
 - Every test file must cover at minimum: renders without error, key content is present, interactive elements (links/buttons) have correct `href`/behavior
 - API route tests require `/** @jest-environment node */` at the top of the file
-- Run `npm run test` and `npm run typecheck` after adding tests — both must pass before work is considered done
+- Run `npm run test` and `npm run typecheck` after adding tests — both must pass with **zero failures** before work is considered done
+- A test run with any failing tests is a hard blocker — do not proceed or commit until all tests pass
 
 ---
 
@@ -183,7 +184,7 @@ EOF
 )"
 ```
 
-Before committing: run `npm run typecheck`, `npm run lint`, and `npm run test` — all must pass.
+Before committing: run `npm run typecheck`, `npm run lint`, and `npm run test` — all must pass with **zero test failures**. A single failing test is a hard blocker; fix it before committing.
 
 ---
 

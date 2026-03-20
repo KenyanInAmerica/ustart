@@ -3,7 +3,7 @@
 
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect } from "react";
 import { adminLinkParent } from "@/lib/actions/admin/invitations";
 
 export function InvitationLinkForm() {
@@ -12,6 +12,14 @@ export function InvitationLinkForm() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [isPending, startTransition] = useTransition();
+
+  // Auto-dismiss success message after 3 seconds.
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(false), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

@@ -164,7 +164,7 @@ describe("GET /auth/callback", () => {
     expect(mockServiceFrom).toHaveBeenCalledTimes(2);
   });
 
-  it("redirects to /sign-in?error=auth_failed when exchange fails", async () => {
+  it("redirects to /auth/error when exchange fails", async () => {
     mockExchangeCodeForSession.mockResolvedValueOnce({
       data: null,
       error: { message: "Invalid token" },
@@ -177,17 +177,17 @@ describe("GET /auth/callback", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/sign-in?error=auth_failed"
+      "http://localhost:3000/auth/error"
     );
   });
 
-  it("redirects to /sign-in?error=auth_failed when no code is provided", async () => {
+  it("redirects to /auth/error when no code is provided", async () => {
     const request = new NextRequest("http://localhost:3000/auth/callback");
     const response = await GET(request);
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost:3000/sign-in?error=auth_failed"
+      "http://localhost:3000/auth/error"
     );
   });
 });

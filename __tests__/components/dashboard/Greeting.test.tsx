@@ -9,7 +9,9 @@ jest.mock("@supabase/ssr", () => ({
     auth: { getUser: mockGetUser },
     from: jest.fn(() => ({
       select: jest.fn(() => ({
-        maybeSingle: mockMaybeSingle,
+        eq: jest.fn(() => ({
+          maybeSingle: mockMaybeSingle,
+        })),
       })),
     })),
   })),

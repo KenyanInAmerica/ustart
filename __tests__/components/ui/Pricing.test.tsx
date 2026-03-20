@@ -34,10 +34,10 @@ describe("Pricing", () => {
     expect(badges).toHaveLength(1);
   });
 
-  it("renders Get Started links pointing to /sign-in", () => {
+  it("renders Get Started links pointing to /pricing", () => {
     render(<Pricing />);
     const links = screen.getAllByRole("link", { name: /get started/i });
     expect(links).toHaveLength(3);
-    links.forEach((link) => expect(link).toHaveAttribute("href", "/sign-in"));
+    links.forEach((link) => expect(link).toHaveAttribute("href", "/pricing"));
   });
 });

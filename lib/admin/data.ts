@@ -64,6 +64,7 @@ export const fetchAdminStats = cache(async (): Promise<AdminStats> => {
   }
 
   return {
+    totalUsers: 0, // accurate totalUsers computed in fetchAdminOverview
     totalStudents: users.length,
     // fetchAdminStats is a cached helper; totalParents is computed accurately in
     // fetchAdminOverview which is what the overview page actually calls.
@@ -91,7 +92,7 @@ export async function fetchAdminOverview(): Promise<{
   const [
     { data: usersData },
     { count: pendingCount },
-    { count: parentCount },
+    { data: profileCounts },
   ] = await Promise.all([
     service
       .from("user_access")
@@ -102,11 +103,11 @@ export async function fetchAdminOverview(): Promise<{
       .from("parent_invitations")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending"),
-    // Count parent accounts directly from profiles — user_access is student-only.
-    service
-      .from("profiles")
-      .select("id", { count: "exact", head: true })
-      .eq("role", "parent"),
+    // Single query across profiles covers both students and parents via role column.
+    // Equivalent to:
+    //   SELECT COUNT(*), COUNT(*) FILTER (WHERE role='student'), COUNT(*) FILTER (WHERE role='parent')
+    //   FROM public.profiles;
+    service.from("profiles").select("role"),
   ]);
 
   const users = (usersData ?? []) as {
@@ -134,9 +135,14 @@ export async function fetchAdminOverview(): Promise<{
     if (u.has_agreed_to_community) communityMembers++;
   }
 
+  const profiles = (profileCounts ?? []) as { role: string | null }[];
+  const totalStudents = profiles.filter((p) => p.role === "student").length;
+  const totalParents = profiles.filter((p) => p.role === "parent").length;
+
   const stats: AdminStats = {
-    totalStudents: users.length,
-    totalParents: parentCount ?? 0,
+    totalUsers: profiles.length,
+    totalStudents,
+    totalParents,
     membersByTier,
     activeExplore,
     activeConcierge,

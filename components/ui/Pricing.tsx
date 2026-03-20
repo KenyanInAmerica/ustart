@@ -109,7 +109,7 @@ export function Pricing() {
 
             {/* Featured plan uses a solid white CTA; others use a ghost button */}
             <Link
-              href="/sign-in"
+              href="/pricing"
               className={[
                 "block w-full text-center py-3 rounded-lg text-sm font-medium transition-all duration-200",
                 plan.featured

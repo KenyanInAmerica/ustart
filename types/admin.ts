@@ -67,6 +67,7 @@ export interface AdminRecord {
 
 // Summary stat card data for the admin overview page.
 export interface AdminStats {
+  totalUsers: number;
   totalStudents: number;
   totalParents: number;
   membersByTier: Record<string, number>;
