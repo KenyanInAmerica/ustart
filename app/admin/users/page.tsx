@@ -1,4 +1,4 @@
-// Admin users page — paginated table of all students with a slide-out management panel.
+// Admin users page — paginated table of all users with a slide-out management panel.
 // Search and pagination are handled via URL search params for deep-linkability.
 // Individual PDF assignments are managed in the Content section, not here.
 
@@ -22,7 +22,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
         Users
       </h1>
       <p className="text-[13px] text-white/40 mb-6">
-        {total} total student{total !== 1 ? "s" : ""}
+        {total} total user{total !== 1 ? "s" : ""}
         {search ? ` matching "${search}"` : ""}
       </p>
 

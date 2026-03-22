@@ -1,6 +1,8 @@
 /** @jest-environment node */
 
 const mockExchangeCodeForSession = jest.fn();
+const mockSignOut = jest.fn();
+const mockServerFrom = jest.fn();
 const mockServiceFrom = jest.fn();
 
 // Must use relative paths — @/ alias doesn't resolve in the node jest environment.
@@ -8,7 +10,9 @@ jest.mock("../../../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
     auth: {
       exchangeCodeForSession: mockExchangeCodeForSession,
+      signOut: mockSignOut,
     },
+    from: mockServerFrom,
   })),
 }));
 
@@ -51,10 +55,18 @@ function makeWriteChain() {
   return chain;
 }
 
+// Returns an active-profile chain for the server-side is_active check.
+function makeActiveProfile() {
+  return makeReadChain({ data: { is_active: true } });
+}
+
 describe("GET /auth/callback", () => {
   beforeEach(() => {
     mockExchangeCodeForSession.mockReset();
+    mockSignOut.mockReset();
+    mockServerFrom.mockReset();
     mockServiceFrom.mockReset();
+    mockSignOut.mockResolvedValue(undefined);
   });
 
   it("redirects to /dashboard on successful code exchange (student)", async () => {
@@ -62,6 +74,7 @@ describe("GET /auth/callback", () => {
       data: { user: { id: "user-1", user_metadata: {} } },
       error: null,
     });
+    mockServerFrom.mockReturnValueOnce(makeActiveProfile());
 
     const request = new NextRequest(
       "http://localhost:3000/auth/callback?code=valid-code"
@@ -72,6 +85,26 @@ describe("GET /auth/callback", () => {
     expect(response.headers.get("location")).toBe(
       "http://localhost:3000/dashboard"
     );
+  });
+
+  it("redirects to /auth/error?error=account_deactivated for inactive users", async () => {
+    mockExchangeCodeForSession.mockResolvedValueOnce({
+      data: { user: { id: "inactive-user", user_metadata: {} } },
+      error: null,
+    });
+    // is_active = false — account has been soft-deleted.
+    mockServerFrom.mockReturnValueOnce(makeReadChain({ data: { is_active: false } }));
+
+    const request = new NextRequest(
+      "http://localhost:3000/auth/callback?code=inactive-code"
+    );
+    const response = await GET(request);
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/auth/error?error=account_deactivated"
+    );
+    expect(mockSignOut).toHaveBeenCalledTimes(1);
   });
 
   it("updates profile and invitation when parent OTP metadata is present", async () => {
@@ -85,7 +118,9 @@ describe("GET /auth/callback", () => {
       error: null,
     });
 
-    // profiles read → not yet linked; invitations read → pending exists;
+    // Server client: is_active check (active).
+    mockServerFrom.mockReturnValueOnce(makeActiveProfile());
+    // Service client: profiles read → not yet linked; invitations read → pending exists;
     // then profiles write + invitations write.
     mockServiceFrom
       .mockReturnValueOnce(makeReadChain({ data: { student_id: null } }))
@@ -117,6 +152,8 @@ describe("GET /auth/callback", () => {
       error: null,
     });
 
+    // Server client: is_active check (active).
+    mockServerFrom.mockReturnValueOnce(makeActiveProfile());
     // profiles read → already linked; both reads made but link block is skipped.
     mockServiceFrom
       .mockReturnValueOnce(makeReadChain({ data: { student_id: "student-123" } }))
@@ -146,6 +183,8 @@ describe("GET /auth/callback", () => {
       error: null,
     });
 
+    // Server client: is_active check (active).
+    mockServerFrom.mockReturnValueOnce(makeActiveProfile());
     // profiles read → unlinked; invitations read → cancelled/consumed (null).
     mockServiceFrom
       .mockReturnValueOnce(makeReadChain({ data: { student_id: null } }))

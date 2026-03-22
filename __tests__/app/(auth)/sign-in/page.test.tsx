@@ -14,6 +14,11 @@ jest.mock("@supabase/ssr", () => ({
   })),
 }));
 
+// Footer calls useContactForm() — mock it so this test doesn't need the provider.
+jest.mock("../../../../components/ui/Footer", () => ({
+  Footer: () => <footer />,
+}));
+
 describe("SignInPage", () => {
   beforeEach(() => {
     mockSignInWithOtp.mockReset();

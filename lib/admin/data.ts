@@ -66,17 +66,16 @@ export const fetchAdminStats = cache(async (): Promise<AdminStats> => {
   return {
     totalUsers: 0, // accurate totalUsers computed in fetchAdminOverview
     totalStudents: users.length,
-    // fetchAdminStats is a cached helper; totalParents is computed accurately in
+    // fetchAdminStats is a cached helper; these are computed accurately in
     // fetchAdminOverview which is what the overview page actually calls.
     totalParents: 0,
+    inactiveAccounts: 0,
     membersByTier,
     activeExplore,
     activeConcierge,
     activeParentPack,
     communityMembers,
-    pendingInvitations: (invitationsData as unknown as { count: number } | null)
-      ? 0
-      : 0, // count returned separately below
+    pendingInvitations: 0,
   };
 });
 
@@ -103,11 +102,11 @@ export async function fetchAdminOverview(): Promise<{
       .from("parent_invitations")
       .select("*", { count: "exact", head: true })
       .eq("status", "pending"),
-    // Single query across profiles covers both students and parents via role column.
+    // Single query across profiles covers role totals and inactive count.
     // Equivalent to:
-    //   SELECT COUNT(*), COUNT(*) FILTER (WHERE role='student'), COUNT(*) FILTER (WHERE role='parent')
-    //   FROM public.profiles;
-    service.from("profiles").select("role"),
+    //   SELECT role, is_active FROM public.profiles;
+    // then aggregated in JS below.
+    service.from("profiles").select("role, is_active"),
   ]);
 
   const users = (usersData ?? []) as {
@@ -135,9 +134,11 @@ export async function fetchAdminOverview(): Promise<{
     if (u.has_agreed_to_community) communityMembers++;
   }
 
-  const profiles = (profileCounts ?? []) as { role: string | null }[];
+  const profiles = (profileCounts ?? []) as { role: string | null; is_active: boolean | null }[];
   const totalStudents = profiles.filter((p) => p.role === "student").length;
   const totalParents = profiles.filter((p) => p.role === "parent").length;
+  // is_active defaults to true in the DB, so null is treated as active.
+  const inactiveAccounts = profiles.filter((p) => p.is_active === false).length;
 
   const stats: AdminStats = {
     totalUsers: profiles.length,
@@ -149,6 +150,7 @@ export async function fetchAdminOverview(): Promise<{
     activeParentPack,
     communityMembers,
     pendingInvitations: pendingCount ?? 0,
+    inactiveAccounts,
   };
 
   // Query profiles directly — equivalent to the raw SQL:
@@ -213,9 +215,33 @@ export async function fetchAdminUsers(
   }
 
   const { data, count } = await query;
+  const rawUsers = (data ?? []) as Omit<AdminUser, "is_admin">[];
+
+  // Fetch is_admin and is_active for the returned user IDs in one query.
+  // user_access is a view and doesn't expose these columns; profiles does.
+  const { data: profileData } = await service
+    .from("profiles")
+    .select("id, is_admin, is_active")
+    .in(
+      "id",
+      rawUsers.map((u) => u.id)
+    );
+
+  type ProfileRow = { id: string; is_admin: boolean | null; is_active: boolean | null };
+  const profileMap = new Map(
+    ((profileData ?? []) as ProfileRow[]).map((p) => [p.id, p])
+  );
 
   return {
-    users: ((data ?? []) as AdminUser[]),
+    users: rawUsers.map((u) => {
+      const p = profileMap.get(u.id);
+      return {
+        ...u,
+        is_admin: p?.is_admin ?? false,
+        // Default to true (active) if the column is missing — safer assumption.
+        is_active: p?.is_active ?? true,
+      };
+    }) as AdminUser[],
     total: count ?? 0,
   };
 }

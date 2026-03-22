@@ -23,6 +23,8 @@ const mockUser: AdminUser = {
   has_explore: false,
   has_concierge: false,
   has_parent_seat: false,
+  is_admin: false,
+  is_active: true,
 };
 
 beforeEach(() => {

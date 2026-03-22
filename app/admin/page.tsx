@@ -10,6 +10,7 @@ export default async function AdminOverviewPage() {
     { label: "Total Users", value: stats.totalUsers },
     { label: "Total Students", value: stats.totalStudents },
     { label: "Total Parents", value: stats.totalParents },
+    { label: "Inactive accounts", value: stats.inactiveAccounts },
     { label: "Pending invitations", value: stats.pendingInvitations },
     { label: "Community members", value: stats.communityMembers },
     { label: "Explore add-on", value: stats.activeExplore },

@@ -10,6 +10,12 @@ jest.mock("../../components/ui/Navbar", () => ({
   Navbar: () => <nav />,
 }));
 
+// Footer is a client component that calls useContactForm() — mock it so page
+// tests don't need the full ContactFormProvider context. Footer is tested separately.
+jest.mock("../../components/ui/Footer", () => ({
+  Footer: () => <footer />,
+}));
+
 describe("HomePage", () => {
   it("renders without error", () => {
     const { container } = render(<HomePage />);

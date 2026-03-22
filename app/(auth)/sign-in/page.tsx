@@ -4,6 +4,7 @@ import { useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { Footer } from "@/components/ui/Footer";
 
 // Loose format check: requires something@something.something.
 // Intentionally permissive — accepts international addresses and uncommon TLDs.
@@ -180,8 +181,11 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <Suspense>
-      <SignInContent />
-    </Suspense>
+    <>
+      <Suspense>
+        <SignInContent />
+      </Suspense>
+      <Footer />
+    </>
   );
 }

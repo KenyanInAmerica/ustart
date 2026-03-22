@@ -1,5 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import { Footer } from "@/components/ui/Footer";
+
+// Footer calls useContactForm() — mock the context hook.
+const mockOpen = jest.fn();
+jest.mock("../../../components/ui/ContactFormProvider", () => ({
+  useContactForm: jest.fn(() => ({ open: mockOpen, close: jest.fn() })),
+}));
+
+beforeEach(() => {
+  mockOpen.mockReset();
+});
 
 describe("Footer", () => {
   it("renders without error", () => {
@@ -31,10 +41,13 @@ describe("Footer", () => {
     expect(link).toHaveAttribute("href", "/terms");
   });
 
-  it("renders the Contact link", () => {
+  it("renders a Contact button (not a link) that opens the panel", () => {
     render(<Footer />);
-    const link = screen.getByRole("link", { name: "Contact" });
-    expect(link).toHaveAttribute("href", "/contact");
+    // Contact is now a button that triggers the panel, not a <Link>
+    const contactBtn = screen.getByRole("button", { name: /contact/i });
+    expect(contactBtn).toBeInTheDocument();
+    fireEvent.click(contactBtn);
+    expect(mockOpen).toHaveBeenCalledTimes(1);
   });
 
   it("renders the copyright notice", () => {

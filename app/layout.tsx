@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Syne, DM_Sans } from "next/font/google";
 import "./globals.css";
+import { ContactFormProvider } from "@/components/ui/ContactFormProvider";
 
 const syne = Syne({
   subsets: ["latin"],
@@ -41,7 +42,10 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${syne.variable} ${dmSans.variable} scroll-smooth`}>
       <body className="bg-[#05080F] text-white font-dm-sans text-base leading-relaxed overflow-x-hidden antialiased">
-        {children}
+        {/* ContactFormProvider enables the contact panel from any page via useContactForm() */}
+        <ContactFormProvider>
+          {children}
+        </ContactFormProvider>
       </body>
     </html>
   );

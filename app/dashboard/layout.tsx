@@ -3,6 +3,7 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
 import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { Footer } from "@/components/ui/Footer";
 
 // Maps DB tier slugs to sidebar footer display names.
 const TIER_NAMES: Record<string, string> = {
@@ -66,11 +67,10 @@ export default async function DashboardLayout({
         access={access}
       />
 
-      {/* Main content area — fills remaining width; inner wrapper constrains line length */}
-      <main className="flex-1 min-[860px]:ml-[240px] px-5 pt-[80px] pb-8 min-[860px]:px-[56px] min-[860px]:py-[48px]">
-        {/* max-w-5xl + mx-auto centres the content and prevents it from sprawling
-            too wide on large monitors without constraining the sidebar. */}
-        <div className="max-w-5xl mx-auto w-full">
+      {/* Main content area — fills remaining width; flex-col so Footer stays at bottom */}
+      <main className="flex-1 flex flex-col min-[860px]:ml-[240px] px-5 pt-[80px] pb-0 min-[860px]:px-[56px] min-[860px]:pt-[48px]">
+        {/* flex-1 lets this wrapper grow and push the Footer to the bottom of the viewport */}
+        <div className="flex-1 max-w-5xl mx-auto w-full pb-8">
           {/* Desktop-only top bar with sign out — mobile nav has its own drawer */}
           <div className="hidden min-[860px]:flex justify-end mb-6">
             <div className="w-fit">
@@ -79,6 +79,7 @@ export default async function DashboardLayout({
           </div>
           {children}
         </div>
+        <Footer />
       </main>
     </div>
   );
