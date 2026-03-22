@@ -16,6 +16,23 @@ export async function GET(request: NextRequest) {
 
     if (!error && sessionData?.user) {
       const user = sessionData.user;
+
+      // Block soft-deleted accounts before they reach /dashboard.
+      // After exchangeCodeForSession the server client carries the new session,
+      // so the profiles query runs as the authenticated user (RLS allows self-read).
+      // We sign out immediately and send them to the error page so no cookie persists.
+      const { data: profileData } = await supabase
+        .from("profiles")
+        .select("is_active")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const profile = profileData as { is_active: boolean | null } | null;
+      if (profile?.is_active === false) {
+        await supabase.auth.signOut();
+        return NextResponse.redirect(`${origin}/auth/error?error=account_deactivated`);
+      }
+
       const meta = user.user_metadata as { student_id?: string; role?: string } | null;
 
       // If the OTP was issued via a parent invitation, the metadata carries

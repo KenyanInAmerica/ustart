@@ -2,7 +2,7 @@
 // Separate from types/index.ts which is reserved for Stripe webhook and dashboard types.
 
 // A user record as returned by the user management table.
-// Composed from user_access view columns.
+// Core columns come from the user_access view; is_admin is merged from profiles.
 export interface AdminUser {
   id: string;
   email: string;
@@ -14,6 +14,10 @@ export interface AdminUser {
   has_explore: boolean;
   has_concierge: boolean;
   has_parent_seat: boolean;
+  // Merged from profiles table — used to hide the delete button for admin accounts.
+  is_admin: boolean;
+  // false when the account has been soft-deleted via softDeleteUser.
+  is_active: boolean;
 }
 
 // A content item row from the content_items table.
@@ -76,6 +80,7 @@ export interface AdminStats {
   activeParentPack: number;
   communityMembers: number;
   pendingInvitations: number;
+  inactiveAccounts: number;
 }
 
 // A community member row (users who have agreed to community rules).

@@ -232,6 +232,104 @@ export async function revokeContentFromUser(
   }
 }
 
+// ── User Status ───────────────────────────────────────────────────────────────
+
+// Restores a soft-deleted user by setting profiles.is_active = true.
+// Guards against reactivating admin accounts as a sanity check, though admins
+// should never have been deactivated in the first place.
+export async function reactivateUser(userId: string): Promise<ActionResult> {
+  try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return { success: false, error: auth.error };
+
+    const service = createServiceClient();
+
+    const { error } = await service
+      .from("profiles")
+      .update({ is_active: true })
+      .eq("id", userId);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+// ── User Deletion ─────────────────────────────────────────────────────────────
+
+// Soft-deletes a user by setting profiles.is_active = false.
+// The middleware and sign-in flow already block inactive users from accessing
+// the platform. This is the default deletion path in the admin UI.
+export async function softDeleteUser(userId: string): Promise<ActionResult> {
+  try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return { success: false, error: auth.error };
+
+    const service = createServiceClient();
+
+    // Guard: never soft-delete an admin account.
+    const { data: target } = await service
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const t = target as { is_admin: boolean | null } | null;
+    if (t?.is_admin) {
+      return { success: false, error: "Admin accounts cannot be deleted." };
+    }
+
+    const { error } = await service
+      .from("profiles")
+      .update({ is_active: false })
+      .eq("id", userId);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+// Hard-deletes a user from auth.users — Supabase cascades the deletion through
+// all FK-linked tables (profiles, memberships, addons, one_time_purchases, etc.).
+// Reserved for formal erasure requests. Cannot be undone.
+export async function hardDeleteUser(userId: string): Promise<ActionResult> {
+  try {
+    const auth = await requireAdmin();
+    if (!auth.ok) return { success: false, error: auth.error };
+
+    const service = createServiceClient();
+
+    // Guard: never hard-delete an admin account.
+    const { data: target } = await service
+      .from("profiles")
+      .select("is_admin")
+      .eq("id", userId)
+      .maybeSingle();
+
+    const t = target as { is_admin: boolean | null } | null;
+    if (t?.is_admin) {
+      return { success: false, error: "Admin accounts cannot be deleted." };
+    }
+
+    // deleteUser uses the Admin API — requires service role key.
+    const { error } = await service.auth.admin.deleteUser(userId);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
 // Exposes fetchUserAssignments as a server action so client components can call it
 // without receiving the function as a prop (which Next.js forbids for non-"use server" functions).
 export async function getUserAssignments(userId: string): Promise<UserContentItem[]> {
