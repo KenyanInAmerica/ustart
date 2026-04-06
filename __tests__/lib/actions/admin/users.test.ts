@@ -9,6 +9,8 @@ const mockGetUser = jest.fn();
 jest.mock("next/cache", () => ({ revalidatePath: jest.fn() }));
 const mockRevalidatePath = jest.fn(); // unused but kept for future assertions
 
+jest.mock("../../../../lib/audit/log", () => ({ logAction: jest.fn() }));
+
 // lib/admin/data uses React.cache which is unavailable in the Node test environment.
 jest.mock("../../../../lib/admin/data", () => ({
   fetchAdminUsers: jest.fn(),
@@ -56,8 +58,18 @@ beforeEach(() => {
       eq: jest.fn(() => ({ maybeSingle: mockMaybeSingle })),
       in: jest.fn(() => ({})),
     })),
+    // update().eq() must be both awaitable (single eq, e.g. profiles update) and
+    // chainable with a second .eq() (parent_invitations cancel uses .eq().eq()).
     update: jest.fn(() => ({
-      eq: jest.fn(() => mockUpdate()),
+      eq: jest.fn(() => ({
+        eq: jest.fn(() => mockUpdate()),
+        then: (
+          onfulfilled: Parameters<Promise<unknown>["then"]>[0],
+          onrejected?: Parameters<Promise<unknown>["then"]>[1]
+        ) => mockUpdate().then(onfulfilled, onrejected),
+        catch: (onrejected: Parameters<Promise<unknown>["catch"]>[0]) =>
+          mockUpdate().catch(onrejected),
+      })),
     })),
     upsert: jest.fn(),
     delete: jest.fn(() => ({ eq: jest.fn(() => ({ eq: jest.fn(() => ({})) })) })),
@@ -173,8 +185,11 @@ describe("reactivateUser", () => {
   });
 
   it("returns success when update succeeds", async () => {
-    // requireAdmin: maybeSingle returns is_admin: true for the caller.
-    mockMaybeSingle.mockResolvedValueOnce({ data: { is_admin: true } });
+    // requireAdmin: is_admin check for the caller.
+    // Second maybeSingle: email lookup on the target profile.
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { is_admin: true } })
+      .mockResolvedValueOnce({ data: { email: null } });
     mockUpdate.mockResolvedValue({ error: null });
 
     const result = await reactivateUser("u1");
@@ -182,7 +197,9 @@ describe("reactivateUser", () => {
   });
 
   it("returns error when DB update fails", async () => {
-    mockMaybeSingle.mockResolvedValueOnce({ data: { is_admin: true } });
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { is_admin: true } })
+      .mockResolvedValueOnce({ data: { email: null } });
     mockUpdate.mockResolvedValue({ error: { message: "DB error" } });
 
     const result = await reactivateUser("u1");

@@ -2,23 +2,25 @@ import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 
 const mockPush = jest.fn();
-const mockSignOut = jest.fn();
 
 jest.mock("next/navigation", () => ({
   useRouter: jest.fn(() => ({ push: mockPush })),
 }));
 
-jest.mock("@supabase/ssr", () => ({
-  createBrowserClient: jest.fn(() => ({
-    auth: { signOut: mockSignOut },
-  })),
+// Mock the server action — factory must be self-contained (jest hoisting rule).
+jest.mock("../../../lib/actions/signOut", () => ({
+  signOut: jest.fn(),
 }));
+
+// Grab a typed reference after the mock is registered.
+import { signOut } from "../../../lib/actions/signOut";
+const mockSignOut = signOut as jest.Mock;
 
 describe("dashboard/SignOutButton", () => {
   beforeEach(() => {
     mockPush.mockReset();
     mockSignOut.mockReset();
-    mockSignOut.mockResolvedValue({});
+    mockSignOut.mockResolvedValue(undefined);
   });
 
   it("renders without error", () => {

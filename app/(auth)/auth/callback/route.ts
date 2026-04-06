@@ -1,5 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -29,6 +31,12 @@ export async function GET(request: NextRequest) {
 
       const profile = profileData as { is_active: boolean | null } | null;
       if (profile?.is_active === false) {
+        void logAction({
+          actorId: user.id,
+          actorEmail: user.email,
+          action: AuditAction.AUTH_SIGN_IN_BLOCKED,
+          payload: { reason: "account_deactivated" },
+        });
         await supabase.auth.signOut();
         return NextResponse.redirect(`${origin}/auth/error?error=account_deactivated`);
       }
@@ -72,8 +80,21 @@ export async function GET(request: NextRequest) {
             .from("parent_invitations")
             .update({ status: "accepted", accepted_at: new Date().toISOString() })
             .eq("id", invitation.id);
+
+          void logAction({
+            actorId: user.id,
+            actorEmail: user.email,
+            action: AuditAction.PARENT_INVITATION_ACCEPTED,
+            targetId: meta.student_id,
+          });
         }
       }
+
+      void logAction({
+        actorId: user.id,
+        actorEmail: user.email,
+        action: AuditAction.AUTH_SIGN_IN,
+      });
 
       return NextResponse.redirect(`${origin}/dashboard`);
     }

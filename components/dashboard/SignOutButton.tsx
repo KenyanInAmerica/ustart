@@ -1,17 +1,15 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { signOut } from "@/lib/actions/signOut";
 
-// Dashboard sign-out button — clears the Supabase session and sends the user home.
-// Lives in its own file so it can be "use client" while the Sidebar remains importable
-// from the Server Component layout.
+// Dashboard sign-out button — delegates to a server action so sign-out can be
+// logged server-side before the session is cleared.
 export function SignOutButton() {
   const router = useRouter();
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    await signOut();
     router.push("/");
   }
 

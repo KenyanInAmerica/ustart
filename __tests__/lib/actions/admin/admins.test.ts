@@ -19,6 +19,8 @@ jest.mock("next/cache", () => ({
   revalidatePath: jest.fn(),
 }));
 
+jest.mock("../../../../lib/audit/log", () => ({ logAction: jest.fn() }));
+
 import { grantAdminAccess, revokeAdminAccess } from "../../../../lib/actions/admin/admins";
 
 function makeChain(returnValue: unknown): Record<string, unknown> {
@@ -102,8 +104,9 @@ describe("revokeAdminAccess", () => {
   it("returns success when admin access is revoked", async () => {
     mockGetUser.mockResolvedValue({ data: { user: ADMIN_USER } });
     mockServiceFrom
-      .mockReturnValueOnce(makeChain({ data: { is_admin: true }, error: null }))
-      .mockReturnValueOnce(makeChain({ error: null }));
+      .mockReturnValueOnce(makeChain({ data: { is_admin: true }, error: null })) // requireAdmin
+      .mockReturnValueOnce(makeChain({ data: { email: "target@example.com" }, error: null })) // email lookup
+      .mockReturnValueOnce(makeChain({ error: null })); // update
 
     const result = await revokeAdminAccess("other-user-id");
     expect(result).toEqual({ success: true });

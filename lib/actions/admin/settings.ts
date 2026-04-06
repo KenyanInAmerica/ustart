@@ -6,11 +6,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
 async function requireAdmin(): Promise<
-  { ok: true } | { ok: false; error: string }
+  { ok: true; adminId: string; adminEmail: string } | { ok: false; error: string }
 > {
   const supabase = createClient();
   const {
@@ -28,7 +30,7 @@ async function requireAdmin(): Promise<
   const p = profile as { is_admin: boolean | null } | null;
   if (!p?.is_admin) return { ok: false, error: "Forbidden." };
 
-  return { ok: true };
+  return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
 // Saves the WhatsApp invite link to the config table.
@@ -52,6 +54,13 @@ export async function saveWhatsappLink(link: string): Promise<ActionResult> {
       );
 
     if (error) return { success: false, error: error.message };
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_SETTINGS_UPDATED,
+      payload: { key: "whatsapp_invite_link" },
+    });
 
     // Revalidate both admin settings and the user-facing dashboard
     // so the new link is reflected immediately.

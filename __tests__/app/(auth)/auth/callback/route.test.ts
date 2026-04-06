@@ -30,6 +30,10 @@ jest.mock("next/headers", () => ({
   })),
 }));
 
+// logAction uses the service client — mock it so audit writes don't consume
+// mockServiceFrom call slots and break the call-count assertions below.
+jest.mock("../../../../../lib/audit/log", () => ({ logAction: jest.fn() }));
+
 import { GET } from "@/app/(auth)/auth/callback/route";
 import { NextRequest } from "next/server";
 

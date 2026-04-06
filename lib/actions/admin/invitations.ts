@@ -7,13 +7,15 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 async function requireAdmin(): Promise<
-  { ok: true; adminId: string } | { ok: false; error: string }
+  { ok: true; adminId: string; adminEmail: string } | { ok: false; error: string }
 > {
   const supabase = createClient();
   const {
@@ -31,7 +33,7 @@ async function requireAdmin(): Promise<
   const p = profile as { is_admin: boolean | null } | null;
   if (!p?.is_admin) return { ok: false, error: "Forbidden." };
 
-  return { ok: true, adminId: user.id };
+  return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
 // Manually links a parent account to a student, bypassing the magic-link invitation flow.
@@ -160,6 +162,15 @@ export async function adminLinkParent(
     });
 
     if (invError) return { success: false, error: invError.message };
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_PARENT_MANUALLY_LINKED,
+      targetId: student.id,
+      targetEmail: studentEmail.toLowerCase(),
+      payload: { parentEmail: parentEmail.toLowerCase() },
+    });
 
     revalidatePath("/admin/invitations");
     return { success: true };

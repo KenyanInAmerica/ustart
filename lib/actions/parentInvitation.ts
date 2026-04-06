@@ -8,6 +8,8 @@ import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -105,6 +107,13 @@ export async function sendParentInvitation(
 
     if (insertError) return { success: false, error: insertError.message };
 
+    void logAction({
+      actorId: user.id,
+      actorEmail: user.email ?? undefined,
+      action: AuditAction.PARENT_INVITATION_SENT,
+      targetEmail: parentEmail,
+    });
+
     revalidatePath("/dashboard/parent-pack");
     return { success: true };
   } catch {
@@ -148,6 +157,13 @@ export async function resendParentInvitation(): Promise<
       .update({ invited_at: new Date().toISOString() })
       .eq("id", invitation.id);
 
+    void logAction({
+      actorId: user.id,
+      actorEmail: user.email ?? undefined,
+      action: AuditAction.PARENT_INVITATION_RESENT,
+      targetEmail: (invitation as { parent_email: string }).parent_email,
+    });
+
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };
@@ -171,6 +187,12 @@ export async function cancelParentInvitation(): Promise<
       .eq("status", "pending");
 
     if (error) return { success: false, error: error.message };
+
+    void logAction({
+      actorId: user.id,
+      actorEmail: user.email ?? undefined,
+      action: AuditAction.PARENT_INVITATION_CANCELLED,
+    });
 
     revalidatePath("/dashboard/parent-pack");
     return { success: true };
@@ -225,6 +247,12 @@ export async function unlinkParent(): Promise<
     if (invitationError) {
       return { success: false, error: "Failed to update invitation status." };
     }
+
+    void logAction({
+      actorId: user.id,
+      actorEmail: user.email ?? undefined,
+      action: AuditAction.PARENT_UNLINKED,
+    });
 
     revalidatePath("/dashboard/parent-pack");
     return { success: true };

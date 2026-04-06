@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 
@@ -42,6 +44,12 @@ export async function acceptCommunityRules(
       .upsert({ user_id: user.id }, { onConflict: "user_id", ignoreDuplicates: true });
 
     if (agreementError) return { success: false, error: agreementError.message };
+
+    void logAction({
+      actorId: user.id,
+      actorEmail: user.email ?? undefined,
+      action: AuditAction.COMMUNITY_RULES_ACCEPTED,
+    });
 
     // Invalidate the dashboard so the next navigation reflects the updated state.
     revalidatePath("/dashboard");
