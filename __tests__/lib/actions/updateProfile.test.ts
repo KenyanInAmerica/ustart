@@ -7,13 +7,23 @@ jest.mock("next/cache", () => ({
   revalidatePath: jest.fn(),
 }));
 
+jest.mock("../../../lib/audit/log", () => ({ logAction: jest.fn() }));
+
 const mockUpdateEq = jest.fn();
+const mockMaybeSingle = jest.fn();
 const mockGetUser = jest.fn();
 
+// The action now does two `from("profiles")` calls:
+//   1. select(...).eq("id").maybeSingle() — fetch current values for diffing
+//   2. update(...).eq("id")              — perform the write
+// Return different chain shapes so both paths resolve correctly.
 jest.mock("../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
     auth: { getUser: mockGetUser },
     from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({ maybeSingle: mockMaybeSingle })),
+      })),
       update: jest.fn(() => ({ eq: mockUpdateEq })),
     })),
   })),
@@ -26,6 +36,8 @@ describe("updateProfile", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     (revalidatePath as jest.Mock).mockReset();
+    // Default: current profile has no values set — every incoming field is "changed".
+    mockMaybeSingle.mockResolvedValue({ data: null });
   });
 
   it("returns an error when there is no authenticated user", async () => {

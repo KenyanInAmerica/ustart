@@ -11,13 +11,15 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchAdminUsers, fetchUserAssignments } from "@/lib/admin/data";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 import type { UserContentItem } from "@/types/admin";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
-// Verifies the calling user is an admin. Returns the admin's user ID on success.
+// Verifies the calling user is an admin. Returns the admin's user ID and email on success.
 async function requireAdmin(): Promise<
-  { ok: true; adminId: string } | { ok: false; error: string }
+  { ok: true; adminId: string; adminEmail: string } | { ok: false; error: string }
 > {
   const supabase = createClient();
   const {
@@ -35,7 +37,7 @@ async function requireAdmin(): Promise<
   const p = profile as { is_admin: boolean | null } | null;
   if (!p?.is_admin) return { ok: false, error: "Forbidden." };
 
-  return { ok: true, adminId: user.id };
+  return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
 // Assigns or replaces a user's membership tier. Pass null to remove the plan.
@@ -161,6 +163,15 @@ export async function assignContentToUser(
     if (!auth.ok) return { success: false, error: auth.error };
 
     const service = createServiceClient();
+
+    // Fetch title for the audit log payload before inserting.
+    const { data: contentItem } = await service
+      .from("content_items")
+      .select("title")
+      .eq("id", contentItemId)
+      .maybeSingle();
+    const title = (contentItem as { title: string } | null)?.title ?? contentItemId;
+
     const { error } = await service
       .from("user_content_items")
       .upsert(
@@ -169,6 +180,14 @@ export async function assignContentToUser(
       );
 
     if (error) return { success: false, error: error.message };
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_CONTENT_ASSIGNED,
+      targetId: userId,
+      payload: { contentItemId, title },
+    });
 
     revalidatePath("/admin/users");
     revalidatePath("/admin/content");
@@ -244,12 +263,28 @@ export async function reactivateUser(userId: string): Promise<ActionResult> {
 
     const service = createServiceClient();
 
+    // Fetch the target email for the audit log before mutating.
+    const { data: targetProfile } = await service
+      .from("profiles")
+      .select("email")
+      .eq("id", userId)
+      .maybeSingle();
+    const targetEmail = (targetProfile as { email: string | null } | null)?.email ?? undefined;
+
     const { error } = await service
       .from("profiles")
       .update({ is_active: true })
       .eq("id", userId);
 
     if (error) return { success: false, error: error.message };
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_USER_REACTIVATED,
+      targetId: userId,
+      targetEmail,
+    });
 
     revalidatePath("/admin/users");
     return { success: true };
@@ -270,17 +305,18 @@ export async function softDeleteUser(userId: string): Promise<ActionResult> {
 
     const service = createServiceClient();
 
-    // Guard: never soft-delete an admin account.
+    // Guard: never soft-delete an admin account. Also fetch email for audit log.
     const { data: target } = await service
       .from("profiles")
-      .select("is_admin")
+      .select("is_admin, email")
       .eq("id", userId)
       .maybeSingle();
 
-    const t = target as { is_admin: boolean | null } | null;
+    const t = target as { is_admin: boolean | null; email: string | null } | null;
     if (t?.is_admin) {
       return { success: false, error: "Admin accounts cannot be deleted." };
     }
+    const targetEmail = t?.email ?? undefined;
 
     const { error } = await service
       .from("profiles")
@@ -288,6 +324,23 @@ export async function softDeleteUser(userId: string): Promise<ActionResult> {
       .eq("id", userId);
 
     if (error) return { success: false, error: error.message };
+
+    // Cancel any pending parent invitations so a parent cannot complete the flow
+    // and link to a deactivated account.
+    await service
+      .from("parent_invitations")
+      .update({ status: "cancelled" })
+      .eq("student_id", userId)
+      .eq("status", "pending");
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_USER_SOFT_DELETED,
+      targetId: userId,
+      targetEmail,
+      payload: { reason: "soft_delete" },
+    });
 
     revalidatePath("/admin/users");
     return { success: true };
@@ -306,22 +359,32 @@ export async function hardDeleteUser(userId: string): Promise<ActionResult> {
 
     const service = createServiceClient();
 
-    // Guard: never hard-delete an admin account.
+    // Guard: never hard-delete an admin account. Also fetch email for audit log
+    // before deletion — auth.users cascade makes it unqueryable afterward.
     const { data: target } = await service
       .from("profiles")
-      .select("is_admin")
+      .select("is_admin, email")
       .eq("id", userId)
       .maybeSingle();
 
-    const t = target as { is_admin: boolean | null } | null;
+    const t = target as { is_admin: boolean | null; email: string | null } | null;
     if (t?.is_admin) {
       return { success: false, error: "Admin accounts cannot be deleted." };
     }
+    const targetEmail = t?.email ?? undefined;
 
     // deleteUser uses the Admin API — requires service role key.
     const { error } = await service.auth.admin.deleteUser(userId);
 
     if (error) return { success: false, error: error.message };
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_USER_HARD_DELETED,
+      targetId: userId,
+      targetEmail,
+    });
 
     revalidatePath("/admin/users");
     return { success: true };

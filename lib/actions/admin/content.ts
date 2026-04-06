@@ -7,12 +7,14 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 import type { ContentItem } from "@/types/admin";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
 async function requireAdmin(): Promise<
-  { ok: true; adminId: string } | { ok: false; error: string }
+  { ok: true; adminId: string; adminEmail: string } | { ok: false; error: string }
 > {
   const supabase = createClient();
   const {
@@ -30,7 +32,7 @@ async function requireAdmin(): Promise<
   const p = profile as { is_admin: boolean | null } | null;
   if (!p?.is_admin) return { ok: false, error: "Forbidden." };
 
-  return { ok: true, adminId: user.id };
+  return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
 // Uploads a PDF to Storage and inserts a content_items row.
@@ -96,6 +98,13 @@ export async function uploadContentItem(
       return { success: false, error: dbError.message };
     }
 
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_CONTENT_UPLOADED,
+      payload: { title, tier, fileName: safeFileName },
+    });
+
     revalidatePath("/admin/content");
     return { success: true };
   } catch {
@@ -113,14 +122,14 @@ export async function deleteContentItem(
 
     const service = createServiceClient();
 
-    // Fetch the file_path before deleting the row.
+    // Fetch metadata before deleting the row — used for Storage removal and audit log.
     const { data: item } = await service
       .from("content_items")
-      .select("file_path")
+      .select("file_path, title, tier")
       .eq("id", contentItemId)
       .maybeSingle();
 
-    const row = item as { file_path: string } | null;
+    const row = item as { file_path: string; title: string; tier: string } | null;
     if (!row) return { success: false, error: "Content item not found." };
 
     // Delete the DB row first so even if Storage removal fails, it won't be
@@ -134,6 +143,14 @@ export async function deleteContentItem(
 
     // Best-effort Storage deletion — log but don't fail the action.
     await service.storage.from("pdfs").remove([row.file_path]);
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_CONTENT_DELETED,
+      targetId: contentItemId,
+      payload: { title: row.title, tier: row.tier },
+    });
 
     revalidatePath("/admin/content");
     return { success: true };
@@ -221,6 +238,14 @@ export async function uploadAndAssignContentItem(
       await service.storage.from("pdfs").remove([filePath]);
       return { success: false, error: assignError.message };
     }
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_CONTENT_ASSIGNED,
+      targetId: userId,
+      payload: { contentItemId, title },
+    });
 
     revalidatePath("/admin/content");
     return { success: true };

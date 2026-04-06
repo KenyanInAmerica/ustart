@@ -7,11 +7,13 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { logAction } from "@/lib/audit/log";
+import { AuditAction } from "@/lib/audit/actions";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
 async function requireAdmin(): Promise<
-  { ok: true; adminId: string } | { ok: false; error: string }
+  { ok: true; adminId: string; adminEmail: string } | { ok: false; error: string }
 > {
   const supabase = createClient();
   const {
@@ -29,7 +31,7 @@ async function requireAdmin(): Promise<
   const p = profile as { is_admin: boolean | null } | null;
   if (!p?.is_admin) return { ok: false, error: "Forbidden." };
 
-  return { ok: true, adminId: user.id };
+  return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
 // Grants admin access to a user identified by email.
@@ -60,6 +62,13 @@ export async function grantAdminAccess(email: string): Promise<ActionResult> {
 
     if (error) return { success: false, error: error.message };
 
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_ACCESS_GRANTED,
+      targetEmail: email.toLowerCase(),
+    });
+
     revalidatePath("/admin/admins");
     return { success: true };
   } catch {
@@ -80,12 +89,29 @@ export async function revokeAdminAccess(targetUserId: string): Promise<ActionRes
     }
 
     const service = createServiceClient();
+
+    // Fetch the target email for the audit log alongside the update.
+    const { data: targetProfile } = await service
+      .from("profiles")
+      .select("email")
+      .eq("id", targetUserId)
+      .maybeSingle();
+    const targetEmail = (targetProfile as { email: string | null } | null)?.email ?? undefined;
+
     const { error } = await service
       .from("profiles")
       .update({ is_admin: false })
       .eq("id", targetUserId);
 
     if (error) return { success: false, error: error.message };
+
+    void logAction({
+      actorId: auth.adminId,
+      actorEmail: auth.adminEmail,
+      action: AuditAction.ADMIN_ACCESS_REVOKED,
+      targetId: targetUserId,
+      targetEmail,
+    });
 
     revalidatePath("/admin/admins");
     return { success: true };
