@@ -272,6 +272,41 @@ feature/xyz  →  develop  →  main
 
 ---
 
+## Known Limitations & Developer Notes
+
+### Supabase Site URL and Local Development
+
+Supabase generates magic link emails using the **Site URL** as the base for `{{ .ConfirmationURL }}`, regardless of the `emailRedirectTo` value passed in `signInWithOtp()`. This means:
+
+- If Site URL is set to `http://localhost:3000`, magic links will point to localhost even when requested from the staging Vercel deployment
+- If Site URL is set to the staging Vercel URL, magic links will point to staging even when signing in locally
+
+**Current configuration:**
+
+The staging Supabase Site URL is set to `https://ustart-git-develop-randy-osotis-projects.vercel.app`. This means local development magic links will redirect to staging.
+
+**Workaround for local development:**
+
+When signing in locally, the magic link email will contain a staging URL. Replace the domain in the link manually:
+
+```
+# Received in email:
+https://ustart-git-develop-randy-osotis-projects.vercel.app/auth/callback?code=xxx
+
+# Change to:
+http://localhost:3000/auth/callback?code=xxx
+```
+
+**Permanent fix (post-launch):**
+
+Set up a local Supabase instance via the Supabase CLI so local dev has its own auth configuration independent of staging. This is deferred to post-launch.
+
+**Production:**
+
+Before launch, update the production Supabase project Site URL to the production domain. The staging Supabase Site URL remains pointing at the staging Vercel URL.
+
+---
+
 ## Things to watch
 
 - The `payload_text` generated column (Migration 6) must be applied **before** deploying any build that references it. If missing, audit log search silently returns empty results.

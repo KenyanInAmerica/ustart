@@ -1,5 +1,4 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
-import { createClient as createSupabaseServiceClient } from "@supabase/supabase-js";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require an active session. Any sub-path also matches (startsWith check below).
@@ -60,14 +59,11 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    // Use the service role client to check is_admin — RLS on the profiles table
-    // may not permit the anon/authed client to read this column.
-    const serviceClient = createSupabaseServiceClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!
-    );
-
-    const { data: profileData } = await serviceClient
+    // The authenticated user can read their own profile row via the "Users can
+    // view own profile" RLS policy — no service role client needed here.
+    // @supabase/supabase-js is a full Node.js client and must not be imported
+    // in middleware which runs in the Edge runtime.
+    const { data: profileData } = await supabase
       .from("profiles")
       .select("is_admin")
       .eq("id", user.id)
