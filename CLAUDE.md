@@ -55,7 +55,10 @@ npm run test         # Run test suite
 /types
   /index.ts                 # ProductSlug, User, Entitlement types
 /__tests__                  # Jest test suite (mirrors source structure)
-/references                 # Design references (HTML mockups, etc.) — not deployed
+/docs                       # Project documentation — tracked in git, kept up to date
+  ustart-project-snapshot.md  # Living project snapshot — updated on every PR
+  staging-setup.md             # Staging environment setup guide
+/references                 # Design mockups and schema exports — NOT tracked in git
 /public                     # Static assets
 ```
 
@@ -185,6 +188,27 @@ EOF
 ```
 
 Before committing: run `npm run typecheck`, `npm run lint`, and `npm run test` — all must pass with **zero test failures**. A single failing test is a hard blocker; fix it before committing.
+
+---
+
+## Documentation Maintenance
+
+The files in `/docs` are living documents and must be kept in sync with the codebase.
+
+**`docs/ustart-project-snapshot.md`** — update this whenever you:
+- Add new files or directories to the project
+- Add, rename, or modify database tables or columns
+- Add or change environment variables
+- Introduce new code conventions or architectural decisions
+- Complete a feature (mark it ✅ Built in the Dashboard Build Plan table)
+- Add items to Known Issues or Active TODOs
+
+**`docs/staging-setup.md`** — update this whenever you:
+- Add a new database migration (add it to the ordered migration list)
+- Add a new environment variable (add it to the Vercel and GitHub secrets tables)
+- Change the branch model or deployment configuration
+
+A PR that introduces any of the above changes without updating the relevant doc is incomplete. Update the doc as part of the same commit or PR — never as a follow-up.
 
 ---
 
