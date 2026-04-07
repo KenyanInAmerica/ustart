@@ -1,9 +1,11 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { cookies } from "next/headers";
+import { assertNotProduction } from "@/lib/env/guard";
 
 // Returns a Supabase client for use in Server Components, Server Actions, and Route Handlers.
 // Reads and writes session cookies via next/headers so the session persists across requests.
 export function createClient() {
+  assertNotProduction();
   const cookieStore = cookies();
 
   return createServerClient(
