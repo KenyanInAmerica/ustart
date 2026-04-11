@@ -110,5 +110,6 @@ describe("GET /api/pdf", () => {
     expect(res.status).toBe(200);
     expect(res.headers.get("Content-Type")).toBe("application/pdf");
     expect(res.headers.get("Content-Disposition")).toBe("inline");
+    expect(res.headers.get("Cache-Control")).toBe("private, no-store");
   });
 });

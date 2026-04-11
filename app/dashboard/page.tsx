@@ -1,66 +1,68 @@
+import { Suspense } from "react";
 import { Greeting } from "@/components/dashboard/Greeting";
-import { StartHere } from "@/components/dashboard/StartHere";
-import { ContentCards } from "@/components/dashboard/ContentCards";
-import { CommunitySection } from "@/components/dashboard/CommunitySection";
-import { AccountStrip } from "@/components/dashboard/AccountStrip";
-import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
-import { getPricingById } from "@/lib/config/getPricing";
-import type { PricingItem, AddonId } from "@/lib/config/pricing";
+import { StartHereSection } from "@/components/dashboard/StartHereSection";
+import { ContentCardsSection } from "@/components/dashboard/ContentCardsSection";
+import { CommunitySectionWrapper } from "@/components/dashboard/CommunitySectionWrapper";
+import { AccountStripSection } from "@/components/dashboard/AccountStripSection";
+import { ParentInvitationWrapper } from "@/components/dashboard/ParentInvitationWrapper";
+import { SectionErrorBoundary } from "@/components/ui/SectionErrorBoundary";
+import { StartHereSkeleton } from "@/components/dashboard/skeletons/StartHereSkeleton";
+import { ContentCardsSkeleton } from "@/components/dashboard/skeletons/ContentCardsSkeleton";
+import { CommunitySectionSkeleton } from "@/components/dashboard/skeletons/CommunitySectionSkeleton";
+import { AccountStripSkeleton } from "@/components/dashboard/skeletons/AccountStripSkeleton";
+import { ParentInvitationSkeleton } from "@/components/dashboard/skeletons/ParentInvitationSkeleton";
 
-// Main dashboard page — all fetches are memoised with React.cache so the
-// layout's calls don't result in additional DB round-trips within the same request.
-export default async function DashboardPage() {
-  // Fetch access, whatsapp link, and add-on pricing in parallel.
-  // Add-on pricing is needed by ContentCards for the purchase modal.
-  const [access, whatsappLink, parentPack, explore, concierge] =
-    await Promise.all([
-      fetchDashboardAccess(),
-      fetchWhatsappLink(),
-      getPricingById("parent_pack"),
-      getPricingById("explore"),
-      getPricingById("concierge"),
-    ]);
-
-  const addonPricing: Partial<Record<AddonId, PricingItem>> = {
-    ...(parentPack ? { parent_pack: parentPack } : {}),
-    ...(explore ? { explore } : {}),
-    ...(concierge ? { concierge } : {}),
-  };
-
+// Main dashboard page — each section is wrapped in Suspense so it streams in
+// independently. fetchDashboardAccess() is memoised with React.cache, so all
+// section wrappers share a single Supabase round-trip per request.
+// The layout shell (sidebar, mobile nav) renders before this page content begins.
+export default function DashboardPage() {
   return (
     <>
-      {/* Feature 2: Greeting & User State */}
+      {/* Greeting fetches its own data and renders as part of the initial shell */}
       <Greeting />
 
-      {/* Feature 3: Start Here — collapses when all steps are complete */}
-      <StartHere
-        hasMembership={access.hasMembership}
-        hasAccessedContent={access.hasAccessedContent}
-        hasAgreedToCommunity={access.hasAgreedToCommunity}
-        role={access.role}
-      />
+      {/* Start Here — no error boundary: if it fails it silently disappears (null return) */}
+      <Suspense fallback={<StartHereSkeleton />}>
+        <StartHereSection />
+      </Suspense>
 
-      {/* Feature 4: Content Cards */}
+      {/* Content Cards */}
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
         Your Content
       </p>
-      <ContentCards access={access} addonPricing={addonPricing} />
+      <SectionErrorBoundary label="Content cards">
+        <Suspense fallback={<ContentCardsSkeleton />}>
+          <ContentCardsSection />
+        </Suspense>
+      </SectionErrorBoundary>
 
-      {/* Feature 5: Community */}
+      {/* Community */}
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
         Community
       </p>
-      <CommunitySection
-        hasAgreedToCommunity={access.hasAgreedToCommunity}
-        phoneNumber={access.phoneNumber}
-        whatsappLink={whatsappLink}
-      />
+      <SectionErrorBoundary label="Community section">
+        <Suspense fallback={<CommunitySectionSkeleton />}>
+          <CommunitySectionWrapper />
+        </Suspense>
+      </SectionErrorBoundary>
 
-      {/* Feature 6: Account Strip */}
+      {/* Account */}
       <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
         Account
       </p>
-      <AccountStrip access={access} />
+      <SectionErrorBoundary label="Account strip">
+        <Suspense fallback={<AccountStripSkeleton />}>
+          <AccountStripSection />
+        </Suspense>
+      </SectionErrorBoundary>
+
+      {/* Parent invitation — only rendered for student accounts */}
+      <SectionErrorBoundary label="Parent invitation">
+        <Suspense fallback={<ParentInvitationSkeleton />}>
+          <ParentInvitationWrapper />
+        </Suspense>
+      </SectionErrorBoundary>
     </>
   );
 }

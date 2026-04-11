@@ -105,6 +105,11 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
   // to determine which content sections they can access. Service role bypasses RLS
   // so we can query another user's row in the view.
   if (role === "parent" && profile?.student_id) {
+    // Parents have no memberships row of their own. Their Stripe purchases are
+    // recorded against the student's customer_id, so all entitlement data lives
+    // on the student's user_access row. We fetch the student's row here and
+    // override the parent's local entitlement variables so the rest of this
+    // function treats the parent as having the same access as their student.
     const serviceClient = createServiceClient();
     const { data: studentData } = await serviceClient
       .from("user_access")

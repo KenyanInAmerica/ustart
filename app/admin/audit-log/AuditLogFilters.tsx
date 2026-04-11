@@ -10,6 +10,7 @@ import { useState, useRef, useEffect, useCallback, useTransition } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { ACTION_GROUPS } from "@/lib/admin/auditLog";
 import { actionBadgeClass } from "@/lib/audit/actionBadge";
+import { ChevronIcon } from "@/components/ui/ChevronIcon";
 
 // Flat list of all action values — used for select-all logic.
 const ALL_ACTION_VALUES = ACTION_GROUPS.flatMap((g) => g.actions.map((a) => a.value));
@@ -63,16 +64,7 @@ function ActionDropdown({ selected, onChange }: ActionDropdownProps) {
       >
         <span className="flex-1 text-left truncate">{triggerLabel}</span>
         {/* Chevron */}
-        <svg
-          className={`w-3.5 h-3.5 text-white/40 shrink-0 transition-transform ${open ? "rotate-180" : ""}`}
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          aria-hidden="true"
-        >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
+        <ChevronIcon className={`w-3.5 h-3.5 text-white/40 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
       {/* Panel */}
@@ -235,16 +227,7 @@ export function AuditLogFilters() {
             <option value="user">User only</option>
           </select>
           {/* Custom chevron — pointer-events-none so clicks pass through to the select */}
-          <svg
-            className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            aria-hidden="true"
-          >
-            <polyline points="6 9 12 15 18 9" />
-          </svg>
+          <ChevronIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
         </div>
       </div>
 
