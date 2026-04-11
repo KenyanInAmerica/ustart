@@ -51,8 +51,10 @@ export async function acceptCommunityRules(
       action: AuditAction.COMMUNITY_RULES_ACCEPTED,
     });
 
-    // Invalidate the dashboard so the next navigation reflects the updated state.
+    // Invalidate both the dashboard and the admin community page so the next
+    // navigation reflects the updated state without a hard refresh.
     revalidatePath("/dashboard");
+    revalidatePath("/admin/community");
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };

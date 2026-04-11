@@ -17,6 +17,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { fetchAndWatermarkPdf } from "@/lib/pdf/fetch";
 
+type ProfileRow = {
+  role: string | null;
+  student_id: string | null;
+  email: string | null;
+} | null;
+
 export async function GET(request: NextRequest) {
   try {
     const contentItemId = new URL(request.url).searchParams.get(
@@ -59,6 +65,8 @@ export async function GET(request: NextRequest) {
     };
 
     let authorized = false;
+    // Hoisted so the email field is accessible after the if/else for watermarking.
+    let profile: ProfileRow = null;
 
     if (item.is_individual_only) {
       // Individually assigned PDF — must have an explicit user_content_items row.
@@ -73,16 +81,14 @@ export async function GET(request: NextRequest) {
       // Tier-based content — check entitlements.
       // Parents inherit entitlements from their linked student, so resolve the
       // correct user ID before querying user_access.
+      // email is fetched here too — reused below for watermarking, avoiding a second round-trip.
       const { data: profileData } = await service
         .from("profiles")
-        .select("role, student_id")
+        .select("role, student_id, email")
         .eq("id", user.id)
         .maybeSingle();
 
-      const profile = profileData as {
-        role: string | null;
-        student_id: string | null;
-      } | null;
+      profile = profileData as ProfileRow;
 
       const entitlementUserId =
         profile?.role === "parent" && profile.student_id
@@ -131,31 +137,26 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Resolve the email for watermarking — prefer profiles.email over auth metadata.
-    const { data: profileEmailData } = await service
-      .from("profiles")
-      .select("email")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const email =
-      (profileEmailData as { email: string } | null)?.email ??
-      user.email ??
-      "unknown";
+    // Resolve the email for watermarking — use the profile fetched above for
+    // tier-based items; fall back to auth metadata for individually-assigned items
+    // (where no profiles query was needed for access control).
+    const email = profile?.email ?? user.email ?? "unknown";
 
     const pdfBytes = await fetchAndWatermarkPdf(item.file_path, email);
 
-    // Stream the watermarked bytes directly — the iframe src points here so
-    // the browser renders the PDF natively. Content-Disposition: inline tells
-    // the browser to display rather than prompt a save dialog (though the
-    // native toolbar may still show a download button in some browsers).
+    // Stream the watermarked bytes. The client fetches this as a blob and
+    // passes it to react-pdf — the raw URL is never exposed to the browser.
+    // Cache-Control: no-store prevents caching so every request goes through
+    // the auth + entitlement checks above.
     return new Response(Buffer.from(pdfBytes), {
       headers: {
         "Content-Type": "application/pdf",
         "Content-Disposition": "inline",
+        "Cache-Control": "private, no-store",
       },
     });
-  } catch {
+  } catch (err) {
+    console.error("[/api/pdf] unhandled error:", err);
     return NextResponse.json(
       { error: "Something went wrong. Please try again." },
       { status: 500 }
