@@ -7,9 +7,8 @@
 import { useState } from "react";
 import dynamic from "next/dynamic";
 
-// PdfViewer imports react-pdf which sets up the pdfjs worker at module evaluation
-// time — that code fails during SSR. ssr: false prevents Next.js from bundling
-// or evaluating PdfViewer on the server at all.
+// PdfViewer sets up the pdfjs worker (a browser-only API) at module evaluation
+// time. ssr: false prevents Next.js from bundling or evaluating it on the server.
 const PdfViewer = dynamic(
   () => import("@/components/dashboard/PdfViewer").then((m) => m.PdfViewer),
   { ssr: false }

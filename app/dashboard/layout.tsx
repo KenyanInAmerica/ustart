@@ -1,7 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
-import { fetchDashboardAccess, fetchWhatsappLink } from "@/lib/dashboard/access";
+import { fetchDashboardAccess } from "@/lib/dashboard/access";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { Footer } from "@/components/ui/Footer";
 
@@ -37,11 +37,9 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Both calls are memoised with React.cache — the page calling them too
-  // won't trigger additional DB round-trips within the same request.
+  // fetchDashboardAccess is memoised with React.cache — calling it here and
+  // in the streaming page sections results in only one DB round-trip per request.
   const access = await fetchDashboardAccess();
-  // Warm the whatsappLink cache here so page.tsx gets the result from cache.
-  await fetchWhatsappLink();
 
   const userEmail = user?.email ?? "";
   const userInitials = userEmail ? getInitials(userEmail) : "U";

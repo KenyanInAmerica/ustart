@@ -19,6 +19,15 @@ import type {
 
 const PAGE_SIZE = 25;
 
+type RawRow = {
+  id: string;
+  user_id: string;
+  content_item_id: string;
+  assigned_by: string | null;
+  created_at: string;
+  content_items: Pick<ContentItem, "id" | "title" | "tier" | "file_name"> | null;
+};
+
 // ── Overview ──────────────────────────────────────────────────────────────────
 
 // Aggregates summary stats for the admin overview page.
@@ -82,10 +91,12 @@ export const fetchAdminStats = cache(async (): Promise<AdminStats> => {
 // Fetches summary stats with accurate pending invitation count.
 // Separated from fetchAdminStats because Supabase count queries return the count
 // on the response object, not inside the data array.
-export async function fetchAdminOverview(): Promise<{
+// Wrapped in React.cache so AdminStatsSection and RecentSignupsSection share
+// a single DB round-trip when both render in the same streaming request.
+export const fetchAdminOverview = cache(async (): Promise<{
   stats: AdminStats;
   recentSignups: RecentSignup[];
-}> {
+}> => {
   const service = createServiceClient();
 
   const [
@@ -185,11 +196,15 @@ export async function fetchAdminOverview(): Promise<{
   }));
 
   return { stats, recentSignups };
-}
+});
 
 // ── User Management ───────────────────────────────────────────────────────────
 
 // Fetches a paginated, optionally filtered list of users for the management table.
+// Queries profiles as the base table (PostgREST cannot resolve FK relationships
+// through views, so a profiles!inner join on user_access silently returns zero
+// rows). Entitlement data is fetched in a second query against user_access and
+// merged by id.
 export async function fetchAdminUsers(
   page: number = 1,
   search: string = ""
@@ -198,48 +213,73 @@ export async function fetchAdminUsers(
   const offset = (page - 1) * PAGE_SIZE;
 
   let query = service
-    .from("user_access")
+    .from("profiles")
     .select(
-      "id, email, first_name, last_name, university_name, membership_tier, membership_purchased_at, has_explore, has_concierge, has_parent_seat",
+      "id, email, first_name, last_name, university_name, is_admin, is_active",
       { count: "exact" }
     )
     .order("email")
     .range(offset, offset + PAGE_SIZE - 1);
 
   if (search.trim()) {
-    // .or() matches email, first_name, or last_name so admins can search by name.
     const term = `%${search.trim()}%`;
     query = query.or(
       `email.ilike.${term},first_name.ilike.${term},last_name.ilike.${term}`
     );
   }
 
-  const { data, count } = await query;
-  const rawUsers = (data ?? []) as Omit<AdminUser, "is_admin">[];
+  const { data: profileData, count } = await query;
 
-  // Fetch is_admin and is_active for the returned user IDs in one query.
-  // user_access is a view and doesn't expose these columns; profiles does.
-  const { data: profileData } = await service
-    .from("profiles")
-    .select("id, is_admin, is_active")
-    .in(
-      "id",
-      rawUsers.map((u) => u.id)
-    );
+  const profiles = (profileData ?? []) as {
+    id: string;
+    email: string;
+    first_name: string | null;
+    last_name: string | null;
+    university_name: string | null;
+    is_admin: boolean | null;
+    is_active: boolean | null;
+  }[];
 
-  type ProfileRow = { id: string; is_admin: boolean | null; is_active: boolean | null };
-  const profileMap = new Map(
-    ((profileData ?? []) as ProfileRow[]).map((p) => [p.id, p])
+  if (profiles.length === 0) return { users: [], total: count ?? 0 };
+
+  // Enrich with entitlement data from user_access.
+  const ids = profiles.map((p) => p.id);
+  const { data: accessData } = await service
+    .from("user_access")
+    .select(
+      "id, membership_tier, membership_purchased_at, has_explore, has_concierge, has_parent_seat"
+    )
+    .in("id", ids);
+
+  const accessMap = new Map(
+    (
+      (accessData ?? []) as {
+        id: string;
+        membership_tier: string | null;
+        membership_purchased_at: string | null;
+        has_explore: boolean | null;
+        has_concierge: boolean | null;
+        has_parent_seat: boolean | null;
+      }[]
+    ).map((a) => [a.id, a])
   );
 
   return {
-    users: rawUsers.map((u) => {
-      const p = profileMap.get(u.id);
+    users: profiles.map((p) => {
+      const access = accessMap.get(p.id);
       return {
-        ...u,
-        is_admin: p?.is_admin ?? false,
-        // Default to true (active) if the column is missing — safer assumption.
-        is_active: p?.is_active ?? true,
+        id: p.id,
+        email: p.email,
+        first_name: p.first_name,
+        last_name: p.last_name,
+        university_name: p.university_name,
+        membership_tier: access?.membership_tier ?? null,
+        membership_purchased_at: access?.membership_purchased_at ?? null,
+        has_explore: access?.has_explore ?? false,
+        has_concierge: access?.has_concierge ?? false,
+        has_parent_seat: access?.has_parent_seat ?? false,
+        is_admin: p.is_admin ?? false,
+        is_active: p.is_active ?? true,
       };
     }) as AdminUser[],
     total: count ?? 0,
@@ -260,15 +300,6 @@ export async function fetchUserAssignments(
     )
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
-
-  type RawRow = {
-    id: string;
-    user_id: string;
-    content_item_id: string;
-    assigned_by: string | null;
-    created_at: string;
-    content_items: Pick<ContentItem, "id" | "title" | "tier" | "file_name"> | null;
-  };
 
   return ((data ?? []) as unknown as RawRow[]).map((row) => ({
     id: row.id,
