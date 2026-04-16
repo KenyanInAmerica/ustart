@@ -4,6 +4,10 @@ import { NextResponse, type NextRequest } from "next/server";
 // Routes that require an active session. Any sub-path also matches (startsWith check below).
 const PROTECTED_PATHS = ["/dashboard", "/content", "/account"];
 
+// /invite is intentionally public — unauthenticated parents must be able to reach
+// the invitation confirmation page without being redirected to /sign-in.
+// /auth/callback is already public by the same logic.
+
 // /admin routes require both authentication AND is_admin = true on the profile.
 // Checked separately because it needs an extra DB query beyond session validation.
 const ADMIN_PATHS = ["/admin"];

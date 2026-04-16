@@ -17,13 +17,28 @@ jest.mock("../../../lib/supabase/service", () => ({
   })),
 }));
 
+// Resend notification is best-effort — mock it so the import resolves and
+// tests can verify it was called or simulate failures.
+// jest.fn() must be called inside the factory (not referencing outer const vars)
+// to avoid the Jest hoisting TDZ error.
+jest.mock("../../../lib/resend/client", () => ({
+  resend: { emails: { send: jest.fn() } },
+}));
+
+import { resend } from "../../../lib/resend/client";
 import { submitContactForm } from "../../../lib/actions/contactForm";
+
+// Typed alias — resend is already the mock object after jest.mock() above.
+const mockResendEmailsSend = resend.emails.send as jest.Mock;
 
 describe("submitContactForm", () => {
   beforeEach(() => {
     mockInsert.mockReset();
     mockGetUser.mockReset();
+    mockResendEmailsSend.mockReset();
     mockGetUser.mockResolvedValue({ data: { user: null } });
+    // Default: Resend succeeds. Individual tests can override to simulate failure.
+    mockResendEmailsSend.mockResolvedValue({ error: null });
   });
 
   it("returns success on valid unauthenticated submission", async () => {
@@ -100,5 +115,30 @@ describe("submitContactForm", () => {
     expect(mockInsert).toHaveBeenCalledWith(
       expect.objectContaining({ user_id: null })
     );
+  });
+
+  it("sends Resend notification after successful insert", async () => {
+    mockInsert.mockResolvedValue({ error: null });
+    await submitContactForm({
+      name: "Alice",
+      email: "alice@example.com",
+      message: "Hello",
+    });
+    expect(mockResendEmailsSend).toHaveBeenCalledTimes(1);
+    expect(mockResendEmailsSend).toHaveBeenCalledWith(
+      expect.objectContaining({ subject: expect.stringContaining("contact form") })
+    );
+  });
+
+  it("returns success even when Resend notification fails", async () => {
+    mockInsert.mockResolvedValue({ error: null });
+    mockResendEmailsSend.mockRejectedValue(new Error("Resend unavailable"));
+    const result = await submitContactForm({
+      name: "Alice",
+      email: "alice@example.com",
+      message: "Hello",
+    });
+    // Notification failure must not bubble up — submission is already stored.
+    expect(result.success).toBe(true);
   });
 });

@@ -120,6 +120,19 @@ describe("softDeleteUser", () => {
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error).toBe("DB error");
   });
+
+  it("cancels pending parent invitations after deactivating the profile", async () => {
+    mockMaybeSingle
+      .mockResolvedValueOnce({ data: { is_admin: true } })
+      .mockResolvedValueOnce({ data: { is_admin: false } });
+    mockUpdate.mockResolvedValue({ error: null });
+
+    await softDeleteUser("u1");
+
+    // Verify parent_invitations was queried as part of the soft delete.
+    const calledTables = (mockFromImpl.mock.calls as [string][]).map((c) => c[0]);
+    expect(calledTables).toContain("parent_invitations");
+  });
 });
 
 // ── hardDeleteUser ────────────────────────────────────────────────────────────

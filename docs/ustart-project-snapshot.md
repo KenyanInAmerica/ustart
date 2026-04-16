@@ -1,8 +1,8 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 7, 2026
+**Date:** April 15, 2026
 
-**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend (pending) · PostHog · Vercel
+**Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
 ---
 
@@ -50,7 +50,7 @@ Stripe is the source of truth for entitlements once integrated. Supabase reflect
 | Tailwind CSS          | Styling                                       |
 | Supabase              | Auth (magic link) + PostgreSQL database       |
 | Stripe                | Payments + subscriptions (not yet integrated) |
-| Resend                | Transactional email (not yet integrated)      |
+| Resend                | Transactional email                           |
 | PostHog               | Analytics                                     |
 | Vercel                | Hosting + Edge functions                      |
 | Porkbun               | Domain                                        |
@@ -76,9 +76,9 @@ Never commit `.env` or `.env.local`. All secrets live in Vercel environment vari
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | staging anon key | staging anon key | production anon key | |
 | `SUPABASE_SERVICE_ROLE_KEY` | staging service role key | staging service role key | production service role key | Never expose to browser |
 | `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Vercel develop preview URL | `https://yourdomain.com` | Used for absolute URL construction |
-| `RESEND_API_KEY` | staging key | staging key | production key | |
-| `RESEND_FROM_EMAIL` | staging from address | staging from address | production from address | |
-| `RESEND_NOTIFICATION_EMAIL` | admin email | admin email | admin email | |
+| `RESEND_API_KEY` | staging key | staging key | production key | Resend SDK auth |
+| `RESEND_FROM_EMAIL` | hello@mail.staging.u-start.co.uk | hello@mail.staging.u-start.co.uk | hello@mail.u-start.co.uk | Sending address (revert to non-mail subdomain once DNS propagates) |
+| `RESEND_NOTIFICATION_EMAIL` | admin email | admin email | admin email | Contact form notifications — TODO: confirm with Morgan |
 | `NEXT_PUBLIC_POSTHOG_KEY` | staging key | staging key | production key | |
 | `NEXT_PUBLIC_POSTHOG_HOST` | `https://app.posthog.com` | `https://app.posthog.com` | `https://app.posthog.com` | |
 | `STRIPE_SECRET_KEY` | test key | test key | live key | Feature 12 |
@@ -129,6 +129,9 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
       AuditLogFilters.tsx # Client Component — filter bar with useTransition spinner
       PayloadCell.tsx    # Expandable JSON payload cell
       loading.tsx        # Route segment loading skeleton
+  /invite
+    page.tsx              # Parent invitation confirmation page — validates invite token server-side, renders Accept button or branded error state
+    AcceptButton.tsx      # "use client" — handles Accept click, calls acceptInvitation(), shows inline success/error state
   /content               # Authenticated content index page
   /dashboard             # Authenticated student/parent portal
     /layout.tsx          # Dashboard shell layout (includes Footer)
@@ -163,6 +166,10 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
   /pricing   Pricing, PurchaseModal, ParentPackStep
 /lib
   /supabase  client.ts, server.ts, service.ts
+  /resend    client.ts (singleton Resend client)
+             /templates
+               contactNotification.ts  # Admin notification email template for contact form submissions
+               parentInvitation.ts     # Parent invitation email template — CTA links to /invite confirmation page
   /dashboard access.ts (fetchDashboardAccess, fetchWhatsappLink)
   /admin     data.ts (fetchAdminOverview includes inactiveAccounts count)
              auditLog.ts (fetchAuditLog, AuditLogFilters, ACTION_GROUPS, PAGE_SIZE)
@@ -177,10 +184,14 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
     signOut.ts          # Server Action — logs AUTH_SIGN_OUT then calls supabase.auth.signOut()
     contactForm.ts      # submitContactForm() server action — added Feature 14
     admin/users.ts      # softDeleteUser(), hardDeleteUser(), reactivateUser() — added Feature 14
+    parentInvitation.ts — updated Feature 13: invite token flow (UUID + 72h expiry), acceptInvitation() two-email pattern (createUser + signInWithOtp), resend support
+    admin/invitations.ts — updated Feature 13: adminLinkParent now creates pending invitation with invite token instead of immediately-accepted row
+    contactForm.ts — updated Feature 13: sends admin notification email via Resend on submission
 /lib
   /env         guard.ts (assertNotProduction — throws if production env used outside prod build)
 /hooks  /types  /references  /public
 /public/favicon.ico    # Static favicon fallback
+middleware.ts — updated Feature 13: /invite added as intentionally public route
 /.github
   /workflows   ci.yml (typecheck + lint + test on PRs to develop and main)
   pull_request_template.md   # PR checklist — enforced on every PR
@@ -245,7 +256,7 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 | `memberships`          | One-time tier purchases (lite, pro, premium). One active per user. Unique constraint on user_id.                                                                                           |
 | `one_time_purchases`   | Lifetime add-on purchases (parent_seat). Unique constraint on (user_id, type).                                                                                                             |
 | `addons`               | Recurring subscriptions (explore, concierge). Multiple per user.                                                                                                                           |
-| `parent_invitations`   | Tracks parent invitation state. Partial unique index on student_id for pending/accepted rows only.                                                                                         |
+| `parent_invitations`   | Tracks parent invitation state. Partial unique index on student_id for pending/accepted rows only. invite_token (UUID) and invite_token_expires_at added for pre-fetch-safe invitation flow. Token valid 72 hours. |
 | `parent_content`       | Curated content for parent accounts. Placeholder.                                                                                                                                          |
 | `community_agreements` | Tracks community rule acceptance per user.                                                                                                                                                 |
 | `config`               | Key-value config store. Currently holds whatsapp_invite_link.                                                                                                                              |
@@ -379,7 +390,7 @@ All live pricing data is fetched from the `public.pricing` table in Supabase. `l
 - If not already linked AND invitation is pending: updates parent profile, marks invitation as accepted
 - If already linked or invitation cancelled: skips linking — regular sign-in proceeds
 
-Known issue: Gmail pre-fetches magic links and consumes the token. Workaround: use admin parent linking tool. Permanent fix requires Resend (Feature 13).
+Gmail pre-fetch issue: RESOLVED in Feature 13. The /invite confirmation page acts as a safe intermediate step — the email contains a plain confirmation URL with a UUID token (not a magic link), so pre-fetch bots cannot consume it. acceptInvitation() uses admin.createUser() + signInWithOtp() (PKCE-compatible) rather than generateLink() (implicit flow only).
 
 ---
 
@@ -512,7 +523,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Env Setup  | Staging environment, CI pipeline, branch model, migration workflow, production guard | ✅ Built |
 | Pre-launch | Schema Cleanup & Production Config           | 🔄 In Progress (Steps 1–2 done) |
 | Feature 12 | Stripe Integration                           | ⏸ Deferred                      |
-| Feature 13 | Resend Integration                           | ⏸ Deferred                      |
+| Feature 13 | Resend Integration                           | ✅ Built                         |
 
 ---
 
@@ -577,7 +588,7 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 
 ## Known Issues / Things to Watch
 
-- Gmail pre-fetch consumes parent invitation magic link — permanent fix requires Resend (Feature 13). Workaround: use admin parent linking tool.
+- Gmail pre-fetch consuming parent invitation magic link — RESOLVED in Feature 13. Fix: /invite confirmation page + two-email flow. generateLink() does not support PKCE; acceptInvitation() uses signInWithOtp() instead.
 - KNOWN-002 — iframe PDF scrolling lag — fundamental iframe limitation. Revisit post-launch. Consider hosted PDF viewer if user complaints arise.
 - `/icon.png` 404 in dev console — harmless. Next.js ImageResponse only pre-renders at build time. `/public/favicon.ico` resolves correctly in all environments.
 - **`payload_text` migration must be applied before deploying any code that references it.** If the column doesn't exist, the `.or()` filter silently returns zero results (`fetchAuditLog` catches the error and returns `{ rows: [], total: 0 }`). Apply the migration first, then deploy.
@@ -591,10 +602,11 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 **Code**
 
 - Replace placeholder Stripe IDs in `addons` and `one_time_purchases` (Feature 12)
-- Separate email templates for sign-in vs parent invitation (Resend — Feature 13)
 - Update magic link email template — currently hardcoded to `http://localhost:3000`
-- Contact form email sending — deferred to Resend integration (Feature 13)
 - PDF streaming — replace base64 with binary streaming in `/api/pdf` (post-launch)
+- Revert RESEND_FROM_EMAIL from mail subdomain to hello@staging.u-start.co.uk / hello@u-start.co.uk once DNS propagation confirms (test sign-in after switching)
+- Confirm RESEND_NOTIFICATION_EMAIL address with Morgan for staging and production
+- Notify parent via Resend when unlinked (unlinkParent TODO in lib/actions/parentInvitation.ts) — deferred post-launch
 
 **Business Owner Decisions Pending**
 
@@ -615,10 +627,10 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 
 - [ ] Run remaining pre-launch schema cleanup steps (Steps 3–6)
 - [ ] Apply `audit_logs` `payload_text` generated column and GIN trigram index (see audit_logs Migration above)
-- [ ] Set sender name + From address in Supabase Authentication Settings
 - [ ] Set email subject lines in Supabase Email Templates
-- [ ] Connect Resend SMTP to Supabase for custom domain email (Feature 13)
-- [ ] Update Site URL and Redirect URLs from localhost:3000 to production domain
+- ✅ SMTP → Resend connected (staging and production)
+- ✅ Sender name + From address set (staging and production)
+- ✅ Update Site URL and Redirect URLs from localhost to production domain (u-start.co.uk and staging.u-start.co.uk)
 - [ ] Export full schema: `supabase db dump --schema-only -f docs/ustart-schema-v4.sql`
 - [ ] Run copy/naming consistency audit against live codebase
 - [ ] Business owner to review and approve Privacy Policy and Terms of Service
@@ -639,8 +651,8 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - ✅ Email Templates → Magic Link updated with branded template
 - ✅ Email Templates → Confirm Signup updated
 - ⏸ audit_logs payload_text generated column + GIN index (apply before launch — see migration above)
-- ⏸ SMTP → Resend connected (deferred to Feature 13)
-- ⏸ Sender name + From address set
+- ✅ SMTP → Resend connected (staging: mail.staging.u-start.co.uk, production: mail.u-start.co.uk)
+- ✅ Sender name + From address set on both projects
 
 ---
 
@@ -690,4 +702,4 @@ Not tracked in git — design mockups and original schema exports for reference 
 
 ---
 
-_End of snapshot — updated April 7, 2026_
+_End of snapshot — updated April 15, 2026_

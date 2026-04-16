@@ -5,33 +5,28 @@ const mockSignInWithOtp = jest.fn();
 const mockFrom = jest.fn();
 const mockServiceFrom = jest.fn();
 const mockAdminDeleteUser = jest.fn();
+const mockCreateUser = jest.fn();
+const mockUpdateUserById = jest.fn();
 
 jest.mock("../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
-    auth: {
-      getUser: mockGetUser,
-      signInWithOtp: mockSignInWithOtp,
-    },
+    auth: { getUser: mockGetUser, signInWithOtp: mockSignInWithOtp },
     from: mockFrom,
   })),
 }));
 
-// Service client is used in sendParentInvitation (email validation) and
-// unlinkParent (auth.admin.deleteUser to fully remove the parent account).
+// Service client: used for email validation (user_access), student name lookup
+// (profiles), createUser / updateUserById (acceptInvitation), and deleteUser (unlinkParent).
 jest.mock("../../../lib/supabase/service", () => ({
   createServiceClient: jest.fn(() => ({
     from: mockServiceFrom,
     auth: {
       admin: {
         deleteUser: mockAdminDeleteUser,
+        createUser: mockCreateUser,
+        updateUserById: mockUpdateUserById,
       },
     },
-  })),
-}));
-
-jest.mock("next/headers", () => ({
-  headers: jest.fn(() => ({
-    get: (key: string) => (key === "host" ? "localhost:3000" : null),
   })),
 }));
 
@@ -39,12 +34,23 @@ jest.mock("next/cache", () => ({
   revalidatePath: jest.fn(),
 }));
 
+// Resend client — jest.fn() must live inside the factory to avoid the hoisting
+// TDZ error. Access the mock via the imported module reference after jest.mock().
+jest.mock("../../../lib/resend/client", () => ({
+  resend: { emails: { send: jest.fn() } },
+}));
+
+import { resend } from "../../../lib/resend/client";
 import {
   sendParentInvitation,
   resendParentInvitation,
   cancelParentInvitation,
   unlinkParent,
+  acceptInvitation,
 } from "../../../lib/actions/parentInvitation";
+
+// Typed alias — resend is already the mock object after jest.mock() above.
+const mockResendEmailsSend = resend.emails.send as jest.Mock;
 
 // Builds a chainable, thenable Supabase query stub.
 // Thenable so you can `await` the chain directly (insert/update without maybeSingle),
@@ -61,6 +67,7 @@ function makeChain(returnValue: unknown): Record<string, unknown> {
   chain.update = fn;
   chain.eq = fn;
   chain.in = fn;
+  chain.gt = fn;
   chain.maybeSingle = jest.fn().mockResolvedValue(returnValue);
   chain.single = jest.fn().mockResolvedValue(returnValue);
   return chain;
@@ -69,11 +76,13 @@ function makeChain(returnValue: unknown): Record<string, unknown> {
 const AUTHENTICATED_USER = { id: "student-123" };
 
 // Returns a chain that resolves maybeSingle() with `result` — used for service client reads.
+// Includes gt() so it can be used for queries that filter on timestamptz columns.
 function makeServiceReadChain(result: unknown) {
   const chain: Record<string, jest.Mock> = {} as Record<string, jest.Mock>;
-  const eqFn = jest.fn(() => chain);
+  const linkFn = jest.fn(() => chain);
   chain.select = jest.fn(() => chain);
-  chain.eq = eqFn;
+  chain.eq = linkFn;
+  chain.gt = linkFn;
   chain.maybeSingle = jest.fn().mockResolvedValue(result);
   return chain;
 }
@@ -81,11 +90,12 @@ function makeServiceReadChain(result: unknown) {
 describe("sendParentInvitation", () => {
   beforeEach(() => {
     mockGetUser.mockReset();
-    mockSignInWithOtp.mockReset();
     mockFrom.mockReset();
     mockServiceFrom.mockReset();
+    mockResendEmailsSend.mockReset();
     // Default: invited email doesn't belong to any existing account.
     mockServiceFrom.mockReturnValue(makeServiceReadChain({ data: null }));
+    mockResendEmailsSend.mockResolvedValue({ error: null });
   });
 
   it("returns error when not authenticated", async () => {
@@ -110,17 +120,33 @@ describe("sendParentInvitation", () => {
 
   it("returns success when invitation is sent", async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
-    // No existing invitation
+    // No existing invitation; insert succeeds.
     const noExisting = makeChain({ data: null, error: null });
-    // Insert succeeds
     const insertChain = makeChain({ error: null });
     mockFrom
-      .mockReturnValueOnce(noExisting) // duplicate check
+      .mockReturnValueOnce(noExisting)  // duplicate check
       .mockReturnValueOnce(insertChain); // insert
-    mockSignInWithOtp.mockResolvedValue({ error: null });
+    // Service from: first = user_access email check (no existing), second = profiles for student name.
+    mockServiceFrom
+      .mockReturnValueOnce(makeServiceReadChain({ data: null }))
+      .mockReturnValueOnce(makeServiceReadChain({ data: { first_name: "Alice", last_name: "Smith" } }));
 
     const result = await sendParentInvitation("parent@example.com");
     expect(result).toEqual({ success: true });
+    expect(mockResendEmailsSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns error when Resend fails to send the invitation email", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    const noExisting = makeChain({ data: null, error: null });
+    mockFrom.mockReturnValueOnce(noExisting);
+    mockServiceFrom
+      .mockReturnValueOnce(makeServiceReadChain({ data: null }))
+      .mockReturnValueOnce(makeServiceReadChain({ data: { first_name: "Alice", last_name: null } }));
+    mockResendEmailsSend.mockResolvedValue({ error: { message: "Resend error" } });
+
+    const result = await sendParentInvitation("parent@example.com");
+    expect(result).toEqual({ success: false, error: "Failed to send invitation email." });
   });
 
   it("returns error when invited email belongs to an existing student account", async () => {
@@ -159,8 +185,10 @@ describe("sendParentInvitation", () => {
 describe("resendParentInvitation", () => {
   beforeEach(() => {
     mockGetUser.mockReset();
-    mockSignInWithOtp.mockReset();
     mockFrom.mockReset();
+    mockServiceFrom.mockReset();
+    mockResendEmailsSend.mockReset();
+    mockResendEmailsSend.mockResolvedValue({ error: null });
   });
 
   it("returns error when not authenticated", async () => {
@@ -176,7 +204,7 @@ describe("resendParentInvitation", () => {
     expect(result).toEqual({ success: false, error: "No pending invitation found." });
   });
 
-  it("returns success when OTP is resent", async () => {
+  it("returns success when invitation is resent with a fresh token", async () => {
     mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
     const invitationChain = makeChain({
       data: { id: "inv-1", parent_email: "parent@example.com" },
@@ -186,10 +214,30 @@ describe("resendParentInvitation", () => {
     mockFrom
       .mockReturnValueOnce(invitationChain)
       .mockReturnValueOnce(updateChain);
-    mockSignInWithOtp.mockResolvedValue({ error: null });
+    // Service from: profiles for student name lookup.
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({ data: { first_name: "Alice", last_name: "Smith" } })
+    );
 
     const result = await resendParentInvitation();
     expect(result).toEqual({ success: true });
+    expect(mockResendEmailsSend).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns error when Resend fails on resend", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    const invitationChain = makeChain({
+      data: { id: "inv-1", parent_email: "parent@example.com" },
+      error: null,
+    });
+    mockFrom.mockReturnValueOnce(invitationChain);
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({ data: { first_name: "Alice", last_name: null } })
+    );
+    mockResendEmailsSend.mockResolvedValue({ error: { message: "Resend error" } });
+
+    const result = await resendParentInvitation();
+    expect(result).toEqual({ success: false, error: "Failed to send invitation email." });
   });
 });
 
@@ -274,5 +322,125 @@ describe("unlinkParent", () => {
 
     const result = await unlinkParent();
     expect(result).toEqual({ success: false, error: "Failed to update invitation status." });
+  });
+});
+
+describe("acceptInvitation", () => {
+  beforeEach(() => {
+    // Reset all client mocks — mockFrom included to avoid stale call counts from
+    // earlier describe blocks polluting the "not.toHaveBeenCalled" assertions below.
+    mockFrom.mockReset();
+    mockServiceFrom.mockReset();
+    mockCreateUser.mockReset();
+    mockUpdateUserById.mockReset();
+    mockSignInWithOtp.mockReset();
+    // Default happy path: createUser succeeds, signInWithOtp succeeds.
+    mockCreateUser.mockResolvedValue({ data: { user: { id: "new-user-id" } }, error: null });
+    mockSignInWithOtp.mockResolvedValue({ error: null });
+  });
+
+  it("returns error when token is not found or expired", async () => {
+    mockServiceFrom.mockReturnValueOnce(makeServiceReadChain({ data: null }));
+
+    const result = await acceptInvitation("invalid-token");
+    expect(result).toEqual({
+      success: false,
+      error: "This invitation link has expired or is no longer valid.",
+    });
+    // createUser must not be called when token validation fails.
+    expect(mockCreateUser).not.toHaveBeenCalled();
+  });
+
+  it("returns error when createUser fails with a non-exists error", async () => {
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({
+        data: { id: "inv-1", parent_email: "parent@example.com", student_id: "student-123" },
+      })
+    );
+    mockCreateUser.mockResolvedValue({ data: null, error: { message: "Internal server error" } });
+
+    const result = await acceptInvitation("valid-token");
+    expect(result).toEqual({
+      success: false,
+      error: "Failed to set up your account. Please try again.",
+    });
+    expect(mockSignInWithOtp).not.toHaveBeenCalled();
+  });
+
+  it("returns { success: true } when user is created and magic link email is sent", async () => {
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({
+        data: { id: "inv-1", parent_email: "parent@example.com", student_id: "student-123" },
+      })
+    );
+    // createUser and signInWithOtp are already set to success in beforeEach.
+
+    const result = await acceptInvitation("valid-token");
+    expect(result).toEqual({ success: true });
+    expect(mockCreateUser).toHaveBeenCalledWith({
+      email: "parent@example.com",
+      email_confirm: true,
+      user_metadata: { role: "parent", student_id: "student-123" },
+    });
+    expect(mockSignInWithOtp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "parent@example.com",
+        options: expect.objectContaining({ shouldCreateUser: false }),
+      })
+    );
+  });
+
+  it("handles already-existing user — updates metadata and sends magic link", async () => {
+    // First call: invitation lookup; second call: user_access email lookup.
+    mockServiceFrom
+      .mockReturnValueOnce(
+        makeServiceReadChain({
+          data: { id: "inv-1", parent_email: "parent@example.com", student_id: "student-123" },
+        })
+      )
+      .mockReturnValueOnce(
+        makeServiceReadChain({ data: { id: "existing-user-id" } })
+      );
+    mockCreateUser.mockResolvedValue({
+      data: null,
+      error: { message: "User already registered" },
+    });
+    mockUpdateUserById.mockResolvedValue({ data: null, error: null });
+
+    const result = await acceptInvitation("valid-token");
+    expect(result).toEqual({ success: true });
+    expect(mockUpdateUserById).toHaveBeenCalledWith("existing-user-id", {
+      user_metadata: { role: "parent", student_id: "student-123" },
+    });
+    expect(mockSignInWithOtp).toHaveBeenCalledTimes(1);
+  });
+
+  it("returns error when signInWithOtp fails", async () => {
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({
+        data: { id: "inv-1", parent_email: "parent@example.com", student_id: "student-123" },
+      })
+    );
+    mockSignInWithOtp.mockResolvedValue({ error: { message: "OTP rate limit exceeded" } });
+
+    const result = await acceptInvitation("valid-token");
+    expect(result).toEqual({
+      success: false,
+      error: "Failed to send sign-in email. Please try again.",
+    });
+  });
+
+  it("does not update the invitation row (auth callback handles that)", async () => {
+    mockServiceFrom.mockReturnValueOnce(
+      makeServiceReadChain({
+        data: { id: "inv-1", parent_email: "parent@example.com", student_id: "student-123" },
+      })
+    );
+
+    await acceptInvitation("valid-token");
+
+    // mockFrom is the regular (non-service) Supabase client — must not be called
+    // because acceptInvitation never writes to parent_invitations directly.
+    expect(mockFrom).not.toHaveBeenCalled();
   });
 });
