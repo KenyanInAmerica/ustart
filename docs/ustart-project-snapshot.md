@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 15, 2026
+**Date:** April 16, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -75,10 +75,10 @@ Never commit `.env` or `.env.local`. All secrets live in Vercel environment vari
 | `NEXT_PUBLIC_SUPABASE_URL` | staging project URL | staging project URL | production project URL | Local dev always points at staging |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | staging anon key | staging anon key | production anon key | |
 | `SUPABASE_SERVICE_ROLE_KEY` | staging service role key | staging service role key | production service role key | Never expose to browser |
-| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Vercel develop preview URL | `https://yourdomain.com` | Used for absolute URL construction |
-| `RESEND_API_KEY` | staging key | staging key | production key | Resend SDK auth |
-| `RESEND_FROM_EMAIL` | hello@mail.staging.u-start.co.uk | hello@mail.staging.u-start.co.uk | hello@mail.u-start.co.uk | Sending address (revert to non-mail subdomain once DNS propagates) |
-| `RESEND_NOTIFICATION_EMAIL` | admin email | admin email | admin email | Contact form notifications — TODO: confirm with Morgan |
+| `NEXT_PUBLIC_SITE_URL` | `http://localhost:3000` | Vercel develop preview URL | `https://www.u-start.co.uk` | Used for absolute URL construction (www is primary; apex redirects to www) |
+| `RESEND_API_KEY` | staging key | staging key | production key | Must be scoped to correct sending domain — staging key: staging.u-start.co.uk, production key: u-start.co.uk |
+| `RESEND_FROM_EMAIL` | `hello@staging.u-start.co.uk` | `hello@staging.u-start.co.uk` | `hello@u-start.co.uk` | Sending address |
+| `RESEND_NOTIFICATION_EMAIL` | `rosoti17@apu.edu` | `staging@u-start.co.uk` (not yet active — TODO) | `csr@u-start.co.uk` (not yet active — TODO) | Contact form admin notifications. Both addresses need activating in Google Workspace before launch. |
 | `NEXT_PUBLIC_POSTHOG_KEY` | staging key | staging key | production key | |
 | `NEXT_PUBLIC_POSTHOG_HOST` | `https://app.posthog.com` | `https://app.posthog.com` | `https://app.posthog.com` | |
 | `STRIPE_SECRET_KEY` | test key | test key | live key | Feature 12 |
@@ -91,17 +91,18 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
 
 ## Color Palette
 
-| Variable      | Value                    | Usage                   |
-| ------------- | ------------------------ | ----------------------- |
-| `--bg`        | `#05080F`                | Page background         |
-| `--bg-card`   | `#0C1220`                | Card/sidebar background |
-| `--bg-lift`   | `#101825`                | Hovered card background |
-| `--border`    | `rgba(255,255,255,0.07)` | Default borders         |
-| `--border-md` | `rgba(255,255,255,0.12)` | Medium emphasis borders |
-| `--border-hi` | `rgba(255,255,255,0.20)` | High emphasis borders   |
-| `--text`      | `#FFFFFF`                | Primary text            |
-| `--muted`     | `rgba(255,255,255,0.42)` | Muted text              |
-| `--mid`       | `rgba(255,255,255,0.68)` | Mid-emphasis text       |
+Defined in `app/globals.css` — use these exact names in Tailwind arbitrary values (e.g. `bg-[var(--bg-card)]`).
+
+| Variable         | Value                    | Usage                   |
+| ---------------- | ------------------------ | ----------------------- |
+| `--bg-deep`      | `#05080F`                | Page background         |
+| `--bg-card`      | `#0C1220`                | Card/sidebar background |
+| `--bg-card-hover`| `#111927`                | Hovered card background |
+| `--border`       | `rgba(255,255,255,0.07)` | Default borders         |
+| `--border-bright`| `rgba(255,255,255,0.15)` | High-emphasis borders   |
+| `--text-primary` | `#FFFFFF`                | Primary text            |
+| `--text-muted`   | `rgba(255,255,255,0.45)` | Muted text              |
+| `--text-mid`     | `rgba(255,255,255,0.70)` | Mid-emphasis text       |
 
 ---
 
@@ -150,20 +151,30 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
   /community-rules       # Public community rules page (placeholder)
 /components
   /ui
+    Button.tsx, ChevronIcon.tsx, GetStartedLink.tsx
     SignOutButton.tsx, Navbar.tsx, Footer.tsx
     ContactFormProvider.tsx    # React context — exposes useContactForm() hook. Added Feature 14.
     ContactPanel.tsx           # Slide-out contact panel (auth + unauth variants). Added Feature 14.
     ContactTriggerLink.tsx     # Inline "use client" button for server-rendered pages. Added Feature 14.
+    SectionErrorBoundary.tsx   # Error boundary wrapper for streaming dashboard sections.
   /dashboard
-    Sidebar, Greeting, MobileTopBar, MobileDrawer,
-    StartHere, ContentCards, CommunitySection,
-    AccountStrip, ParentInvitationSection
-  /account   ProfileSection, BillingSection
-  /admin     DeleteUserModal (two-step soft/hard delete confirmation — added Feature 14)
-             UserPanel, AdminSidebar, AdminGrantForm, InvitationLinkForm,
-             ContentUploadForm, PricingSection, SettingsForm, CommunityExportButton
-  /pdf       PdfViewer (iframe-based)
-  /pricing   Pricing, PurchaseModal, ParentPackStep
+    Sidebar.tsx, MobileTopBar.tsx, MobileDrawer.tsx, MobileDashboardNav.tsx, navItems.tsx
+    Greeting.tsx, StartHere.tsx, StartHereSection.tsx
+    ContentCards.tsx, ContentCardsSection.tsx, ContentGrid.tsx
+    CommunitySection.tsx, CommunitySectionWrapper.tsx
+    AccountStrip.tsx, AccountStripSection.tsx
+    ParentInvitationSection.tsx, ParentInvitationWrapper.tsx
+    AddonModal.tsx, PdfViewer.tsx (react-pdf backed), SignOutButton.tsx
+    skeletons/  # Loading skeletons for each Suspense section
+  /account   ProfileSection.tsx, BillingSection.tsx
+  /admin     AdminSidebar.tsx, AdminStatsSection.tsx, RecentSignupsSection.tsx
+             DeleteUserModal.tsx (two-step soft/hard delete confirmation — added Feature 14)
+             UserPanel.tsx, AdminGrantForm.tsx, AdminRevokeButton.tsx
+             InvitationLinkForm.tsx, ContentUploadForm.tsx, ContentDeleteButton.tsx
+             UserPdfAssignment.tsx, PricingSection.tsx, SettingsForm.tsx
+             CommunityExportButton.tsx
+             skeletons/
+  /pricing   BuyNowButton.tsx
 /lib
   /supabase  client.ts, server.ts, service.ts
   /resend    client.ts (singleton Resend client)
@@ -179,32 +190,42 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
   /pdf       watermark.ts, fetch.ts
   /config    pricing.ts (types only), getPricing.ts (fetch utils)
   /actions
-    trackContentVisit, acceptCommunityRules, updateProfile,
-    parentInvitation, linkParentAccount
-    signOut.ts          # Server Action — logs AUTH_SIGN_OUT then calls supabase.auth.signOut()
-    contactForm.ts      # submitContactForm() server action — added Feature 14
-    admin/users.ts      # softDeleteUser(), hardDeleteUser(), reactivateUser() — added Feature 14
-    parentInvitation.ts — updated Feature 13: invite token flow (UUID + 72h expiry), acceptInvitation() two-email pattern (createUser + signInWithOtp), resend support
-    admin/invitations.ts — updated Feature 13: adminLinkParent now creates pending invitation with invite token instead of immediately-accepted row
-    contactForm.ts — updated Feature 13: sends admin notification email via Resend on submission
+    signOut.ts                  # signOut() — logs AUTH_SIGN_OUT then signs out
+    updateProfile.ts            # updateProfile() — diff-based, logs changes
+    acceptCommunityRules.ts     # acceptCommunityRules() — inserts agreement row
+    trackContentVisit.ts        # trackContentVisit() — idempotent first-visit stamp
+    contactForm.ts              # submitContactForm() — inserts submission, sends Resend notification
+    parentInvitation.ts         # sendParentInvitation(), resendParentInvitation(),
+                                #   cancelParentInvitation(), unlinkParent(), acceptInvitation()
+                                #   Updated Feature 13: invite token flow (UUID + 72h expiry),
+                                #   two-email pattern (admin.createUser + signInWithOtp)
+    admin/admins.ts             # grantAdminAccess(), revokeAdminAccess()
+    admin/content.ts            # uploadContentItem(), deleteContentItem(), etc.
+    admin/invitations.ts        # adminLinkParent() — updated Feature 13: creates invite token row
+    admin/settings.ts           # saveWhatsappLink()
+    admin/updatePricing.ts      # updatePricing() — diff-based, logs changes
+    admin/users.ts              # setUserMembershipTier(), setUserAddon(), assignContentToUser(),
+                                #   revokeContentFromUser(), softDeleteUser(), hardDeleteUser(),
+                                #   reactivateUser() — added Feature 14
 /lib
   /env         guard.ts (assertNotProduction — throws if production env used outside prod build)
 /hooks  /types  /references  /public
+/docs
+  ustart-project-snapshot.md  # Living project snapshot — updated on every PR
+  staging-setup.md             # Staging environment setup guide
+  /claude                      # Claude Code context sub-files
+    architecture.md            # Folder structure, DB schema, Supabase clients, env vars, auth flow
+    conventions.md             # TypeScript, component, styling, action conventions
+    testing.md                 # Test structure, coverage rules, Jest setup
+    git.md                     # Branching, commits, PR workflow
+  /migrations
+    001_initial_schema.sql     # Canonical schema — living file, updated in-place after every schema change
+    README.md                  # Schema change workflow and per-environment status
 /public/favicon.ico    # Static favicon fallback
 middleware.ts — updated Feature 13: /invite added as intentionally public route
 /.github
   /workflows   ci.yml (typecheck + lint + test on PRs to develop and main)
   pull_request_template.md   # PR checklist — enforced on every PR
-/docs
-  ustart-project-snapshot.md  # This document — tracked in git
-  staging-setup.md             # Staging environment setup guide
-  /migrations                  # Numbered SQL migration files — apply in order via Supabase SQL Editor
-    001_initial_schema.sql
-    002_pre_launch_cleanup.sql
-    003_feature_14_user_deletion.sql
-    004_audit_logs.sql
-    005_audit_logs_payload_search.sql
-    README.md                  # Migration rules, run order, per-environment status table
 ```
 
 ---
@@ -227,7 +248,7 @@ middleware.ts — updated Feature 13: /invite added as intentionally public rout
 - Nav button order for signed-in non-admin users: Dashboard, Sign Out
 - Pure utility functions (e.g. badge class helpers) must not be colocated inside `"use client"` files if they are needed in Server Components — extract them to a plain module in `/lib` with no directives
 - `assertNotProduction()` must be called as the first line of all three Supabase client factories (`lib/supabase/client.ts`, `server.ts`, `service.ts`) — throws immediately if `NEXT_PUBLIC_ENVIRONMENT=production` is used outside a production build
-- **Migration workflow** — every PR that includes a schema change must include a new numbered migration file in `docs/migrations/`. Run on staging first, verify, then run on production. Never edit a migration file after it has been run — write a new one to correct mistakes. Update the status table in `docs/migrations/README.md` after each environment.
+- **Migration workflow** — `docs/migrations/001_initial_schema.sql` is the canonical schema and is updated in-place after every schema change. To apply a change: write the SQL, run it on staging first, verify, run on production, then update `001_initial_schema.sql` to reflect the new state and include that update in the same PR. See `docs/migrations/README.md` for the full workflow.
 - **Snapshot must be updated before merging any branch.** When finishing a feature or bugfix, update this snapshot to reflect: new files and their purpose added to the folder structure, new database tables or columns, new environment variables, new conventions introduced, and feature status updated to ✅ Built. The updated snapshot is committed as part of the same PR. A PR without an updated snapshot is not mergeable.
 
 ---
@@ -243,6 +264,8 @@ npm run test         # Jest test suite
 ```
 
 Always run `typecheck` and `lint` after changes before committing. All tests must pass with zero failures before any commit.
+
+**Current test count**: 505 tests across 69 suites (as of April 16, 2026). If the suite drops below this without a deliberate deletion, investigate before committing.
 
 ---
 
@@ -340,7 +363,7 @@ All live pricing data is fetched from the `public.pricing` table in Supabase. `l
 - Signed URLs: 60 minute expiry for viewing
 - Raw Storage URLs are never exposed to the browser
 - All PDF access goes through `app/api/pdf/route.ts`
-- PDF viewer: iframe-based (no react-pdf) — browser native renderer
+- PDF viewer: react-pdf backed (`react-pdf@7.7.3`) — renders via canvas, not an iframe
 - Watermarking: pdf-lib stamps user email at bottom centre of every page
 - NOTE: `/icon.png` 404 in dev console is expected and harmless — Next.js ImageResponse only pre-renders at build time. `/public/favicon.ico` resolves correctly in all environments.
 
@@ -415,8 +438,7 @@ Added Feature 14. Accessible from every page via the footer Contact button or in
   - **Unauthenticated:** name, email, message fields (all editable)
   - **Authenticated:** email pre-populated (read-only), name pre-populated if on profile (editable if not set), message field only
   - Success auto-dismisses after 3s and closes panel
-- `submitContactForm()` — server action, inserts into `contact_submissions`, attaches `user_id` if signed in
-- Email sending deferred to Feature 13 (Resend)
+- `submitContactForm()` — server action, inserts into `contact_submissions`, attaches `user_id` if signed in, sends admin notification via Resend to `RESEND_NOTIFICATION_EMAIL`
 
 ---
 
@@ -589,7 +611,7 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 ## Known Issues / Things to Watch
 
 - Gmail pre-fetch consuming parent invitation magic link — RESOLVED in Feature 13. Fix: /invite confirmation page + two-email flow. generateLink() does not support PKCE; acceptInvitation() uses signInWithOtp() instead.
-- KNOWN-002 — iframe PDF scrolling lag — fundamental iframe limitation. Revisit post-launch. Consider hosted PDF viewer if user complaints arise.
+- KNOWN-002 — PDF scrolling performance on mobile — react-pdf canvas renderer may be slower on low-end devices. Revisit post-launch if user complaints arise.
 - `/icon.png` 404 in dev console — harmless. Next.js ImageResponse only pre-renders at build time. `/public/favicon.ico` resolves correctly in all environments.
 - **`payload_text` migration must be applied before deploying any code that references it.** If the column doesn't exist, the `.or()` filter silently returns zero results (`fetchAuditLog` catches the error and returns `{ rows: [], total: 0 }`). Apply the migration first, then deploy.
 - **Audit log date range is enforced in the UI only.** `fetchAuditLog` will run a full-table query if called without `from`/`to`. Any future entry point to the audit log (new admin page, API route, etc.) must enforce the date range independently.
@@ -604,9 +626,10 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Replace placeholder Stripe IDs in `addons` and `one_time_purchases` (Feature 12)
 - Update magic link email template — currently hardcoded to `http://localhost:3000`
 - PDF streaming — replace base64 with binary streaming in `/api/pdf` (post-launch)
-- Revert RESEND_FROM_EMAIL from mail subdomain to hello@staging.u-start.co.uk / hello@u-start.co.uk once DNS propagation confirms (test sign-in after switching)
-- Confirm RESEND_NOTIFICATION_EMAIL address with Morgan for staging and production
-- Notify parent via Resend when unlinked (unlinkParent TODO in lib/actions/parentInvitation.ts) — deferred post-launch
+- Activate `staging@u-start.co.uk` in Google Workspace, then set as `RESEND_NOTIFICATION_EMAIL` in Vercel staging
+- Reactivate `csr@u-start.co.uk` in Google Workspace (currently archived), then set as `RESEND_NOTIFICATION_EMAIL` in Vercel production
+- Notify parent via Resend when unlinked (see `TODO` in `lib/actions/parentInvitation.ts → unlinkParent`) — deferred post-launch
+- Confirm Resend API keys are scoped to correct sending domains — staging key: staging.u-start.co.uk, production key: u-start.co.uk
 
 **Business Owner Decisions Pending**
 
@@ -628,9 +651,11 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - [ ] Run remaining pre-launch schema cleanup steps (Steps 3–6)
 - [ ] Apply `audit_logs` `payload_text` generated column and GIN trigram index (see audit_logs Migration above)
 - [ ] Set email subject lines in Supabase Email Templates
-- ✅ SMTP → Resend connected (staging and production)
-- ✅ Sender name + From address set (staging and production)
-- ✅ Update Site URL and Redirect URLs from localhost to production domain (u-start.co.uk and staging.u-start.co.uk)
+- ✅ SMTP → Resend connected (both projects — staging.u-start.co.uk and u-start.co.uk)
+- ✅ Sender name + From address set (both projects)
+- ✅ Update Site URL and Redirect URLs (both projects — u-start.co.uk and staging.u-start.co.uk)
+- [ ] Activate `staging@u-start.co.uk` and `csr@u-start.co.uk` in Google Workspace before launch
+- [ ] Confirm Resend API keys are scoped to correct sending domains (staging key → staging.u-start.co.uk, production key → u-start.co.uk)
 - [ ] Export full schema: `supabase db dump --schema-only -f docs/ustart-schema-v4.sql`
 - [ ] Run copy/naming consistency audit against live codebase
 - [ ] Business owner to review and approve Privacy Policy and Terms of Service
@@ -651,7 +676,7 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - ✅ Email Templates → Magic Link updated with branded template
 - ✅ Email Templates → Confirm Signup updated
 - ⏸ audit_logs payload_text generated column + GIN index (apply before launch — see migration above)
-- ✅ SMTP → Resend connected (staging: mail.staging.u-start.co.uk, production: mail.u-start.co.uk)
+- ✅ SMTP → Resend connected (staging: staging.u-start.co.uk, production: u-start.co.uk)
 - ✅ Sender name + From address set on both projects
 
 ---
@@ -694,6 +719,10 @@ Not tracked in git — design mockups and original schema exports for reference 
 
 ## How to Start a New Chat
 
+When using Claude Code in the repository, `CLAUDE.md` routes Claude to the relevant sub-files in `docs/claude/` automatically. No manual setup needed.
+
+When starting a fresh chat outside Claude Code (e.g. pasting context manually):
+
 1. Start a fresh Claude conversation
 2. Upload this snapshot file (`ustart-project-snapshot.md`) as your first attachment
 3. Add the prefix:
@@ -702,4 +731,4 @@ Not tracked in git — design mockups and original schema exports for reference 
 
 ---
 
-_End of snapshot — updated April 15, 2026_
+_End of snapshot — updated April 16, 2026_

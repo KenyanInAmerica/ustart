@@ -75,6 +75,8 @@ CREATE TABLE public.parent_invitations (
   student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   parent_email TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
+  invite_token UUID DEFAULT gen_random_uuid() NOT NULL,
+  invite_token_expires_at TIMESTAMPTZ,
   invited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   accepted_at TIMESTAMPTZ,
   cancelled_at TIMESTAMPTZ,
@@ -315,6 +317,9 @@ GROUP BY
 CREATE UNIQUE INDEX one_active_invite_per_student
   ON public.parent_invitations (student_id)
   WHERE status IN ('pending', 'accepted');
+
+CREATE UNIQUE INDEX parent_invitations_invite_token_idx
+  ON public.parent_invitations (invite_token);
 
 CREATE INDEX audit_logs_created_at_idx ON public.audit_logs (created_at DESC);
 CREATE INDEX audit_logs_actor_id_idx ON public.audit_logs (actor_id);
