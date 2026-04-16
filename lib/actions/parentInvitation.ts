@@ -1,24 +1,57 @@
 // Server actions for the parent invitation flow on the Parent Pack page.
-// Students invite a parent by email; the parent receives a magic link that signs
-// them in and links their account to the student's entitlements.
+// Students invite a parent by email; the parent receives a confirmation URL
+// that leads to /invite, where the magic link is generated on-demand when
+// the parent clicks Accept. This prevents Gmail's pre-fetch bot from consuming
+// the one-time Supabase token before the parent clicks.
 
 "use server";
 
-import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
+import { resend } from "@/lib/resend/client";
+import { parentInvitationEmail } from "@/lib/resend/templates/parentInvitation";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-// Derives the site origin from request headers — works in dev and on Vercel.
-function getSiteUrl(): string {
-  const h = headers();
-  const host = h.get("host") ?? "localhost:3000";
-  const proto = h.get("x-forwarded-proto") ?? (host.includes("localhost") ? "http" : "https");
-  return `${proto}://${host}`;
+// Fetches the student's display name from profiles for use in the invitation email.
+// Falls back to "Your student" if the profile row is missing or the name is not set.
+async function getStudentName(studentId: string): Promise<string> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("profiles")
+    .select("first_name, last_name")
+    .eq("id", studentId)
+    .maybeSingle();
+  const p = data as { first_name: string | null; last_name: string | null } | null;
+  return (
+    [p?.first_name, p?.last_name].filter(Boolean).join(" ") || "Your student"
+  );
+}
+
+// Sends the invitation email via Resend. The inviteUrl is a plain confirmation
+// page URL — no magic link is embedded in the email, so there is nothing for
+// Gmail's pre-fetch bot to consume.
+async function sendInvitationEmail(
+  parentEmail: string,
+  studentName: string,
+  inviteUrl: string
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { error: emailError } = await resend.emails.send({
+    from: process.env.RESEND_FROM_EMAIL!,
+    to: parentEmail,
+    subject: "You've been invited to UStart",
+    html: parentInvitationEmail({ studentName, inviteUrl }),
+  });
+
+  if (emailError) {
+    console.error("[parentInvitation] Resend send failed:", emailError);
+    return { ok: false, error: "Failed to send invitation email." };
+  }
+
+  return { ok: true };
 }
 
 export async function sendParentInvitation(
@@ -70,8 +103,6 @@ export async function sendParentInvitation(
     }
 
     // Prevent duplicate active invitations — one parent per student at a time.
-    // .single() is intentional: if the partial unique index allows multiple active
-    // rows (shouldn't happen), we still treat that as a block.
     const { data: existing } = await supabase
       .from("parent_invitations")
       .select("id")
@@ -83,27 +114,28 @@ export async function sendParentInvitation(
       return { success: false, error: "An active invitation already exists." };
     }
 
-    // Send the magic link before inserting the DB row — if the OTP call fails
-    // nothing is committed and the user can try again without hitting the
-    // duplicate-invitation guard above.
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: parentEmail,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: `${getSiteUrl()}/auth/callback`,
-        data: { student_id: user.id, role: "parent" },
-      },
-    });
+    // Generate a token and expiry for the confirmation page URL.
+    // The magic link is NOT generated here — it is generated on-demand in
+    // acceptInvitation() when the parent actually clicks Accept.
+    const inviteToken = crypto.randomUUID();
+    const inviteTokenExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+    const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite?token=${inviteToken}`;
 
-    if (otpError) {
-      return { success: false, error: "Failed to send invitation email. Please try again shortly." };
-    }
+    // Send the email before inserting the DB row — if Resend fails nothing is
+    // committed and the user can retry without hitting the duplicate-invitation guard.
+    const studentName = await getStudentName(user.id);
+    const sendResult = await sendInvitationEmail(parentEmail, studentName, inviteUrl);
+    if (!sendResult.ok) return { success: false, error: sendResult.error };
 
-    // OTP succeeded — now record the pending invitation so the dashboard
-    // can display the correct state.
     const { error: insertError } = await supabase
       .from("parent_invitations")
-      .insert({ student_id: user.id, parent_email: parentEmail, status: "pending" });
+      .insert({
+        student_id: user.id,
+        parent_email: parentEmail,
+        status: "pending",
+        invite_token: inviteToken,
+        invite_token_expires_at: inviteTokenExpiresAt,
+      });
 
     if (insertError) return { success: false, error: insertError.message };
 
@@ -139,23 +171,27 @@ export async function resendParentInvitation(): Promise<
       .maybeSingle();
 
     if (!invitation) return { success: false, error: "No pending invitation found." };
+    const inv = invitation as { id: string; parent_email: string };
 
-    const { error: otpError } = await supabase.auth.signInWithOtp({
-      email: invitation.parent_email,
-      options: {
-        shouldCreateUser: true,
-        emailRedirectTo: `${getSiteUrl()}/auth/callback`,
-        data: { student_id: user.id, role: "parent" },
-      },
-    });
+    // Generate a fresh token so the old confirmation URL is invalidated.
+    const inviteToken = crypto.randomUUID();
+    const inviteTokenExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+    const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite?token=${inviteToken}`;
 
-    if (otpError) return { success: false, error: "Failed to send invitation email. Please try again shortly." };
+    const studentName = await getStudentName(user.id);
+    const sendResult = await sendInvitationEmail(inv.parent_email, studentName, inviteUrl);
+    if (!sendResult.ok) return { success: false, error: sendResult.error };
 
-    // Refresh invited_at so the parent knows a new link was issued.
+    // Refresh the token columns and invited_at so the parent knows a new link was issued
+    // and the old token is no longer accepted.
     await supabase
       .from("parent_invitations")
-      .update({ invited_at: new Date().toISOString() })
-      .eq("id", invitation.id);
+      .update({
+        invite_token: inviteToken,
+        invite_token_expires_at: inviteTokenExpiresAt,
+        invited_at: new Date().toISOString(),
+      })
+      .eq("id", inv.id);
 
     void logAction({
       actorId: user.id,
@@ -237,7 +273,6 @@ export async function unlinkParent(): Promise<
     }
 
     // Cancel the accepted invitation row so the student can invite again.
-    // The parent account no longer exists so the same email can be re-invited immediately.
     const { error: invitationError } = await supabase
       .from("parent_invitations")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
@@ -255,6 +290,94 @@ export async function unlinkParent(): Promise<
     });
 
     revalidatePath("/dashboard/parent-pack");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+// Accepts a parent invitation: creates the parent user in Supabase Auth and sends
+// a standard PKCE magic link email. Called when the parent clicks Accept on /invite.
+// No auth check — intentionally accessible to unauthenticated parents.
+export async function acceptInvitation(
+  token: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const service = createServiceClient();
+
+    // Step 1 — validate the invite token.
+    const { data: invitation } = await service
+      .from("parent_invitations")
+      .select("id, parent_email, student_id")
+      .eq("invite_token", token)
+      .eq("status", "pending")
+      .gt("invite_token_expires_at", new Date().toISOString())
+      .maybeSingle();
+
+    if (!invitation) {
+      return { success: false, error: "This invitation link has expired or is no longer valid." };
+    }
+
+    const inv = invitation as { id: string; parent_email: string; student_id: string };
+
+    // Step 2 — create the parent user in Supabase Auth, pre-confirmed, with linking
+    // metadata embedded so the /auth/callback can perform the parent-linking step.
+    // If the email already exists (previous invitation or re-invite), update metadata.
+    const { error: createError } = await service.auth.admin.createUser({
+      email: inv.parent_email,
+      email_confirm: true,
+      user_metadata: { role: "parent", student_id: inv.student_id },
+    });
+
+    if (createError) {
+      // "already registered" is recoverable — the parent may have accepted a prior
+      // invitation or signed up independently. Update their metadata and proceed.
+      const isAlreadyExists =
+        createError.message?.toLowerCase().includes("already") ||
+        (createError as unknown as Record<string, unknown>).code === "email_exists";
+
+      if (!isAlreadyExists) {
+        console.error("[acceptInvitation] createUser failed:", createError);
+        return { success: false, error: "Failed to set up your account. Please try again." };
+      }
+
+      // Look up the existing user's ID to update their metadata.
+      const { data: existingRow } = await service
+        .from("user_access")
+        .select("id")
+        .eq("email", inv.parent_email)
+        .maybeSingle();
+
+      if (!existingRow) {
+        return { success: false, error: "Failed to set up your account. Please try again." };
+      }
+
+      const { id: existingUserId } = existingRow as { id: string };
+      await service.auth.admin.updateUserById(existingUserId, {
+        user_metadata: { role: "parent", student_id: inv.student_id },
+      });
+    }
+
+    // Step 3 — send the magic link via the standard PKCE-compatible signInWithOtp.
+    // Using the server client (anon key), NOT the service client, so Supabase routes
+    // the email through the configured SMTP provider (Resend) and issues a PKCE token
+    // that the existing /auth/callback code exchange can handle.
+    const supabase = createClient();
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: inv.parent_email,
+      options: {
+        shouldCreateUser: false, // user was created (or confirmed existing) in step 2
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+      },
+    });
+
+    if (otpError) {
+      console.error("[acceptInvitation] signInWithOtp failed:", otpError);
+      return { success: false, error: "Failed to send sign-in email. Please try again." };
+    }
+
+    // Intentionally do NOT mark the invitation as accepted here — that happens in
+    // the existing /auth/callback flow once Supabase confirms sign-in via user_metadata.
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };

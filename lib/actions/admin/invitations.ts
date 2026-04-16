@@ -9,6 +9,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
+import { resend } from "@/lib/resend/client";
+import { parentInvitationEmail } from "@/lib/resend/templates/parentInvitation";
 
 type ActionResult = { success: true } | { success: false; error: string };
 
@@ -36,7 +38,9 @@ async function requireAdmin(): Promise<
   return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
-// Manually links a parent account to a student, bypassing the magic-link invitation flow.
+// Manually links a parent account to a student via the same pending-invitation flow
+// used by students. The admin creates the account; the parent still signs in themselves
+// via the /invite confirmation page before their profile is linked.
 //
 // ORDER OF OPERATIONS — all three validation checks (steps 1–3) complete before any
 // database write occurs. If any validation fails the function returns early with no
@@ -46,10 +50,10 @@ async function requireAdmin(): Promise<
 //   2. Confirm student does not already have an accepted parent invitation.
 //   3. Confirm parent email does not already exist in auth.users.
 //   ── no DB writes above this line ──────────────────────────────────────────────────
-//   4a. Create the parent auth account.
-//   4b. Set role = "parent", email, and student_id on the parent's profile.
-//   4c. Cancel any existing pending invitation for the student.
-//   4d. Insert the new accepted invitation row.
+//   4a. Create the parent auth account with user_metadata for the callback to use.
+//   4b. Cancel any existing pending or accepted invitation for the student.
+//   4c. Insert the new pending invitation row with an invite token.
+//   4d. Send the invitation email with the /invite confirmation page URL.
 export async function adminLinkParent(
   studentEmail: string,
   parentEmail: string
@@ -73,11 +77,17 @@ export async function adminLinkParent(
     // simultaneously, and admin accounts must not be treated as linkable students.
     const { data: studentRow } = await service
       .from("profiles")
-      .select("id, role, is_admin")
+      .select("id, role, is_admin, first_name, last_name")
       .eq("email", studentEmail.toLowerCase())
       .maybeSingle();
 
-    const student = studentRow as { id: string; role: string | null; is_admin: boolean | null } | null;
+    const student = studentRow as {
+      id: string;
+      role: string | null;
+      is_admin: boolean | null;
+      first_name: string | null;
+      last_name: string | null;
+    } | null;
     if (!student) {
       return { success: false, error: "The student email you entered does not match any existing account." };
     }
@@ -112,13 +122,13 @@ export async function adminLinkParent(
       };
     }
 
-    // 4a. Create a new auth account for the parent.
-    // The parent can sign in via magic link afterward.
-    const { data: newUser, error: createError } =
-      await service.auth.admin.createUser({
-        email: parentEmail.toLowerCase(),
-        email_confirm: true,
-      });
+    // 4a. Create the parent auth account with user_metadata so the /auth/callback
+    // can perform profile linking when the parent signs in via magic link.
+    const { data: newUser, error: createError } = await service.auth.admin.createUser({
+      email: parentEmail.toLowerCase(),
+      email_confirm: true,
+      user_metadata: { role: "parent", student_id: student.id },
+    });
 
     if (createError || !newUser?.user) {
       return { success: false, error: createError?.message ?? "Failed to create parent account." };
@@ -126,42 +136,62 @@ export async function adminLinkParent(
 
     const parentId = newUser.user.id;
 
-    // 4b. Update the parent's profile with role = "parent", email, and student_id.
-    // The handle_new_user trigger fires when createUser() is called above and creates
-    // the profiles row automatically — use UPDATE, not upsert, to avoid conflict errors.
-    const { error: profileError } = await service
-      .from("profiles")
-      .update({
-        role: "parent",
-        email: parentEmail.toLowerCase(),
-        student_id: student.id,
-      })
-      .eq("id", parentId);
-
-    if (profileError) return { success: false, error: profileError.message };
-
-    // 4c. Cancel any existing pending invitation.
+    // 4b. Cancel any existing pending or accepted invitation for the student.
     // Must run before the insert — the partial unique index on (student_id) WHERE
-    // status IN ('pending','accepted') would block inserting a new accepted row
-    // while an active row already exists.
+    // status IN ('pending','accepted') would block a new pending row while an
+    // active row already exists.
     await service
       .from("parent_invitations")
       .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
       .eq("student_id", student.id)
-      .eq("status", "pending");
+      .in("status", ["pending", "accepted"]);
 
-    // 4d. Insert the new accepted invitation row.
-    // Plain INSERT, not upsert — the partial unique index cannot be used for
-    // ON CONFLICT resolution and was causing the upsert to fail.
+    // 4c. Insert the new pending invitation row with an invite token.
+    // The token is emailed to the parent; the invite page validates it before
+    // calling acceptInvitation() which sends the magic link.
+    const inviteToken = crypto.randomUUID();
+    const inviteTokenExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
+
     const { error: invError } = await service.from("parent_invitations").insert({
       student_id: student.id,
       parent_email: parentEmail.toLowerCase(),
-      status: "accepted",
+      status: "pending",
+      invite_token: inviteToken,
+      invite_token_expires_at: inviteTokenExpiresAt,
       invited_at: new Date().toISOString(),
-      accepted_at: new Date().toISOString(),
     });
 
-    if (invError) return { success: false, error: invError.message };
+    if (invError) {
+      // Roll back the auth account so the admin can retry cleanly.
+      await service.auth.admin.deleteUser(parentId);
+      return { success: false, error: invError.message };
+    }
+
+    // 4d. Email the parent the /invite confirmation page URL.
+    // Sending a plain confirmation URL (not a raw magic link) so there is nothing
+    // for Gmail's pre-fetch bot to consume before the parent clicks.
+    const studentName =
+      [student.first_name, student.last_name].filter(Boolean).join(" ") || studentEmail;
+    const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite?token=${inviteToken}`;
+
+    const { error: emailError } = await resend.emails.send({
+      from: process.env.RESEND_FROM_EMAIL!,
+      to: parentEmail.toLowerCase(),
+      subject: "You've been invited to UStart",
+      html: parentInvitationEmail({ studentName, inviteUrl }),
+    });
+
+    if (emailError) {
+      console.error("[adminLinkParent] Resend send failed:", emailError);
+      // Roll back both the auth account and the invitation row.
+      await service.auth.admin.deleteUser(parentId);
+      await service
+        .from("parent_invitations")
+        .update({ status: "cancelled", cancelled_at: new Date().toISOString() })
+        .eq("student_id", student.id)
+        .eq("status", "pending");
+      return { success: false, error: "Failed to send invitation email to parent." };
+    }
 
     void logAction({
       actorId: auth.adminId,
@@ -169,7 +199,7 @@ export async function adminLinkParent(
       action: AuditAction.ADMIN_PARENT_MANUALLY_LINKED,
       targetId: student.id,
       targetEmail: studentEmail.toLowerCase(),
-      payload: { parentEmail: parentEmail.toLowerCase() },
+      payload: { parentEmail: parentEmail.toLowerCase(), flow: "pending_invitation" },
     });
 
     revalidatePath("/admin/invitations");
