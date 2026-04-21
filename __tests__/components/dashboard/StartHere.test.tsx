@@ -70,10 +70,9 @@ describe("StartHere", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("renders the top gradient accent line", () => {
+  it("renders the progress bar track", () => {
     const { container } = render(<StartHere {...defaultProps} />);
-    // The gradient line is an absolutely-positioned div inside the card
-    const gradientLine = container.querySelector(".bg-gradient-to-r");
-    expect(gradientLine).toBeInTheDocument();
+    const progressBar = container.querySelector(".bg-\\[var\\(--bg-subtle\\)\\]");
+    expect(progressBar).toBeInTheDocument();
   });
 });

@@ -14,9 +14,8 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-[#080E1A] text-white font-dm-sans">
+    <div className="min-h-screen bg-[var(--bg)] font-primary text-[var(--text)]">
       <AdminSidebar />
-      {/* Offset by the sidebar width so content isn't hidden under it */}
       <main className="ml-[220px] min-h-screen">
         {children}
       </main>

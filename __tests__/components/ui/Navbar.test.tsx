@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { Navbar } from "@/components/ui/Navbar";
 
 const mockGetUser = jest.fn();
@@ -37,7 +37,7 @@ jest.mock("next/headers", () => ({
 
 // SignOutButton uses useRouter; GetStartedLink uses usePathname — stub both.
 jest.mock("next/navigation", () => ({
-  useRouter: jest.fn(() => ({ push: jest.fn() })),
+  useRouter: jest.fn(() => ({ refresh: jest.fn() })),
   usePathname: jest.fn(() => "/"),
 }));
 
@@ -65,6 +65,12 @@ describe("Navbar", () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
     render(await Navbar());
     expect(screen.getByText("UStart")).toBeInTheDocument();
+  });
+
+  it("renders the brand tagline", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+    render(await Navbar());
+    expect(screen.getByText("Your Move, Made Simple")).toBeInTheDocument();
   });
 
   it("renders Sign In and Get Started links when logged out", async () => {
@@ -170,5 +176,21 @@ describe("Navbar", () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
     render(await Navbar());
     expect(screen.queryByRole("link", { name: "Get Started" })).not.toBeInTheDocument();
+  });
+
+  it("adds a subtle shadow after scrolling", async () => {
+    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
+    const { container } = render(await Navbar());
+
+    Object.defineProperty(window, "scrollY", {
+      value: 24,
+      writable: true,
+      configurable: true,
+    });
+    fireEvent.scroll(window);
+
+    await waitFor(() => {
+      expect(container.querySelector("nav")).toHaveClass("shadow-[var(--shadow-sm)]");
+    });
   });
 });

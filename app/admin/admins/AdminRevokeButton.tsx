@@ -1,10 +1,7 @@
-// Client component for the revoke button in the admins table.
-// Inline two-step confirmation replaces the browser confirm() dialog so the
-// UI stays consistent with the rest of the admin panel.
-
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
 import { revokeAdminAccess } from "@/lib/actions/admin/admins";
 
 interface AdminRevokeButtonProps {
@@ -30,33 +27,21 @@ export function AdminRevokeButton({ targetUserId }: AdminRevokeButtonProps) {
   return (
     <span className="inline-flex flex-col items-end gap-1">
       {confirming ? (
-        // Inline confirm prompt — avoids browser dialog dependency
         <span className="inline-flex items-center gap-2">
-          <span className="text-[12px] text-white/50">Revoke access?</span>
-          <button
-            onClick={handleRevoke}
-            disabled={isPending}
-            className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
-          >
+          <span className="text-[12px] text-[var(--text-muted)]">Revoke access?</span>
+          <Button onClick={handleRevoke} disabled={isPending} variant="destructive" size="sm">
             {isPending ? "Revoking…" : "Yes"}
-          </button>
-          <button
-            onClick={() => setConfirming(false)}
-            disabled={isPending}
-            className="text-[12px] text-white/30 hover:text-white transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button onClick={() => setConfirming(false)} disabled={isPending} variant="secondary" size="sm">
             Cancel
-          </button>
+          </Button>
         </span>
       ) : (
-        <button
-          onClick={() => setConfirming(true)}
-          className="text-[13px] text-white/30 hover:text-red-400 transition-colors"
-        >
+        <Button onClick={() => setConfirming(true)} variant="destructive" size="sm">
           Revoke
-        </button>
+        </Button>
       )}
-      {error && <p className="text-red-400 text-[12px]">{error}</p>}
+      {error && <p className="text-[12px] text-[var(--destructive)]">{error}</p>}
     </span>
   );
 }

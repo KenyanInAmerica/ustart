@@ -1,8 +1,6 @@
-// Public page — no auth required. Unauthenticated parents land here after clicking
-// the confirmation URL in their invitation email. The token is validated server-side;
-// clicking Accept creates the parent user and sends a PKCE magic link email.
-
 import Link from "next/link";
+import { Card } from "@/components/ui/Card";
+import { brand } from "@/lib/config/brand";
 import { createServiceClient } from "@/lib/supabase/service";
 import { AcceptButton } from "./AcceptButton";
 
@@ -10,26 +8,24 @@ interface InvitePageProps {
   searchParams: { token?: string | string[] };
 }
 
-// Branded error card — shown when token is missing, expired, or already used.
 function InviteError() {
   return (
-    <div className="min-h-screen bg-[#05080F] flex flex-col items-center justify-center px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] px-6 py-16">
       <Link
         href="/"
-        className="font-syne font-extrabold text-xl tracking-[-0.03em] text-white mb-16"
+        className="mb-10 font-primary text-2xl font-bold tracking-[-0.03em] text-[var(--accent)]"
       >
-        UStart
+        {brand.name}
       </Link>
 
-      <div className="w-full max-w-[400px] bg-[#0C1220] border border-white/[0.07] rounded-2xl px-8 py-10 text-center">
-        {/* Warning icon */}
-        <div className="w-12 h-12 rounded-full border border-white/10 flex items-center justify-center mx-auto mb-6">
+      <Card className="w-full max-w-[420px] border border-[var(--border)] text-center" padding="lg">
+        <div className="mx-auto mb-6 flex h-12 w-12 items-center justify-center rounded-full border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--destructive)]">
           <svg
             width="20"
             height="20"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="white"
+            stroke="currentColor"
             strokeWidth="1.5"
             aria-hidden="true"
           >
@@ -37,21 +33,18 @@ function InviteError() {
           </svg>
         </div>
 
-        <h1 className="font-syne font-bold text-2xl tracking-[-0.03em] text-white mb-3">
+        <h1 className="mb-3 font-primary text-2xl font-bold tracking-[-0.03em] text-[var(--text)]">
           Link expired
         </h1>
-        <p className="text-[15px] text-white/45 leading-relaxed">
-          This invitation link has expired or is no longer valid. Ask the student
-          to resend the invitation from their UStart dashboard.
+        <p className="text-[15px] leading-relaxed text-[var(--text-muted)]">
+          This invitation link has expired or is no longer valid. Ask the student to resend the invitation from their UStart dashboard.
         </p>
-      </div>
+      </Card>
     </div>
   );
 }
 
 export default async function InvitePage({ searchParams }: InvitePageProps) {
-  // searchParams values can be string arrays when a query param appears multiple
-  // times; take the first value and treat anything else as missing.
   const rawToken = searchParams.token;
   const token = Array.isArray(rawToken) ? rawToken[0] : rawToken;
 
@@ -74,23 +67,18 @@ export default async function InvitePage({ searchParams }: InvitePageProps) {
 
   const inv = data as { id: string; parent_email: string };
 
-  // Token is valid — render the confirmation card. AcceptButton creates the parent
-  // user and sends the magic link email when clicked; parentEmail is shown in the
-  // success state so the parent knows which inbox to check.
   return (
-    <div className="min-h-screen bg-[#05080F] flex flex-col items-center justify-center px-6">
+    <div className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] px-6 py-16">
       <Link
         href="/"
-        className="font-syne font-extrabold text-xl tracking-[-0.03em] text-white mb-16"
+        className="mb-10 font-primary text-2xl font-bold tracking-[-0.03em] text-[var(--accent)]"
       >
-        UStart
+        {brand.name}
       </Link>
 
-      {/* AcceptButton owns the full card body — it swaps between invitation and
-          success views so accepting doesn't leave stale invite content on screen. */}
-      <div className="w-full max-w-[400px] bg-[#0C1220] border border-white/[0.07] rounded-2xl px-8 py-10">
+      <Card className="w-full max-w-[420px] border border-[var(--border)]" padding="lg">
         <AcceptButton token={token} parentEmail={inv.parent_email} />
-      </div>
+      </Card>
     </div>
   );
 }

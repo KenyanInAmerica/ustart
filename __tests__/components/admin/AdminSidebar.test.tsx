@@ -43,7 +43,7 @@ describe("AdminSidebar", () => {
     render(<AdminSidebar />);
     const overviewLink = screen.getByRole("link", { name: /overview/i });
     expect(overviewLink).toHaveAttribute("href", "/admin");
-    expect(overviewLink.className).toMatch(/bg-white/);
+    expect(overviewLink.className).toMatch(/text-\[#3083DC\]/);
   });
 
   it("all nav links point to the correct hrefs", () => {

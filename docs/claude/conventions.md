@@ -31,15 +31,20 @@
 - **Tailwind only** — no inline `style` props. No CSS Modules, no styled-components.
 - Complex gradients that can't be expressed as Tailwind arbitrary values go in `globals.css` as named classes (`.hero-dot-grid`, `.hero-glow`).
 - **CSS variables** (defined in `globals.css`):
-  - `--bg-deep` — `#05080F` — page background
-  - `--bg-card` — `#0C1220` — card/sidebar background
-  - `--bg-card-hover` — `#111927` — hovered card background
-  - `--border` — `rgba(255,255,255,0.07)` — default borders
-  - `--border-bright` — `rgba(255,255,255,0.15)` — high-emphasis borders
-  - `--text-primary` — `#FFFFFF` — primary text
-  - `--text-muted` — `rgba(255,255,255,0.45)` — muted text
-  - `--text-mid` — `rgba(255,255,255,0.70)` — mid-emphasis text
-- **Font classes**: `font-syne` (headings) and `font-dm-sans` (body). Loaded via `next/font/google` in `app/layout.tsx` as CSS variables `--font-syne` / `--font-dm-sans`.
+  - `--bg` — `#F2F1EF` — page background
+  - `--bg-card` — `#FFFFFF` — card surfaces
+  - `--bg-card-hover` — `#F8F7F5` — hovered card background
+  - `--bg-subtle` — `#ECEAE7` — subtle backgrounds and locked states
+  - `--border` — `rgba(28,43,58,0.10)` — default borders
+  - `--border-md` — `rgba(28,43,58,0.16)` — medium-emphasis borders
+  - `--border-hi` — `rgba(28,43,58,0.24)` — high-emphasis borders
+  - `--text` — `#1C2B3A` — primary text
+  - `--text-mid` — `rgba(28,43,58,0.68)` — mid-emphasis text
+  - `--text-muted` — `rgba(28,43,58,0.42)` — muted text
+  - `--accent` / `--accent-hover` — primary interactive blue and hover state
+  - `--destructive` — warm red destructive state
+- All color references must use CSS variables or Tailwind semantic classes. Do not hardcode hex colors in components. The only exceptions are `lib/config/brand.ts` and `lib/config/productAccents.ts`.
+- **Font classes**: `font-primary` is the single font utility. `Plus Jakarta Sans` is loaded via `next/font/google` in `app/layout.tsx` as `--font-primary`. Switching to Salmond later should require changing the root font import only.
 - **Custom breakpoint**: `md-900` (900px) for desktop layouts. Mobile-first: default styles are mobile, `md-900:` overrides are desktop.
 - **Animations** (defined in `tailwind.config.ts`): `animate-pulse-glow`, `animate-fade-up`, `animate-fade-up-1`, `animate-fade-up-2`, `animate-fade-up-3` (staggered).
 

@@ -3,22 +3,22 @@
 
 function SkeletonCard() {
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
       {/* Icon + badge row */}
       <div className="flex items-start justify-between mb-4">
-        <div className="w-10 h-10 rounded-xl bg-[var(--bg-card-hover)] animate-pulse" />
-        <div className="h-4 w-14 rounded-full bg-[var(--bg-card-hover)] animate-pulse" />
+        <div className="h-10 w-10 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
+        <div className="h-4 w-14 rounded-full bg-[var(--bg-subtle)] animate-pulse" />
       </div>
       {/* Title */}
-      <div className="h-3.5 w-28 bg-[var(--bg-card-hover)] rounded animate-pulse mb-2" />
+      <div className="mb-2 h-3.5 w-28 rounded bg-[var(--bg-subtle)] animate-pulse" />
       {/* Description — 3 lines */}
       <div className="space-y-1.5 mb-4">
-        <div className="h-2.5 w-full bg-[var(--bg-card-hover)] rounded animate-pulse" />
-        <div className="h-2.5 w-4/5 bg-[var(--bg-card-hover)] rounded animate-pulse" />
-        <div className="h-2.5 w-3/5 bg-[var(--bg-card-hover)] rounded animate-pulse" />
+        <div className="h-2.5 w-full rounded bg-[var(--bg-subtle)] animate-pulse" />
+        <div className="h-2.5 w-4/5 rounded bg-[var(--bg-subtle)] animate-pulse" />
+        <div className="h-2.5 w-3/5 rounded bg-[var(--bg-subtle)] animate-pulse" />
       </div>
       {/* CTA text */}
-      <div className="h-2.5 w-24 bg-[var(--bg-card-hover)] rounded animate-pulse" />
+      <div className="h-2.5 w-24 rounded bg-[var(--bg-subtle)] animate-pulse" />
     </div>
   );
 }

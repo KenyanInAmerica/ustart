@@ -7,6 +7,7 @@ import { ContentUploadForm } from "@/components/admin/ContentUploadForm";
 import { ContentDeleteButton } from "./ContentDeleteButton";
 import { UserPdfAssignment } from "./UserPdfAssignment";
 import Link from "next/link";
+import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 import type { ContentItem } from "@/types/admin";
 
 interface PageProps {
@@ -32,25 +33,38 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
     fetchContentItems(),
   ]);
 
+  function tierAccent(tier: ContentItem["tier"]): ProductAccent {
+    switch (tier) {
+      case "explore":
+        return "explore";
+      case "concierge":
+        return "concierge";
+      case "parent_pack":
+        return "parent_pack";
+      default:
+        return "lite";
+    }
+  }
+
   return (
     <div className="px-8 py-8 max-w-5xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Content
       </h1>
-      <p className="text-[13px] text-white/40 mb-8">
+      <p className="mb-8 text-[13px] text-[var(--text-muted)]">
         Upload PDFs and manage the content library by category.
       </p>
 
       {/* ── Section A — Tier content library ─────────────────────────────────── */}
 
       {/* Upload form */}
-      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5 mb-8">
-        <h2 className="text-[13px] font-medium text-white mb-4">Upload new PDF</h2>
+      <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">Upload new PDF</h2>
         <ContentUploadForm />
       </div>
 
       {/* Tier filter */}
-      <div className="flex gap-1 mb-5">
+      <div className="mb-5 flex gap-1">
         {TIER_OPTIONS.map((opt) => {
           const href = opt.value ? `/admin/content?tier=${opt.value}` : "/admin/content";
           const active = (tierFilter ?? "") === opt.value;
@@ -58,10 +72,10 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
             <Link
               key={opt.value}
               href={href}
-              className={`px-3 py-1.5 text-[13px] rounded-lg transition-colors ${
+              className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px] transition-colors ${
                 active
-                  ? "bg-white/[0.08] text-white"
-                  : "text-white/40 hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-[#3083DC]/10 text-[#3083DC]"
+                  : "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
               }`}
             >
               {opt.label}
@@ -71,16 +85,16 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
       </div>
 
       {items.length === 0 ? (
-        <p className="text-[13px] text-white/30 mb-12">No content items found.</p>
+        <p className="mb-12 text-[13px] text-[var(--text-muted)]">No content items found.</p>
       ) : (
-        <div className="border border-white/[0.07] rounded-xl overflow-hidden mb-12">
+        <div className="mb-12 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Title</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Category</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">File</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Uploaded</th>
+              <tr className="bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Title</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Category</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">File</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Uploaded</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -88,17 +102,19 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
               {items.map((item, i) => (
                 <tr
                   key={item.id}
-                  className={i < items.length - 1 ? "border-b border-white/[0.05]" : ""}
+                  className={`${i < items.length - 1 ? "border-b border-[var(--border)]" : ""} transition-colors hover:bg-[var(--bg-subtle)]`}
                 >
                   <td className="px-4 py-3">
-                    <p className="text-[13px] text-white/80">{item.title}</p>
-                    <p className="text-[12px] text-white/40">{item.description}</p>
+                    <p className="text-[13px] text-[var(--text)]">{item.title}</p>
+                    <p className="text-[12px] text-[var(--text-muted)]">{item.description}</p>
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-white/60 capitalize">
-                    {item.tier.replace("_", " ")}
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${accentSurfaceClass(tierAccent(item.tier))}`}>
+                      {item.tier.replace("_", " ")}
+                    </span>
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-white/50">{item.file_name}</td>
-                  <td className="px-4 py-3 text-[13px] text-white/40">
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-mid)]">{item.file_name}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-muted)]">
                     {new Date(item.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",
@@ -116,7 +132,7 @@ export default async function AdminContentPage({ searchParams }: PageProps) {
       )}
 
       {/* ── Section B — Individual user assignments ───────────────────────────── */}
-      <div className="border-t border-white/[0.07] pt-10">
+      <div className="border-t border-[var(--border)] pt-10">
         <UserPdfAssignment allContent={allContent} />
       </div>
     </div>

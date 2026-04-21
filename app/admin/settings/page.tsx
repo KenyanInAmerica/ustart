@@ -15,16 +15,16 @@ export default async function AdminSettingsPage() {
 
   return (
     <div className="px-8 py-8 max-w-3xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Settings
       </h1>
-      <p className="text-[13px] text-white/40 mb-8">
+      <p className="mb-8 text-[13px] text-[var(--text-muted)]">
         Global configuration for the UStart platform.
       </p>
 
-      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5 mb-6">
-        <h2 className="text-[13px] font-medium text-white mb-4">WhatsApp invite link</h2>
-        <p className="text-[13px] text-white/50 mb-5 max-w-md">
+      <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">WhatsApp invite link</h2>
+        <p className="mb-5 max-w-md text-[13px] text-[var(--text-muted)]">
           This link is shown to students on the community page after they agree to the rules.
           Paste the full invite URL from WhatsApp group settings.
         </p>

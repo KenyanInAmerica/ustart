@@ -6,6 +6,7 @@
 
 import { useRef, useState, useTransition, useEffect } from "react";
 import { uploadContentItem } from "@/lib/actions/admin/content";
+import { Button } from "@/components/ui/Button";
 import type { ContentItem } from "@/types/admin";
 
 const TIERS: { value: ContentItem["tier"]; label: string }[] = [
@@ -56,37 +57,37 @@ export function ContentUploadForm() {
   return (
     <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 max-w-lg">
       <div>
-        <label className="block text-[13px] text-white/60 mb-1.5">Title</label>
+        <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Title</label>
         <input
           name="title"
           type="text"
           required
           placeholder="e.g. SSN Application Guide"
           onChange={() => { setError(null); setSuccess(false); }}
-          className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+          className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
 
       <div>
-        <label className="block text-[13px] text-white/60 mb-1.5">Description</label>
+        <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Description</label>
         <textarea
           name="description"
           required
           rows={2}
           placeholder="Brief description of the content"
           onChange={() => { setError(null); setSuccess(false); }}
-          className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30 resize-none"
+          className="w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[13px] text-white/60 mb-1.5">Category</label>
+          <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Category</label>
           <select
             name="tier"
             required
             defaultValue=""
-            className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white focus:outline-none focus:border-white/30"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
           >
             <option value="" disabled>Select category…</option>
             {TIERS.map((t) => (
@@ -96,9 +97,9 @@ export function ContentUploadForm() {
         </div>
 
         <div>
-          <label className="block text-[13px] text-white/60 mb-1.5">PDF file</label>
+          <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">PDF file</label>
           {/* Hidden file input; custom label shows the selected filename */}
-          <label className="flex items-center gap-2 w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 cursor-pointer hover:border-white/30 transition-colors">
+          <label className="flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 transition-colors hover:border-[var(--border-md)]">
             <input
               name="file"
               type="file"
@@ -111,27 +112,27 @@ export function ContentUploadForm() {
                 setSuccess(false);
               }}
             />
-            <svg className="w-3.5 h-3.5 text-white/40 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <svg className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
               <polyline points="14 2 14 8 20 8" />
             </svg>
-            <span className="text-[13px] truncate text-white/40">
+            <span className="truncate text-[13px] text-[var(--text-muted)]">
               {fileName ?? "Choose PDF…"}
             </span>
           </label>
         </div>
       </div>
 
-      {error && <p className="text-red-400 text-[12px]">{error}</p>}
-      {success && <p className="text-emerald-400 text-[12px]">Uploaded successfully.</p>}
+      {error && <p className="text-[12px] text-[var(--destructive)]">{error}</p>}
+      {success && <p className="text-[12px] text-emerald-600">Uploaded successfully.</p>}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending}
-        className="px-4 py-2 bg-white text-[#0C1220] text-[13px] font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50"
+        size="sm"
       >
         {isPending ? "Uploading…" : "Upload"}
-      </button>
+      </Button>
     </form>
   );
 }

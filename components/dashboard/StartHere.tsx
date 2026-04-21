@@ -1,6 +1,7 @@
 // Onboarding progress card — Feature 3.
 // Pure Server Component: receives computed booleans from the parent page and
 // renders four step tiles with done/pending visual states. No data fetching.
+import { Card } from "@/components/ui/Card";
 
 interface StartHereProps {
   hasMembership: boolean;
@@ -21,13 +22,12 @@ interface Step {
 function CheckDone() {
   return (
     <div
-      className="w-5 h-5 rounded-full bg-white flex items-center justify-center flex-shrink-0"
+      className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full bg-[#3083DC]/10 text-[#3083DC]"
       aria-label="Step complete"
     >
-      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
+      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" aria-hidden="true">
         <path
           d="M1.5 5L4 7.5L8.5 2.5"
-          stroke="#05080F"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -41,13 +41,13 @@ function CheckDone() {
 function CheckPending() {
   return (
     <div
-      className="w-5 h-5 rounded-full border border-white/30 flex items-center justify-center flex-shrink-0"
+      className="flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full border border-[var(--border-md)] bg-white"
       aria-label="Step pending"
     >
       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" aria-hidden="true">
         <path
           d="M1.5 5L4 7.5L8.5 2.5"
-          stroke="rgba(255,255,255,0.3)"
+          stroke="rgba(28, 43, 58, 0.24)"
           strokeWidth="1.5"
           strokeLinecap="round"
           strokeLinejoin="round"
@@ -73,24 +73,41 @@ export function StartHere({ hasMembership, hasAccessedContent, hasAgreedToCommun
     { number: "04", label: "Join the community", done: hasAgreedToCommunity },
   ];
 
+  const completedCount = steps.filter((step) => step.done).length;
+  const progressClassName =
+    completedCount === 4
+      ? "w-full"
+      : completedCount === 3
+      ? "w-3/4"
+      : completedCount === 2
+      ? "w-1/2"
+      : "w-1/4";
+
   return (
-    <div className="bg-[#0C1220] border border-white/[0.12] rounded-2xl p-8 mb-8 relative overflow-hidden">
-      {/* Top gradient accent line — replicates the ::before pseudo-element in the HTML reference */}
-      <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent" />
+    <Card className="relative mb-8 overflow-hidden" padding="lg">
+      <div className="mb-6 h-2 rounded-full bg-[var(--bg-subtle)]">
+        <div
+          className={`h-full rounded-full bg-[#3083DC] transition-[width] duration-300 ${progressClassName}`}
+          aria-hidden="true"
+        />
+      </div>
 
       {/* Eyebrow */}
-      <p className="font-syne text-[11px] font-bold tracking-[0.12em] uppercase text-white/[0.42] mb-3">
+      <p className="mb-3 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
         Start Here
       </p>
 
       {/* Title */}
-      <h2 className="font-syne text-lg font-bold text-white mb-1">
+      <h2 className="mb-1 font-primary text-lg font-bold text-[var(--text)]">
         Get set up in 4 steps
       </h2>
 
       {/* Description */}
-      <p className="font-dm-sans text-sm text-white/45 mb-6">
+      <p className="mb-6 font-primary text-sm text-[var(--text-muted)]">
         Complete each step to unlock your full UStart experience.
+      </p>
+      <p className="mb-4 font-primary text-sm font-semibold text-[#3083DC]">
+        {Math.round((completedCount / steps.length) * 100)}% complete
       </p>
 
       {/* Step tiles — flex row, each tile takes equal width */}
@@ -98,13 +115,13 @@ export function StartHere({ hasMembership, hasAccessedContent, hasAgreedToCommun
         {steps.map((step) => (
           <div
             key={step.number}
-            className="flex-1 bg-white/[0.03] border border-white/[0.07] rounded-xl p-4"
+            className="flex-1 rounded-[var(--radius-md)] border border-[var(--border)] bg-[var(--bg-card-hover)] p-4"
           >
             <div className="flex items-start justify-between mb-3">
               {/* Step number dims once done to keep focus on the label */}
               <span
-                className={`font-syne text-[11px] font-bold ${
-                  step.done ? "text-white/20" : "text-white/[0.42]"
+                className={`font-primary text-[11px] font-bold ${
+                  step.done ? "text-[#3083DC]" : "text-[var(--text-mid)]"
                 }`}
               >
                 {step.number}
@@ -112,8 +129,8 @@ export function StartHere({ hasMembership, hasAccessedContent, hasAgreedToCommun
               {step.done ? <CheckDone /> : <CheckPending />}
             </div>
             <p
-              className={`font-dm-sans text-xs leading-snug ${
-                step.done ? "text-white" : "text-white/[0.42]"
+              className={`font-primary text-xs leading-snug ${
+                step.done ? "text-[#3083DC]" : "text-[var(--text)]"
               }`}
             >
               {step.label}
@@ -121,6 +138,6 @@ export function StartHere({ hasMembership, hasAccessedContent, hasAgreedToCommun
           </div>
         ))}
       </div>
-    </div>
+    </Card>
   );
 }

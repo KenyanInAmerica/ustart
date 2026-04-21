@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { acceptCommunityRules } from "@/lib/actions/acceptCommunityRules";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 
 interface CommunitySectionProps {
   hasAgreedToCommunity: boolean;
@@ -10,7 +12,6 @@ interface CommunitySectionProps {
   whatsappLink: string;
 }
 
-// Matches the same regex used in the server action for consistent client-side feedback.
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 
 export function CommunitySection({
@@ -18,8 +19,6 @@ export function CommunitySection({
   phoneNumber,
   whatsappLink,
 }: CommunitySectionProps) {
-  // Local agreed state flips to true after a successful submission so the
-  // WhatsApp link appears immediately without a full page reload.
   const [agreed, setAgreed] = useState(hasAgreedToCommunity);
   const [checked, setChecked] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -30,7 +29,6 @@ export function CommunitySection({
 
   function handleCheckboxChange(e: React.ChangeEvent<HTMLInputElement>) {
     setChecked(e.target.checked);
-    // Opening the modal only on check — unchecking directly closes nothing.
     if (e.target.checked) setModalOpen(true);
   }
 
@@ -46,7 +44,6 @@ export function CommunitySection({
     setInputError("");
     setSubmitError("");
 
-    // Client-side guard — strip spaces first to mirror the server action.
     const stripped = phone.replace(/\s+/g, "");
     if (!PHONE_REGEX.test(stripped)) {
       setInputError(
@@ -67,33 +64,36 @@ export function CommunitySection({
     }
   }
 
-  // ── Agreed state ──────────────────────────────────────────────────────────
   if (agreed) {
     return (
-      <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5">
-        <p className="font-syne text-sm font-bold text-white mb-1">Community</p>
-        <p className="font-dm-sans text-xs text-white/[0.42] leading-relaxed mb-4">
+      <Card className="relative border border-[var(--border)] pl-7" padding="md">
+        <div className="absolute inset-y-0 left-0 w-1 rounded-l-[var(--radius-lg)] bg-[#4ECBA5]" aria-hidden="true" />
+        <p className="mb-1 font-primary text-sm font-bold text-[var(--text)]">
+          Community
+        </p>
+        <p className="mb-4 font-primary text-xs leading-relaxed text-[var(--text-muted)]">
           Your community access is active. Connect with fellow UStart members navigating life in the US.
         </p>
-        {/* WhatsApp CTA — rendered as a plain anchor since it links externally */}
         <a
           href={whatsappLink}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 text-sm font-medium text-white bg-[#25D366] px-4 py-2.5 rounded-xl hover:opacity-90 transition-opacity"
+          className="inline-flex w-fit items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-2.5 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
         >
-          Open WhatsApp group →
+          Open WhatsApp group
         </a>
-      </div>
+      </Card>
     );
   }
 
-  // ── Not yet agreed ────────────────────────────────────────────────────────
   return (
     <>
-      <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5">
-        <p className="font-syne text-sm font-bold text-white mb-1">Community</p>
-        <p className="font-dm-sans text-xs text-white/[0.42] leading-relaxed mb-3">
+      <Card className="relative border border-[var(--border)] pl-7" padding="md">
+        <div className="absolute inset-y-0 left-0 w-1 rounded-l-[var(--radius-lg)] bg-[#4ECBA5]" aria-hidden="true" />
+        <p className="mb-1 font-primary text-sm font-bold text-[var(--text)]">
+          Community
+        </p>
+        <p className="mb-3 font-primary text-xs leading-relaxed text-[var(--text-muted)]">
           Be respectful. No spam. Support each other. This is a space for
           UStart members only.
         </p>
@@ -101,38 +101,34 @@ export function CommunitySection({
           href="/community-rules"
           target="_blank"
           rel="noopener noreferrer"
-          className="font-dm-sans text-xs text-white/[0.42] hover:text-white/[0.70] underline transition-colors block mb-4"
+          className="mb-4 block font-primary text-xs text-[var(--text-muted)] underline transition-colors hover:text-[var(--text)]"
         >
           Read the full rules →
         </Link>
-        {/* Checking this opens the phone number modal */}
-        <label className="flex items-start gap-3 cursor-pointer">
+        <label className="flex cursor-pointer items-start gap-3">
           <input
             type="checkbox"
             checked={checked}
             onChange={handleCheckboxChange}
-            className="mt-0.5 accent-white cursor-pointer"
+            className="mt-0.5 cursor-pointer accent-[var(--accent)]"
           />
-          <span className="font-dm-sans text-xs text-white/[0.42]">
+          <span className="font-primary text-xs text-[var(--text-muted)]">
             I have read and agreed to the community rules.
           </span>
         </label>
-      </div>
+      </Card>
 
-      {/* Phone number modal — fixed overlay, shown when checkbox is checked */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          {/* Backdrop */}
           <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-navy/40 backdrop-blur-sm"
             aria-hidden="true"
           />
-          {/* Panel */}
-          <div className="relative bg-[#0C1220] border border-white/[0.12] rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <h2 className="font-syne text-lg font-bold text-white mb-2">
+          <div className="relative w-full max-w-md rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-6 shadow-[var(--shadow-lg)]">
+            <h2 className="mb-2 font-primary text-lg font-bold text-[var(--text)]">
               One last step
             </h2>
-            <p className="font-dm-sans text-sm text-white/[0.42] leading-relaxed mb-5">
+            <p className="mb-5 font-primary text-sm leading-relaxed text-[var(--text-muted)]">
               Enter your WhatsApp number so we can verify your membership.
             </p>
             <form onSubmit={handleSubmit}>
@@ -144,31 +140,26 @@ export function CommunitySection({
                   setInputError("");
                 }}
                 placeholder="+1 234 567 8900"
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/[0.28] focus:outline-none focus:border-white/[0.28] transition-colors"
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-4 py-3 text-sm text-[var(--text)] transition-colors placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
               />
-              {/* Input-level validation error */}
               {inputError && (
-                <p className="text-xs text-red-400 mt-1.5">{inputError}</p>
+                <p className="mt-1.5 text-xs text-[var(--destructive)]">{inputError}</p>
               )}
-              {/* Server-returned error */}
               {submitError && (
-                <p className="text-xs text-red-400 mt-1.5">{submitError}</p>
+                <p className="mt-1.5 text-xs text-[var(--destructive)]">{submitError}</p>
               )}
-              <div className="flex gap-3 mt-5">
-                <button
+              <div className="mt-5 flex gap-3">
+                <Button
                   type="button"
+                  variant="secondary"
+                  className="flex-1"
                   onClick={handleCancel}
-                  className="flex-1 py-2.5 rounded-xl border border-white/[0.12] text-sm text-white/[0.42] hover:text-white hover:border-white/[0.28] transition-colors"
                 >
                   Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 py-2.5 rounded-xl bg-white text-[#05080F] text-sm font-medium hover:opacity-90 transition-opacity disabled:opacity-50"
-                >
-                  {loading ? "Confirming…" : "Confirm"}
-                </button>
+                </Button>
+                <Button type="submit" className="flex-1" loading={loading}>
+                  Confirm
+                </Button>
               </div>
             </form>
           </div>

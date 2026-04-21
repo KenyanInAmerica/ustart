@@ -5,6 +5,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
 import { deleteContentItem } from "@/lib/actions/admin/content";
 
 interface ContentDeleteButtonProps {
@@ -25,31 +26,34 @@ export function ContentDeleteButton({ contentItemId }: ContentDeleteButtonProps)
   if (confirming) {
     return (
       <span className="inline-flex items-center gap-2">
-        <span className="text-[12px] text-white/50">Delete item?</span>
-        <button
+        <span className="text-[12px] text-[var(--text-muted)]">Delete item?</span>
+        <Button
           onClick={handleDelete}
           disabled={isPending}
-          className="text-[12px] text-red-400 hover:text-red-300 transition-colors disabled:opacity-50"
+          variant="destructive"
+          size="sm"
         >
           {isPending ? "Deleting…" : "Yes"}
-        </button>
-        <button
+        </Button>
+        <Button
           onClick={() => setConfirming(false)}
           disabled={isPending}
-          className="text-[12px] text-white/30 hover:text-white transition-colors disabled:opacity-50"
+          variant="ghost"
+          size="sm"
         >
           Cancel
-        </button>
+        </Button>
       </span>
     );
   }
 
   return (
-    <button
+    <Button
       onClick={() => setConfirming(true)}
-      className="text-[13px] text-white/30 hover:text-red-400 transition-colors"
+      variant="destructive"
+      size="sm"
     >
       Delete
-    </button>
+    </Button>
   );
 }

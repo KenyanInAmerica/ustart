@@ -25,7 +25,7 @@ describe("Pricing", () => {
     render(<Pricing />);
     expect(screen.getByText("$49")).toBeInTheDocument();
     expect(screen.getByText("$99")).toBeInTheDocument();
-    expect(screen.getByText("$199")).toBeInTheDocument();
+    expect(screen.getByText("$149")).toBeInTheDocument();
   });
 
   it("shows the Most Popular badge on the Pro plan only", () => {

@@ -64,10 +64,10 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
 
   return (
     <div className="px-8 py-8 max-w-7xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Audit Log
       </h1>
-      <p className="text-[13px] text-white/40 mb-6">
+      <p className="mb-6 text-[13px] text-[var(--text-muted)]">
         {hasDateRange
           ? `${total} event${total !== 1 ? "s" : ""}${total > 0 && totalPages > 1 ? ` · page ${page} of ${totalPages}` : ""}`
           : "Set a date range to load results"}
@@ -77,23 +77,23 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
       <FiltersBar />
 
       {!hasDateRange ? (
-        <div className="text-center py-16 text-white/30 text-[14px]">
+        <div className="py-16 text-center text-[14px] text-[var(--text-muted)]">
           Set a date range to load results. You can also filter by action type, role, or search by email or action.
         </div>
       ) : rows.length === 0 ? (
-        <div className="text-center py-16 text-white/30 text-[14px]">
+        <div className="py-16 text-center text-[14px] text-[var(--text-muted)]">
           No audit log entries match your filters.
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-[13px] border-collapse">
+        <div className="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)] bg-white">
+          <table className="w-full border-collapse text-[13px]">
             <thead>
-              <tr className="border-b border-white/[0.07]">
-                <th className="text-left py-2.5 pr-4 font-medium text-white/40 whitespace-nowrap">Timestamp</th>
-                <th className="text-left py-2.5 pr-4 font-medium text-white/40">Actor</th>
-                <th className="text-left py-2.5 pr-4 font-medium text-white/40">Action</th>
-                <th className="text-left py-2.5 pr-4 font-medium text-white/40">Target</th>
-                <th className="text-left py-2.5 font-medium text-white/40">Payload</th>
+              <tr className="bg-[var(--bg-subtle)]">
+                <th className="whitespace-nowrap px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Timestamp</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Actor</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Action</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Target</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide text-[var(--text-muted)]">Payload</th>
               </tr>
             </thead>
             <tbody>
@@ -103,24 +103,24 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                 return (
                   <tr
                     key={row.id}
-                    className="border-b border-white/[0.04] hover:bg-white/[0.02] transition-colors align-top"
+                    className="align-top transition-colors hover:bg-[var(--bg-subtle)]"
                   >
                     {/* Timestamp */}
-                    <td className="py-3 pr-4 whitespace-nowrap">
-                      <span className="text-white/70">{date}</span>
+                    <td className="whitespace-nowrap px-4 py-3">
+                      <span className="text-[var(--text)]">{date}</span>
                       <br />
-                      <span className="text-white/30 text-[11px]">{time}</span>
+                      <span className="text-[11px] text-[var(--text-muted)]">{time}</span>
                     </td>
 
                     {/* Actor */}
-                    <td className="py-3 pr-4 text-white/60 max-w-[180px] truncate">
+                    <td className="max-w-[180px] truncate px-4 py-3 text-[var(--text-mid)]">
                       {row.actor_email ?? (
-                        <span className="text-white/25 italic">system</span>
+                        <span className="italic text-[var(--text-muted)]">system</span>
                       )}
                     </td>
 
                     {/* Action badge */}
-                    <td className="py-3 pr-4">
+                    <td className="px-4 py-3">
                       <span
                         className={`inline-block text-[11px] px-2 py-0.5 rounded border ${actionBadgeClass(row.action)}`}
                       >
@@ -129,12 +129,12 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
                     </td>
 
                     {/* Target */}
-                    <td className="py-3 pr-4 text-white/50 max-w-[180px] truncate">
-                      {target ?? <span className="text-white/20">—</span>}
+                    <td className="max-w-[180px] truncate px-4 py-3 text-[var(--text-muted)]">
+                      {target ?? <span className="text-[var(--text-muted)]">—</span>}
                     </td>
 
                     {/* Payload */}
-                    <td className="py-3">
+                    <td className="px-4 py-3">
                       <PayloadCell payload={row.payload} />
                     </td>
                   </tr>
@@ -147,22 +147,22 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center gap-2 mt-6">
+        <div className="mt-6 flex items-center gap-2">
           {page > 1 && (
             <Link
               href={pageHref(page - 1)}
-              className="px-3 py-1.5 text-[13px] text-white/50 hover:text-white border border-white/[0.07] rounded-lg hover:border-white/20 transition-colors"
+              className="rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
             >
               ← Prev
             </Link>
           )}
-          <span className="text-[13px] text-white/30 px-2">
+          <span className="px-2 text-[13px] text-[var(--text-muted)]">
             {page} / {totalPages}
           </span>
           {page < totalPages && (
             <Link
               href={pageHref(page + 1)}
-              className="px-3 py-1.5 text-[13px] text-white/50 hover:text-white border border-white/[0.07] rounded-lg hover:border-white/20 transition-colors"
+              className="rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
             >
               Next →
             </Link>

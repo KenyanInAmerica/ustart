@@ -1,5 +1,3 @@
-// Client component for the users table — owns the panel and modal open state.
-
 "use client";
 
 import { useRouter } from "next/navigation";
@@ -7,6 +5,7 @@ import { useState, useTransition } from "react";
 import type { AdminUser } from "@/types/admin";
 import { UserPanel } from "@/components/admin/UserPanel";
 import { DeleteUserModal } from "@/components/admin/DeleteUserModal";
+import { Button } from "@/components/ui/Button";
 import { reactivateUser } from "@/lib/actions/admin/users";
 
 interface UsersTableProps {
@@ -16,18 +15,28 @@ interface UsersTableProps {
   search: string;
 }
 
-export function UsersTable({
-  users,
-  page,
-  totalPages,
-  search,
-}: UsersTableProps) {
+function formatTier(tier: string | null): string {
+  if (!tier) return "—";
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+function statusBadge(user: AdminUser): string {
+  if (!user.is_active) return "bg-[#E54B4B]/10 text-[#E54B4B] border border-[#E54B4B]/20";
+  if (user.is_admin) return "bg-[#3083DC]/10 text-[#3083DC] border border-[#3083DC]/20";
+  return "bg-[#4ECBA5]/10 text-[#4ECBA5] border border-[#4ECBA5]/20";
+}
+
+function statusLabel(user: AdminUser): string {
+  if (!user.is_active) return "Inactive";
+  if (user.is_admin) return "Admin";
+  return "Active";
+}
+
+export function UsersTable({ users, page, totalPages, search }: UsersTableProps) {
   const router = useRouter();
   const [selectedUser, setSelectedUser] = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
-  // Controlled input so Reset can clear the text in addition to the URL param.
   const [inputValue, setInputValue] = useState(search);
-  // Tracks which user row is mid-reactivation so we can show a loading state.
   const [reactivatingId, setReactivatingId] = useState<string | null>(null);
   const [reactivateError, setReactivateError] = useState<string | null>(null);
   const [, startReactivate] = useTransition();
@@ -56,12 +65,6 @@ export function UsersTable({
     router.push("/admin/users");
   }
 
-  function formatTier(tier: string | null) {
-    if (!tier) return "—";
-    return tier.charAt(0).toUpperCase() + tier.slice(1);
-  }
-
-  // Called after a successful deletion — close modal and refresh server data.
   function handleDeleted() {
     setDeleteTarget(null);
     router.refresh();
@@ -71,47 +74,36 @@ export function UsersTable({
 
   return (
     <>
-      {/* Search */}
-      <form onSubmit={handleSearch} className="flex gap-2 mb-5">
+      <form onSubmit={handleSearch} className="mb-5 flex gap-2">
         <input
           name="q"
           type="search"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           placeholder="Search by email or name…"
-          className="w-72 bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+          className="w-72 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
         />
-        <button
-          type="submit"
-          className="px-4 py-2 bg-white/[0.08] text-white text-[13px] rounded-lg hover:bg-white/[0.12] transition-colors"
-        >
-          Search
-        </button>
-        {/* Reset button — only visible when a search is active */}
+        <Button type="submit" variant="primary" size="sm">Search</Button>
         {hasSearch && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="px-4 py-2 text-[13px] text-white/50 border border-white/[0.08] rounded-lg hover:text-white hover:border-white/20 transition-colors"
-          >
+          <Button type="button" variant="ghost" size="sm" onClick={handleReset}>
             Reset
-          </button>
+          </Button>
         )}
       </form>
 
-      {/* Table */}
       {users.length === 0 ? (
-        <p className="text-[13px] text-white/30">No users found.</p>
+        <p className="text-[13px] text-[var(--text-muted)]">No users found.</p>
       ) : (
         <>
-          <div className="border border-white/[0.07] rounded-xl overflow-hidden mb-5">
+          <div className="mb-5 overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                  <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Email</th>
-                  <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Name</th>
-                  <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Plan</th>
-                  <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Add-ons</th>
+                <tr className="bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Email</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Name</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Plan</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Add-ons</th>
                   <th className="px-4 py-3" />
                 </tr>
               </thead>
@@ -126,59 +118,48 @@ export function UsersTable({
                   return (
                     <tr
                       key={user.id}
-                      className={`${i < users.length - 1 ? "border-b border-white/[0.05]" : ""} hover:bg-white/[0.02] transition-colors`}
+                      className={`${i < users.length - 1 ? "border-b border-[var(--border)]" : ""} transition-colors hover:bg-[var(--bg-subtle)]`}
                     >
-                      <td className="px-4 py-3 text-[13px]">
-                        <span className={user.is_active ? "text-white/80" : "text-white/40"}>
-                          {user.email}
-                        </span>
-                        {/* Inactive badge — shown only for soft-deleted accounts */}
-                        {!user.is_active && (
-                          <span className="ml-2 inline-block rounded-full bg-white/[0.06] border border-white/[0.10] px-2 py-0.5 text-[11px] font-medium text-white/35 tracking-wide align-middle">
-                            Inactive
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-[13px] text-white/60">
+                      <td className="px-4 py-3 text-[13px] text-[var(--text)]">{user.email}</td>
+                      <td className="px-4 py-3 text-[13px] text-[var(--text-mid)]">
                         {[user.first_name, user.last_name].filter(Boolean).join(" ") || "—"}
                       </td>
-                      <td className="px-4 py-3 text-[13px] text-white/70">{formatTier(user.membership_tier)}</td>
-                      <td className="px-4 py-3 text-[13px] text-white/50">
+                      <td className="px-4 py-3">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${statusBadge(user)}`}>
+                          {statusLabel(user)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-[13px] text-[var(--text-mid)]">{formatTier(user.membership_tier)}</td>
+                      <td className="px-4 py-3 text-[13px] text-[var(--text-muted)]">
                         {addons.length > 0 ? addons.join(", ") : "—"}
                       </td>
-                      <td className="px-4 py-3 text-right">
-                        {/* gap-4 gives consistent breathing room between all action combos:
-                            admin rows: Manage only
-                            active non-admin: Delete · Manage
-                            inactive non-admin: Reactivate · Erase · Manage */}
-                        <div className="flex items-center justify-end gap-4">
-                          {/* Reactivate — visible only on inactive rows */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center justify-end gap-2">
                           {!user.is_active && (
-                            <button
+                            <Button
                               onClick={() => handleReactivate(user.id)}
                               disabled={reactivatingId === user.id}
-                              aria-label={`Reactivate ${user.email}`}
-                              className="text-[13px] text-emerald-500 hover:text-emerald-400 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                              size="sm"
                             >
                               {reactivatingId === user.id ? "Reactivating…" : "Reactivate"}
-                            </button>
+                            </Button>
                           )}
-                          {/* Delete (active) / Erase (inactive) — hidden for admins */}
                           {!user.is_admin && (
-                            <button
+                            <Button
                               onClick={() => setDeleteTarget(user)}
-                              aria-label={user.is_active ? `Delete ${user.email}` : `Permanently erase ${user.email}`}
-                              className="text-[13px] text-red-500/50 hover:text-red-400 transition-colors"
+                              variant="destructive"
+                              size="sm"
                             >
                               {user.is_active ? "Delete" : "Erase"}
-                            </button>
+                            </Button>
                           )}
-                          <button
+                          <Button
                             onClick={() => setSelectedUser(user)}
-                            className="text-[13px] text-white/40 hover:text-white transition-colors"
+                            variant="secondary"
+                            size="sm"
                           >
                             Manage
-                          </button>
+                          </Button>
                         </div>
                       </td>
                     </tr>
@@ -188,39 +169,38 @@ export function UsersTable({
             </table>
           </div>
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center gap-3">
-              <button
+              <Button
                 onClick={() => router.push(`/admin/users?q=${encodeURIComponent(search)}&page=${page - 1}`)}
                 disabled={page <= 1}
-                className="px-3 py-1.5 text-[13px] text-white/50 border border-white/[0.08] rounded-lg hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                variant="secondary"
+                size="sm"
               >
                 Previous
-              </button>
-              <span className="text-[13px] text-white/40">
+              </Button>
+              <span className="text-[13px] text-[var(--text-muted)]">
                 Page {page} of {totalPages}
               </span>
-              <button
+              <Button
                 onClick={() => router.push(`/admin/users?q=${encodeURIComponent(search)}&page=${page + 1}`)}
                 disabled={page >= totalPages}
-                className="px-3 py-1.5 text-[13px] text-white/50 border border-white/[0.08] rounded-lg hover:text-white hover:border-white/20 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                variant="secondary"
+                size="sm"
               >
                 Next
-              </button>
+              </Button>
             </div>
           )}
         </>
       )}
 
-      {/* Reactivation error — shown below the table if the action fails */}
       {reactivateError && (
-        <p className="text-[13px] text-red-400 mt-3" role="alert">
+        <p className="mt-3 text-[13px] text-[var(--destructive)]" role="alert">
           {reactivateError}
         </p>
       )}
 
-      {/* Slide-out management panel */}
       {selectedUser && (
         <UserPanel
           user={selectedUser}
@@ -228,7 +208,6 @@ export function UsersTable({
         />
       )}
 
-      {/* Delete confirmation modal */}
       {deleteTarget && (
         <DeleteUserModal
           user={deleteTarget}

@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navSections, isNavItemLocked } from "@/components/dashboard/navItems";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { brand } from "@/lib/config/brand";
+import { accentHexByProduct, type ProductAccent } from "@/lib/config/productAccents";
 import type { DashboardAccess } from "@/types";
 
 type Props = {
@@ -15,38 +17,56 @@ type Props = {
   access: DashboardAccess;
 };
 
-// Slide-in mobile nav drawer, shown when isOpen is true.
-// The semi-transparent overlay covers the page and closes the drawer on click.
-// Nav items mirror the desktop Sidebar exactly — both import from navItems.tsx.
+function navAccent(href: string): ProductAccent {
+  switch (href) {
+    case "/dashboard/explore":
+      return "explore";
+    case "/dashboard/concierge":
+      return "concierge";
+    case "/dashboard/parent-pack":
+      return "parent_pack";
+    case "/dashboard/community":
+      return "community";
+    default:
+      return "default";
+  }
+}
+
+function activeClassName(href: string): string {
+  const hex = accentHexByProduct[navAccent(href)];
+  return `bg-[${hex}]/10 font-semibold text-[${hex}]`;
+}
+
 export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planName, access }: Props) {
   const pathname = usePathname();
+  const itemClassName =
+    "flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[9px] text-sm transition-colors duration-150";
+  const inactiveClassName =
+    "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]";
 
   if (!isOpen) return null;
 
   return (
     <div className="fixed inset-0 z-[200]">
-      {/* Backdrop — click anywhere outside the panel to close */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-[4px]"
+        className="absolute inset-0 bg-navy/40 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Drawer panel */}
-      <div className="absolute top-0 left-0 bottom-0 w-[280px] bg-[#0C1220] border-r border-white/[0.07] overflow-y-auto py-6 flex flex-col">
-        {/* Wordmark + close row */}
-        <div className="flex items-center justify-between px-6 pb-6 border-b border-white/[0.07] mb-5">
+      <div className="absolute bottom-0 left-0 top-0 flex w-[280px] flex-col overflow-y-auto border-r border-[var(--border)] bg-white py-6">
+        <div className="mb-5 flex items-center justify-between border-b border-[var(--border)] px-6 pb-6">
           <Link
             href="/"
             onClick={onClose}
-            className="font-syne font-extrabold text-[18px] tracking-[-0.03em] text-white"
+            className="font-primary text-[18px] font-extrabold tracking-[-0.03em] text-[var(--text)]"
           >
-            UStart
+            {brand.name}
           </Link>
           <button
             onClick={onClose}
             aria-label="Close navigation"
-            className="text-white/[0.42] hover:text-white p-1 cursor-pointer"
+            className="cursor-pointer p-1 text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
               <line x1="18" y1="6" x2="6" y2="18" />
@@ -55,50 +75,42 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
           </button>
         </div>
 
-        {/* Nav sections */}
         <nav className="flex-1">
           {navSections.map((section, sIdx) => (
-            <div key={section.label} className="px-3 mb-1">
+            <div key={section.label} className="mb-1 px-3">
               <span
-                className={`block px-3 mb-1 text-[10px] font-semibold tracking-[0.1em] uppercase text-white/[0.42] ${sIdx === 0 ? "" : "mt-4"}`}
+                className={`mb-1 block px-3 text-xs font-semibold uppercase tracking-widest text-[var(--text)] ${sIdx === 0 ? "" : "mt-4"}`}
               >
                 {section.label}
               </span>
 
               {section.items.map((item) => {
                 const isActive = pathname === item.href;
-                // Lock state is computed from the user's full entitlement snapshot
-                // rather than static flags, so each item reflects real access.
                 const isLocked = isNavItemLocked(item, access);
 
                 if (isLocked) {
                   return (
                     <div
                       key={item.href}
-                      className="flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm text-white/[0.28] pointer-events-none"
+                      className={`${itemClassName} pointer-events-none bg-[var(--bg-subtle)] text-[var(--text-muted)]`}
                       aria-disabled="true"
                     >
                       {item.icon}
                       {item.label}
-                      <span className="ml-auto text-[10px] bg-white/[0.04] border border-white/[0.07] text-white/[0.42] px-[7px] py-[2px] rounded-full">
+                      <span className="ml-auto rounded-full border border-[var(--border)] bg-white px-[7px] py-[2px] text-[10px] text-[var(--text-muted)]">
                         Locked
                       </span>
                     </div>
                   );
                 }
 
-                // Hard navigation for the dashboard link — same reason as Sidebar.tsx.
                 if (item.href === "/dashboard") {
                   return (
                     <a
                       key={item.href}
                       href={item.href}
                       onClick={onClose}
-                      className={`flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors duration-150 ${
-                        isActive
-                          ? "bg-white/[0.07] text-white font-medium"
-                          : "text-white/[0.68] hover:bg-white/[0.05] hover:text-white"
-                      }`}
+                      className={`${itemClassName} ${isActive ? activeClassName(item.href) : inactiveClassName}`}
                     >
                       {item.icon}
                       {item.label}
@@ -111,11 +123,7 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
                     key={item.href}
                     href={item.href}
                     onClick={onClose}
-                    className={`flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors duration-150 ${
-                      isActive
-                        ? "bg-white/[0.07] text-white font-medium"
-                        : "text-white/[0.68] hover:bg-white/[0.05] hover:text-white"
-                    }`}
+                    className={`${itemClassName} ${isActive ? activeClassName(item.href) : inactiveClassName}`}
                   >
                     {item.icon}
                     {item.label}
@@ -126,21 +134,19 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
           ))}
         </nav>
 
-        {/* Footer — user info + sign out */}
-        <div className="mt-auto pt-4 px-3 border-t border-white/[0.07]">
-          <div className="flex items-center gap-[10px] px-3 py-[10px] rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-white/[0.1] flex items-center justify-center text-[12px] font-semibold text-white flex-shrink-0 font-syne">
+        <div className="mt-auto border-t border-[var(--border)] px-3 pt-4">
+          <div className="flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[10px]">
+            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-subtle)] font-primary text-[12px] font-semibold text-[var(--text)]">
               {userInitials}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-[12px] text-white/[0.42] truncate">{userEmail}</div>
-              <div className="text-[11px] text-white/30">{planName}</div>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[12px] text-[var(--text-mid)]">{userEmail}</div>
+              <div className="text-[11px] text-[var(--text-muted)]">{planName}</div>
             </div>
           </div>
-          {/* Badge shown only on parent accounts to distinguish their session */}
           {access.role === "parent" && (
-            <div className="px-3 mb-2">
-              <span className="text-[10px] font-semibold bg-white/[0.06] border border-white/[0.10] text-white/[0.54] px-2 py-[3px] rounded-full">
+            <div className="mb-2 px-3">
+              <span className="rounded-full border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-[3px] text-[10px] font-semibold text-[var(--text-mid)]">
                 Parent Account
               </span>
             </div>
