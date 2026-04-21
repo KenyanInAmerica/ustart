@@ -7,8 +7,8 @@ type Props = {
 
 const TIER_DISPLAY: Record<string, string> = {
   lite: "UStart Lite",
-  pro: "UStart Pro",
-  premium: "UStart Premium",
+  explore: "UStart Explore",
+  concierge: "UStart Concierge",
 };
 
 // Formats an ISO timestamp as "Jan 12, 2026" in UTC to avoid timezone-driven date shifts.

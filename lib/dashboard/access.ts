@@ -7,6 +7,20 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import type { DashboardAccess } from "@/types";
 
+function deriveMembershipAccess(
+  membershipTier: string | null,
+  membershipRank: number
+): Pick<DashboardAccess, "hasExplore" | "hasConcierge"> {
+  return {
+    hasExplore:
+      membershipTier === "explore" ||
+      membershipTier === "concierge" ||
+      membershipRank >= 2,
+    hasConcierge:
+      membershipTier === "concierge" || membershipRank >= 3,
+  };
+}
+
 // React.cache deduplicates this call within a single render pass — both the
 // layout (sidebar/drawer) and the page (content cards, StartHere) can call
 // fetchDashboardAccess() and only one Supabase round-trip occurs per request.
@@ -52,7 +66,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     supabase
       .from("user_access")
       .select(
-        "membership_rank, membership_tier, membership_purchased_at, has_membership, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, first_content_visit_at, phone_number"
+        "membership_rank, membership_tier, membership_purchased_at, has_membership, has_parent_seat, has_agreed_to_community, first_content_visit_at, phone_number"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -75,8 +89,6 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     membership_purchased_at: string | null;
     has_membership: boolean | null;
     has_parent_seat: boolean | null;
-    has_explore: boolean | null;
-    has_concierge: boolean | null;
     has_agreed_to_community: boolean | null;
     first_content_visit_at: string | null;
     phone_number: string | null;
@@ -97,9 +109,12 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
 
   // Start with the user's own entitlements — will be overridden for parent accounts.
   let membershipRank = raw?.membership_rank ?? 0;
+  let membershipTier = raw?.membership_tier ?? null;
   let hasParentSeat = raw?.has_parent_seat === true;
-  let hasExplore = raw?.has_explore === true;
-  let hasConcierge = raw?.has_concierge === true;
+  let { hasExplore, hasConcierge } = deriveMembershipAccess(
+    membershipTier,
+    membershipRank
+  );
 
   // Parents don't have their own purchases — use the linked student's entitlements
   // to determine which content sections they can access. Service role bypasses RLS
@@ -113,28 +128,30 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     const serviceClient = createServiceClient();
     const { data: studentData } = await serviceClient
       .from("user_access")
-      .select("membership_rank, has_parent_seat, has_explore, has_concierge")
+      .select("membership_rank, membership_tier, has_parent_seat")
       .eq("id", profile.student_id)
       .maybeSingle();
 
     const student = studentData as {
       membership_rank: number | null;
+      membership_tier: string | null;
       has_parent_seat: boolean | null;
-      has_explore: boolean | null;
-      has_concierge: boolean | null;
     } | null;
 
     if (student) {
       membershipRank = student.membership_rank ?? 0;
+      membershipTier = student.membership_tier ?? null;
       hasParentSeat = student.has_parent_seat === true;
-      hasExplore = student.has_explore === true;
-      hasConcierge = student.has_concierge === true;
+      ({ hasExplore, hasConcierge } = deriveMembershipAccess(
+        membershipTier,
+        membershipRank
+      ));
     }
   }
 
   return {
     membershipRank,
-    membershipTier: raw?.membership_tier ?? null,
+    membershipTier,
     membershipPurchasedAt: raw?.membership_purchased_at ?? null,
     hasMembership: raw?.has_membership === true,
     hasParentSeat,

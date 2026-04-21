@@ -18,7 +18,7 @@ const mockUser: AdminUser = {
   first_name: "Alice",
   last_name: "Smith",
   university_name: "MIT",
-  membership_tier: "pro",
+  membership_tier: "explore",
   membership_purchased_at: null,
   has_explore: false,
   has_concierge: false,

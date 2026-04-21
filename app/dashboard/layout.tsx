@@ -8,8 +8,8 @@ import { Footer } from "@/components/ui/Footer";
 // Maps DB tier slugs to sidebar footer display names.
 const TIER_NAMES: Record<string, string> = {
   lite: "UStart Lite",
-  pro: "UStart Pro",
-  premium: "UStart Premium",
+  explore: "UStart Explore",
+  concierge: "UStart Concierge",
 };
 
 // Derive two-letter initials from an email address.

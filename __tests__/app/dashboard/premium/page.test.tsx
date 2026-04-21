@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import PremiumPage from "@/app/dashboard/premium/page";
+import ConciergePage from "@/app/dashboard/concierge/page";
 import type { DashboardAccess } from "@/types";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({
@@ -25,9 +25,9 @@ jest.mock("next/navigation", () => ({
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
 import { redirect } from "next/navigation";
 
-const premiumAccess: DashboardAccess = {
+const conciergeAccess: DashboardAccess = {
   membershipRank: 3,
-  membershipTier: "premium",
+  membershipTier: "concierge",
   hasMembership: true,
   hasParentSeat: false,
   hasExplore: false,
@@ -42,30 +42,30 @@ const premiumAccess: DashboardAccess = {
   parentInvitationAcceptedAt: null,
 };
 
-describe("PremiumPage", () => {
+describe("ConciergePage", () => {
   beforeEach(() => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue(premiumAccess);
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue(conciergeAccess);
     (redirect as unknown as jest.Mock).mockReset();
   });
 
   it("renders without error", async () => {
-    const { container } = render(await PremiumPage());
+    const { container } = render(await ConciergePage());
     expect(container).toBeTruthy();
   });
 
   it("renders the page heading", async () => {
-    render(await PremiumPage());
-    expect(screen.getByRole("heading", { name: /ustart premium/i })).toBeInTheDocument();
+    render(await ConciergePage());
+    expect(screen.getByRole("heading", { name: /ustart concierge/i })).toBeInTheDocument();
   });
 
   it("renders the content grid", async () => {
-    render(await PremiumPage());
+    render(await ConciergePage());
     expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
   it("redirects to /dashboard when membership_rank is below 3", async () => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...premiumAccess, membershipRank: 2 });
-    await PremiumPage();
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...conciergeAccess, membershipRank: 2 });
+    await ConciergePage();
     expect(redirect).toHaveBeenCalledWith("/dashboard");
   });
 });

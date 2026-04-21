@@ -26,8 +26,8 @@ import { redirect } from "next/navigation";
 import type { DashboardAccess } from "@/types";
 
 const conciergeAccess: DashboardAccess = {
-  membershipRank: 1,
-  membershipTier: "lite",
+  membershipRank: 3,
+  membershipTier: "concierge",
   hasMembership: true,
   hasParentSeat: false,
   hasExplore: false,
@@ -55,7 +55,7 @@ describe("ConciergePage", () => {
 
   it("renders the Concierge heading", async () => {
     render(await ConciergePage());
-    expect(screen.getByText("Concierge")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /ustart concierge/i })).toBeInTheDocument();
   });
 
   it("renders the content grid", async () => {
@@ -63,10 +63,10 @@ describe("ConciergePage", () => {
     expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
-  it("redirects to /dashboard when hasConcierge is false", async () => {
+  it("redirects to /dashboard when membership_rank is below 3", async () => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue({
       ...conciergeAccess,
-      hasConcierge: false,
+      membershipRank: 2,
     });
     await ConciergePage();
     expect(redirect).toHaveBeenCalledWith("/dashboard");

@@ -38,9 +38,7 @@ export const fetchAdminStats = cache(async (): Promise<AdminStats> => {
   const [{ data: usersData }, { data: invitationsData }] = await Promise.all([
     service
       .from("user_access")
-      .select(
-        "membership_tier, has_explore, has_concierge, has_parent_seat, has_agreed_to_community"
-      ),
+      .select("membership_tier, has_parent_seat, has_agreed_to_community"),
     service
       .from("parent_invitations")
       .select("id", { count: "exact", head: true })
@@ -49,8 +47,6 @@ export const fetchAdminStats = cache(async (): Promise<AdminStats> => {
 
   const users = (usersData ?? []) as {
     membership_tier: string | null;
-    has_explore: boolean | null;
-    has_concierge: boolean | null;
     has_parent_seat: boolean | null;
     has_agreed_to_community: boolean | null;
   }[];
@@ -66,8 +62,10 @@ export const fetchAdminStats = cache(async (): Promise<AdminStats> => {
       membersByTier[u.membership_tier] =
         (membersByTier[u.membership_tier] ?? 0) + 1;
     }
-    if (u.has_explore) activeExplore++;
-    if (u.has_concierge) activeConcierge++;
+    if (u.membership_tier === "explore" || u.membership_tier === "concierge") {
+      activeExplore++;
+    }
+    if (u.membership_tier === "concierge") activeConcierge++;
     if (u.has_parent_seat) activeParentPack++;
     if (u.has_agreed_to_community) communityMembers++;
   }
@@ -106,9 +104,7 @@ export const fetchAdminOverview = cache(async (): Promise<{
   ] = await Promise.all([
     service
       .from("user_access")
-      .select(
-        "membership_tier, has_explore, has_concierge, has_parent_seat, has_agreed_to_community"
-      ),
+      .select("membership_tier, has_parent_seat, has_agreed_to_community"),
     service
       .from("parent_invitations")
       .select("*", { count: "exact", head: true })
@@ -122,8 +118,6 @@ export const fetchAdminOverview = cache(async (): Promise<{
 
   const users = (usersData ?? []) as {
     membership_tier: string | null;
-    has_explore: boolean | null;
-    has_concierge: boolean | null;
     has_parent_seat: boolean | null;
     has_agreed_to_community: boolean | null;
   }[];
@@ -139,8 +133,10 @@ export const fetchAdminOverview = cache(async (): Promise<{
       membersByTier[u.membership_tier] =
         (membersByTier[u.membership_tier] ?? 0) + 1;
     }
-    if (u.has_explore) activeExplore++;
-    if (u.has_concierge) activeConcierge++;
+    if (u.membership_tier === "explore" || u.membership_tier === "concierge") {
+      activeExplore++;
+    }
+    if (u.membership_tier === "concierge") activeConcierge++;
     if (u.has_parent_seat) activeParentPack++;
     if (u.has_agreed_to_community) communityMembers++;
   }
@@ -247,7 +243,7 @@ export async function fetchAdminUsers(
   const { data: accessData } = await service
     .from("user_access")
     .select(
-      "id, membership_tier, membership_purchased_at, has_explore, has_concierge, has_parent_seat"
+      "id, membership_tier, membership_purchased_at, has_parent_seat"
     )
     .in("id", ids);
 
@@ -257,8 +253,6 @@ export async function fetchAdminUsers(
         id: string;
         membership_tier: string | null;
         membership_purchased_at: string | null;
-        has_explore: boolean | null;
-        has_concierge: boolean | null;
         has_parent_seat: boolean | null;
       }[]
     ).map((a) => [a.id, a])
@@ -275,8 +269,10 @@ export async function fetchAdminUsers(
         university_name: p.university_name,
         membership_tier: access?.membership_tier ?? null,
         membership_purchased_at: access?.membership_purchased_at ?? null,
-        has_explore: access?.has_explore ?? false,
-        has_concierge: access?.has_concierge ?? false,
+        has_explore:
+          access?.membership_tier === "explore" ||
+          access?.membership_tier === "concierge",
+        has_concierge: access?.membership_tier === "concierge",
         has_parent_seat: access?.has_parent_seat ?? false,
         is_admin: p.is_admin ?? false,
         is_active: p.is_active ?? true,

@@ -41,6 +41,17 @@ describe("UserPanel", () => {
     expect(container).toBeTruthy();
   });
 
+  it("shows only Parent Pack as a toggle and leaves calls read-only", () => {
+    render(<UserPanel user={mockUser} onClose={jest.fn()} />);
+
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    expect(screen.getByRole("switch")).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByText("Parent Pack")).toBeInTheDocument();
+    expect(screen.getByText("1:1 Arrival Call")).toBeInTheDocument();
+    expect(screen.getByText("Additional Support Call")).toBeInTheDocument();
+    expect(screen.getAllByText("Read only")).toHaveLength(2);
+  });
+
   it("displays the user email", () => {
     render(<UserPanel user={mockUser} onClose={jest.fn()} />);
     expect(screen.getByText("student@test.com")).toBeInTheDocument();
@@ -60,7 +71,7 @@ describe("UserPanel", () => {
 
   it("Save button enables after staging a tier change", () => {
     render(<UserPanel user={mockUser} onClose={jest.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /pro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /explore/i }));
     expect(
       screen.getByRole("button", { name: /save changes/i })
     ).not.toBeDisabled();
@@ -68,17 +79,17 @@ describe("UserPanel", () => {
 
   it("calls setUserMembershipTier when tier is changed and saved", async () => {
     render(<UserPanel user={mockUser} onClose={jest.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /pro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /explore/i }));
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
     await waitFor(() =>
-      expect(setUserMembershipTier).toHaveBeenCalledWith("user-1", "pro")
+      expect(setUserMembershipTier).toHaveBeenCalledWith("user-1", "explore")
     );
   });
 
   it("shows success message after save and auto-dismisses after 3 seconds", async () => {
     jest.useFakeTimers();
     render(<UserPanel user={mockUser} onClose={jest.fn()} />);
-    fireEvent.click(screen.getByRole("button", { name: /pro/i }));
+    fireEvent.click(screen.getByRole("button", { name: /explore/i }));
     fireEvent.click(screen.getByRole("button", { name: /save changes/i }));
     await waitFor(() =>
       expect(

@@ -71,8 +71,8 @@ describe("GET /api/pdf", () => {
 
   it("returns 403 when user is not entitled to a tier item", async () => {
     // content_items row (tier-based, rank required >= 2)
-    const contentItem = { id: "abc", tier: "pro", file_path: "pdfs/pro/file.pdf", is_individual_only: false };
-    // user_access row with rank 1 (below pro threshold)
+    const contentItem = { id: "abc", tier: "explore", file_path: "pdfs/explore/file.pdf", is_individual_only: false };
+    // user_access row with rank 1 (below explore threshold)
     const userAccess = { membership_rank: 1, has_explore: false, has_concierge: false, has_parent_seat: false };
     // profiles row (student, no student_id)
     const profile = { role: "student", student_id: null };
