@@ -25,6 +25,14 @@ const mockUser: AdminUser = {
   has_parent_seat: false,
   is_admin: false,
   is_active: true,
+  intake_response: {
+    school: "MIT",
+    city: "Cambridge, MA",
+    arrival_date: "2026-04-15",
+    graduation_date: "2030-05-10",
+    main_concerns: "banking_credit,ssn,other: Need help with visa",
+    completed_at: "2026-04-15T12:00:00.000Z",
+  },
 };
 
 beforeEach(() => {
@@ -55,6 +63,28 @@ describe("UserPanel", () => {
   it("displays the user email", () => {
     render(<UserPanel user={mockUser} onClose={jest.fn()} />);
     expect(screen.getByText("student@test.com")).toBeInTheDocument();
+  });
+
+  it("renders the intake section with formatted values", () => {
+    render(<UserPanel user={mockUser} onClose={jest.fn()} />);
+
+    expect(screen.getByText("Intake")).toBeInTheDocument();
+    expect(screen.getByText("Cambridge, MA")).toBeInTheDocument();
+    expect(screen.getAllByText("Apr 15, 2026")).toHaveLength(2);
+    expect(
+      screen.getByText("Banking & Credit, SSN, other: Need help with visa")
+    ).toBeInTheDocument();
+  });
+
+  it("shows an empty-state message when intake is missing", () => {
+    render(
+      <UserPanel
+        user={{ ...mockUser, intake_response: null }}
+        onClose={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText("No intake completed yet.")).toBeInTheDocument();
   });
 
   it("renders null without crashing", () => {

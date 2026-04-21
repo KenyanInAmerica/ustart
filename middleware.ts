@@ -2,7 +2,7 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require an active session. Any sub-path also matches (startsWith check below).
-const PROTECTED_PATHS = ["/dashboard", "/content", "/account"];
+const PROTECTED_PATHS = ["/dashboard", "/content", "/account", "/intake"];
 
 // /invite is intentionally public — unauthenticated parents must be able to reach
 // the invitation confirmation page without being redirected to /sign-in.
@@ -51,7 +51,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-
+  const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
   // ── Admin route protection ──────────────────────────────────────────────────
   // Checked before the generic protected-paths block so admin redirects take
   // precedence (redirect to /sign-in rather than /dashboard for unauthenticated).
@@ -87,7 +87,6 @@ export async function middleware(request: NextRequest) {
 
   // ── Standard protected routes ───────────────────────────────────────────────
   // Unauthenticated users attempting to access protected routes → redirect to sign-in
-  const isProtected = PROTECTED_PATHS.some((path) => pathname.startsWith(path));
   if (isProtected && !user) {
     const url = request.nextUrl.clone();
     url.pathname = "/sign-in";
