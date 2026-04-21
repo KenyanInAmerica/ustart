@@ -11,12 +11,12 @@ export async function AdminStatsSection() {
     { label: "Inactive accounts", value: stats.inactiveAccounts, accent: "border-l-[#E54B4B]" },
     { label: "Pending invitations", value: stats.pendingInvitations, accent: "border-l-[#F5C842]" },
     { label: "Community members", value: stats.communityMembers, accent: "border-l-[#4ECBA5]" },
-    { label: "Explore add-on", value: stats.activeExplore, accent: "border-l-[#4ECBA5]" },
-    { label: "Concierge add-on", value: stats.activeConcierge, accent: "border-l-[#9B8EC4]" },
+    { label: "Explore members", value: stats.activeExplore, accent: "border-l-[#4ECBA5]" },
+    { label: "Concierge members", value: stats.activeConcierge, accent: "border-l-[#9B8EC4]" },
     { label: "Parent Pack", value: stats.activeParentPack, accent: "border-l-[#F5C842]" },
   ];
 
-  const tierOrder = ["lite", "pro", "premium"];
+  const tierOrder = ["lite", "explore", "concierge"];
 
   return (
     <>

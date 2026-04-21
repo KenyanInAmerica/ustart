@@ -33,7 +33,6 @@ describe("AdminSidebar", () => {
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Users")).toBeInTheDocument();
     expect(screen.getByText("Community")).toBeInTheDocument();
-    expect(screen.getByText("Parent Invitations")).toBeInTheDocument();
     expect(screen.getByText("Content")).toBeInTheDocument();
     expect(screen.getByText("Admins")).toBeInTheDocument();
     expect(screen.getByText("Settings")).toBeInTheDocument();
@@ -50,7 +49,6 @@ describe("AdminSidebar", () => {
     render(<AdminSidebar />);
     expect(screen.getByRole("link", { name: /users/i })).toHaveAttribute("href", "/admin/users");
     expect(screen.getByRole("link", { name: /community/i })).toHaveAttribute("href", "/admin/community");
-    expect(screen.getByRole("link", { name: /parent invitations/i })).toHaveAttribute("href", "/admin/invitations");
     expect(screen.getByRole("link", { name: /content/i })).toHaveAttribute("href", "/admin/content");
     expect(screen.getByRole("link", { name: /admins/i })).toHaveAttribute("href", "/admin/admins");
     expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute("href", "/admin/settings");

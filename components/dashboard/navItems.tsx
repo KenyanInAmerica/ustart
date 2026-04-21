@@ -22,11 +22,9 @@ export type NavSection = {
 export function isNavItemLocked(item: NavItem, access: DashboardAccess): boolean {
   switch (item.href) {
     case "/dashboard/lite":        return access.membershipRank < 1;
-    case "/dashboard/pro":         return access.membershipRank < 2;
-    case "/dashboard/premium":     return access.membershipRank < 3;
+    case "/dashboard/explore":     return access.membershipRank < 2;
+    case "/dashboard/concierge":   return access.membershipRank < 3;
     case "/dashboard/parent-pack": return !access.hasParentSeat;
-    case "/dashboard/explore":     return !access.hasExplore;
-    case "/dashboard/concierge":   return !access.hasConcierge;
     case "/dashboard/community":    return !access.hasAgreedToCommunity;
     case "/dashboard/my-documents": return false;
     default:                        return item.locked ?? false;
@@ -65,8 +63,8 @@ export const navSections: NavSection[] = [
         ),
       },
       {
-        label: "UStart Pro",
-        href: "/dashboard/pro",
+        label: "UStart Explore",
+        href: "/dashboard/explore",
         icon: (
           <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
@@ -74,8 +72,8 @@ export const navSections: NavSection[] = [
         ),
       },
       {
-        label: "UStart Premium",
-        href: "/dashboard/premium",
+        label: "UStart Concierge",
+        href: "/dashboard/concierge",
         icon: (
           <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
             <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -91,28 +89,6 @@ export const navSections: NavSection[] = [
             <circle cx="9" cy="7" r="4" />
             <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
             <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-        ),
-      },
-      {
-        label: "Explore",
-        href: "/dashboard/explore",
-
-        icon: (
-          <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <circle cx="12" cy="12" r="10" />
-            <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
-          </svg>
-        ),
-      },
-      {
-        label: "Concierge",
-        href: "/dashboard/concierge",
-
-        icon: (
-          <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
-            <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
-            <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
           </svg>
         ),
       },

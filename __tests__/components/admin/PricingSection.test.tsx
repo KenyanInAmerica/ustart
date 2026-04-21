@@ -26,11 +26,11 @@ const mockItems: PricingItem[] = [
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    id: "pro",
-    name: "Pro",
-    description: "Full library",
-    price: 99,
-    billing: "one-time",
+    id: "explore",
+    name: "Explore",
+    description: "Deeper guidance",
+    price: 9.99,
+    billing: "monthly",
     features: ["Everything in Lite"],
     is_public: true,
     display_order: 2,
@@ -55,13 +55,13 @@ describe("PricingSection", () => {
   it("renders all item names in the table", () => {
     render(<PricingSection items={mockItems} />);
     expect(screen.getAllByText("Lite").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("Pro").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Explore").length).toBeGreaterThan(0);
   });
 
   it("renders prices for each row", () => {
     render(<PricingSection items={mockItems} />);
     expect(screen.getAllByText("$49").length).toBeGreaterThan(0);
-    expect(screen.getAllByText("$99").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("$9.99").length).toBeGreaterThan(0);
   });
 
   it("renders Edit buttons for each row", () => {

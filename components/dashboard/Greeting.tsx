@@ -4,14 +4,14 @@ import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAcce
 
 const TIER_NAMES: Record<string, string> = {
   lite: "Lite",
-  pro: "Pro",
-  premium: "Premium",
+  explore: "Explore",
+  concierge: "Concierge",
 };
 
 const TIER_ACCENTS: Record<string, ProductAccent> = {
   lite: "lite",
-  pro: "pro",
-  premium: "premium",
+  explore: "explore",
+  concierge: "concierge",
 };
 
 export async function Greeting() {

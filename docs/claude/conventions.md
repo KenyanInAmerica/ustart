@@ -43,7 +43,7 @@
   - `--text-muted` — `rgba(28,43,58,0.42)` — muted text
   - `--accent` / `--accent-hover` — primary interactive blue and hover state
   - `--destructive` — warm red destructive state
-- All color references must use CSS variables or Tailwind semantic classes. Do not hardcode hex colors in components. The only exceptions are `lib/config/brand.ts` and `lib/config/productAccents.ts`.
+- All color references must use CSS variables or Tailwind semantic classes. Do not hardcode hex colors in components. The only allowed exceptions are `lib/config/brand.ts` and `lib/config/productAccents.ts`.
 - **Font classes**: `font-primary` is the single font utility. `Plus Jakarta Sans` is loaded via `next/font/google` in `app/layout.tsx` as `--font-primary`. Switching to Salmond later should require changing the root font import only.
 - **Custom breakpoint**: `md-900` (900px) for desktop layouts. Mobile-first: default styles are mobile, `md-900:` overrides are desktop.
 - **Animations** (defined in `tailwind.config.ts`): `animate-pulse-glow`, `animate-fade-up`, `animate-fade-up-1`, `animate-fade-up-2`, `animate-fade-up-3` (staggered).

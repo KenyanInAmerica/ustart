@@ -25,8 +25,8 @@ interface Props {
 
 const TIER_DISPLAY: Record<string, string> = {
   lite: "UStart Lite",
-  pro: "UStart Pro",
-  premium: "UStart Premium",
+  explore: "UStart Explore",
+  concierge: "UStart Concierge",
 };
 
 const ADDON_DISPLAY: Record<string, string> = {
@@ -34,6 +34,8 @@ const ADDON_DISPLAY: Record<string, string> = {
   parent_pack: "Parent Pack",
   explore: "Explore",
   concierge: "Concierge",
+  arrival_call: "1:1 Arrival Call",
+  additional_support_call: "Additional Support Call",
 };
 
 function formatDate(isoString: string): string {
@@ -96,7 +98,7 @@ export function BillingSection({
                 ? ` · purchased ${formatDate(membershipPurchasedAt)}`
                 : ""}
             </p>
-            {membershipTier !== "premium" && (
+            {membershipTier !== "concierge" && (
               <Link
                 href="/pricing"
                 className="font-primary text-sm font-medium text-[var(--accent)] transition-colors hover:underline"

@@ -2,7 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { ProfileSection } from "@/components/account/ProfileSection";
 import { BillingSection } from "@/components/account/BillingSection";
 import { getPricing } from "@/lib/config/getPricing";
-import type { PricingItem, AddonId } from "@/lib/config/pricing";
+import type { PricingItem, ProductId } from "@/lib/config/pricing";
 
 interface ActiveAddon {
   type: string;
@@ -12,7 +12,11 @@ interface ActiveAddon {
 }
 
 // Add-on product IDs — used to filter the pricing list down to add-ons only.
-const ADDON_IDS: AddonId[] = ["parent_pack", "explore", "concierge"];
+const ADDON_IDS: ProductId[] = [
+  "parent_pack",
+  "arrival_call",
+  "additional_support_call",
+];
 
 // Inside the dashboard layout — no auth guard needed (middleware protects /dashboard/*).
 export default async function AccountPage() {

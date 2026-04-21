@@ -23,6 +23,10 @@ CREATE TABLE public.profiles (
   phone_number TEXT,
   university_name TEXT,
   country_of_origin TEXT,
+  arrival_date DATE,
+  graduation_date DATE,
+  city TEXT,
+  intake_completed_at TIMESTAMPTZ,
   first_name TEXT,
   last_name TEXT,
   is_admin BOOLEAN NOT NULL DEFAULT false,
@@ -33,6 +37,7 @@ CREATE TABLE public.memberships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   tier TEXT NOT NULL,
+  billing TEXT NOT NULL DEFAULT 'one-time',
   status TEXT NOT NULL DEFAULT 'active',
   stripe_customer_id TEXT,
   stripe_payment_intent_id TEXT,
@@ -53,6 +58,21 @@ CREATE TABLE public.one_time_purchases (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT one_time_purchases_user_id_type_unique UNIQUE (user_id, type)
+);
+
+CREATE TABLE public.call_bookings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  type TEXT NOT NULL
+    CHECK (type = ANY (ARRAY['arrival_call', 'additional_support_call'])),
+  status TEXT NOT NULL DEFAULT 'purchased'
+    CHECK (status = ANY (ARRAY['purchased', 'booked', 'completed', 'cancelled'])),
+  stripe_payment_intent_id TEXT,
+  calendly_event_id TEXT,
+  booked_at TIMESTAMPTZ,
+  completed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
 CREATE TABLE public.addons (
@@ -162,6 +182,49 @@ CREATE TABLE public.audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE public.plan_task_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  phase TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  recommended_offset_days INTEGER NOT NULL DEFAULT 0,
+  is_active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT plan_task_templates_phase_check CHECK (
+    phase = ANY (ARRAY['before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'])
+  )
+);
+
+CREATE TABLE public.plan_tasks (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  template_id UUID REFERENCES public.plan_task_templates(id) ON DELETE SET NULL,
+  phase TEXT NOT NULL,
+  title TEXT NOT NULL,
+  description TEXT,
+  due_date DATE,
+  completed_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'todo',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT plan_tasks_phase_check CHECK (
+    phase = ANY (ARRAY['before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'])
+  ),
+  CONSTRAINT plan_tasks_status_check CHECK (
+    status = ANY (ARRAY['todo', 'in_progress', 'completed'])
+  )
+);
+
+CREATE TABLE public.intake_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
+  responses JSONB NOT NULL DEFAULT '{}'::jsonb,
+  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT intake_responses_user_id_key UNIQUE (user_id)
+);
+
 -- -----------------------------------------------
 -- Foreign key added after profiles exists
 -- -----------------------------------------------
@@ -169,6 +232,18 @@ CREATE TABLE public.audit_logs (
 ALTER TABLE public.profiles
   ADD CONSTRAINT profiles_student_id_fkey
   FOREIGN KEY (student_id) REFERENCES public.profiles(id) ON DELETE SET NULL;
+
+ALTER TABLE public.memberships
+  ADD CONSTRAINT memberships_tier_check
+  CHECK (tier = ANY (ARRAY['lite', 'explore', 'concierge']));
+
+ALTER TABLE public.addons
+  ADD CONSTRAINT addons_type_check
+  CHECK (type = ANY (ARRAY['arrival_call', 'additional_support_call']));
+
+ALTER TABLE public.one_time_purchases
+  ADD CONSTRAINT one_time_purchases_type_check
+  CHECK (type = ANY (ARRAY['parent_seat']));
 
 -- -----------------------------------------------
 -- Functions
@@ -195,9 +270,9 @@ CREATE OR REPLACE FUNCTION public.tier_rank(tier TEXT)
 RETURNS INTEGER AS $$
 BEGIN
   RETURN CASE tier
-    WHEN 'lite'    THEN 1
-    WHEN 'pro'     THEN 2
-    WHEN 'premium' THEN 3
+    WHEN 'lite'      THEN 1
+    WHEN 'explore'   THEN 2
+    WHEN 'concierge' THEN 3
     ELSE 0
   END;
 END;
@@ -245,8 +320,20 @@ CREATE TRIGGER handle_updated_at_one_time_purchases
   BEFORE UPDATE ON public.one_time_purchases
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+CREATE TRIGGER handle_updated_at_call_bookings
+  BEFORE UPDATE ON public.call_bookings
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
 CREATE TRIGGER handle_updated_at_parent_invitations
   BEFORE UPDATE ON public.parent_invitations
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER handle_updated_at_plan_task_templates
+  BEFORE UPDATE ON public.plan_task_templates
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
+CREATE TRIGGER handle_updated_at_plan_tasks
+  BEFORE UPDATE ON public.plan_tasks
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
 -- -----------------------------------------------
@@ -285,14 +372,8 @@ SELECT
     SELECT 1 FROM one_time_purchases otp
     WHERE otp.user_id = p.id AND otp.type = 'parent_seat' AND otp.status = 'active'
   )) AS has_parent_seat,
-  (EXISTS (
-    SELECT 1 FROM addons ad
-    WHERE ad.user_id = p.id AND ad.type = 'explore' AND ad.status = 'active'
-  )) AS has_explore,
-  (EXISTS (
-    SELECT 1 FROM addons ad
-    WHERE ad.user_id = p.id AND ad.type = 'concierge' AND ad.status = 'active'
-  )) AS has_concierge,
+  (tier_rank(m.tier) >= 2) AS has_explore,
+  (tier_rank(m.tier) >= 3) AS has_concierge,
   (EXISTS (
     SELECT 1 FROM community_agreements ca
     WHERE ca.user_id = p.id
@@ -321,6 +402,9 @@ CREATE UNIQUE INDEX one_active_invite_per_student
 CREATE UNIQUE INDEX parent_invitations_invite_token_idx
   ON public.parent_invitations (invite_token);
 
+CREATE INDEX call_bookings_user_id_idx
+  ON public.call_bookings (user_id);
+
 CREATE INDEX audit_logs_created_at_idx ON public.audit_logs (created_at DESC);
 CREATE INDEX audit_logs_actor_id_idx ON public.audit_logs (actor_id);
 CREATE INDEX audit_logs_action_idx ON public.audit_logs (action);
@@ -338,6 +422,7 @@ CREATE INDEX audit_logs_payload_text_trgm_idx
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.memberships ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.one_time_purchases ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.call_bookings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.addons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.parent_invitations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.parent_content ENABLE ROW LEVEL SECURITY;
@@ -348,6 +433,9 @@ ALTER TABLE public.user_content_items ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pricing ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plan_task_templates ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.plan_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.intake_responses ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
 CREATE POLICY "Users can view their own profile"
@@ -386,6 +474,14 @@ CREATE POLICY "Parents can view their student's membership"
 CREATE POLICY "Users can view their own one time purchases"
   ON public.one_time_purchases FOR SELECT
   USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can view their own call bookings"
+  ON public.call_bookings FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert their own call bookings"
+  ON public.call_bookings FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
 -- Addons
 CREATE POLICY "Users can view their own add-ons"
@@ -433,8 +529,8 @@ CREATE POLICY "Users can view tier content"
       WHERE user_access.id = auth.uid()
         AND (
           (content_items.tier = 'lite'        AND user_access.membership_rank >= 1) OR
-          (content_items.tier = 'pro'         AND user_access.membership_rank >= 2) OR
-          (content_items.tier = 'premium'     AND user_access.membership_rank >= 3) OR
+          (content_items.tier = 'explore'     AND user_access.membership_rank >= 2) OR
+          (content_items.tier = 'concierge'   AND user_access.membership_rank >= 3) OR
           (content_items.tier = 'parent_pack' AND user_access.has_parent_seat = true)
         )
     )
@@ -460,18 +556,32 @@ CREATE POLICY "Admins can read audit logs"
   ON public.audit_logs FOR SELECT
   USING (public.is_admin());
 
+CREATE POLICY "Authenticated users can read templates"
+  ON public.plan_task_templates FOR SELECT
+  USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Users can manage their own tasks"
+  ON public.plan_tasks FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can manage their own intake"
+  ON public.intake_responses FOR ALL
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
+
 -- -----------------------------------------------
 -- Seed data
 -- -----------------------------------------------
 
 INSERT INTO public.pricing (id, name, description, price, billing, features, is_public, display_order, stripe_product_id, stripe_price_id)
 VALUES
-  ('lite',        'Lite',        'placeholder', 49,    'one-time', '[]', true,  1, 'prod_placeholder', 'price_placeholder'),
-  ('pro',         'Pro',         'placeholder', 99,    'one-time', '[]', true,  2, 'prod_placeholder', 'price_placeholder'),
-  ('premium',     'Premium',     'placeholder', 149,   'one-time', '[]', true,  3, 'prod_placeholder', 'price_placeholder'),
-  ('parent_pack', 'Parent Pack', 'placeholder', 29,    'one-time', '[]', false, 4, 'prod_placeholder', 'price_placeholder'),
-  ('explore',     'Explore',     'placeholder', 9.99,  'monthly',  '[]', false, 5, 'prod_placeholder', 'price_placeholder'),
-  ('concierge',   'Concierge',   'placeholder', 19.99, 'monthly',  '[]', false, 6, 'prod_placeholder', 'price_placeholder');
+  ('lite', 'Lite', 'placeholder', 49, 'one-time', '[]', true, 1, 'prod_placeholder', 'price_placeholder'),
+  ('explore', 'Explore', 'placeholder', 9.99, 'monthly', '[]', true, 2, 'prod_placeholder', 'price_placeholder'),
+  ('concierge', 'Concierge', 'placeholder', 19.99, 'monthly', '[]', true, 3, 'prod_placeholder', 'price_placeholder'),
+  ('parent_pack', 'Parent Pack', 'placeholder', 29, 'one-time', '[]', false, 4, 'prod_placeholder', 'price_placeholder'),
+  ('arrival_call', '1:1 Arrival Call', 'placeholder', 0.00, 'one-time', '[]', false, 7, 'prod_placeholder', 'price_placeholder'),
+  ('additional_support_call', 'Additional Support Call', 'placeholder', 0.00, 'one-time', '[]', false, 8, 'prod_placeholder', 'price_placeholder');
 
 INSERT INTO public.config (key, value)
 VALUES ('whatsapp_invite_link', 'https://chat.whatsapp.com/placeholder');

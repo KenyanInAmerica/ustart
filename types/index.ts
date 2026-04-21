@@ -19,9 +19,9 @@ export interface Entitlement {
 // Computed once per request (via React.cache in lib/dashboard/access.ts)
 // and shared between the layout (sidebar/drawer) and the page (cards, StartHere).
 export interface DashboardAccess {
-  // 0 = no plan, 1 = Lite, 2 = Pro, 3 = Premium
+  // 0 = no plan, 1 = Lite, 2 = Explore, 3 = Concierge
   membershipRank: number;
-  // Raw tier slug for display (e.g. "lite", "pro", "premium") — null if no plan
+  // Raw tier slug for display (e.g. "lite", "explore", "concierge") — null if no plan
   membershipTier: string | null;
   hasMembership: boolean;
   hasParentSeat: boolean;

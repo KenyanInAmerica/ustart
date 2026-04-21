@@ -31,27 +31,27 @@ const mockAddonPricing: PricingItem[] = [
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    id: "explore",
-    name: "Explore",
-    description: "City guides",
-    price: 15,
-    billing: "monthly",
+    id: "arrival_call",
+    name: "1:1 Arrival Call",
+    description: "Arrival support",
+    price: 0,
+    billing: "one-time",
     features: null,
     is_public: false,
-    display_order: 5,
+    display_order: 7,
     stripe_product_id: null,
     stripe_price_id: null,
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    id: "concierge",
-    name: "Concierge",
-    description: "1-on-1 sessions",
-    price: 49,
-    billing: "monthly",
+    id: "additional_support_call",
+    name: "Additional Support Call",
+    description: "Extra support",
+    price: 0,
+    billing: "one-time",
     features: null,
     is_public: false,
-    display_order: 6,
+    display_order: 8,
     stripe_product_id: null,
     stripe_price_id: null,
     updated_at: "2026-01-01T00:00:00Z",
@@ -83,32 +83,32 @@ describe("BillingSection", () => {
 
   it("shows the tier name and purchased date when membership is active", () => {
     render(
-      <BillingSection
+        <BillingSection
         {...baseProps}
-        membershipTier="pro"
+        membershipTier="explore"
         membershipPurchasedAt="2026-01-12T00:00:00Z"
       />
     );
-    expect(screen.getByText(/ustart pro/i)).toBeInTheDocument();
+    expect(screen.getByText(/ustart explore/i)).toBeInTheDocument();
     expect(screen.getByText(/purchased jan 12, 2026/i)).toBeInTheDocument();
   });
 
-  it("shows an upgrade link when membership tier is not premium", () => {
+  it("shows an upgrade link when membership tier is not concierge", () => {
     render(<BillingSection {...baseProps} membershipTier="lite" />);
     expect(
       screen.getByRole("link", { name: /upgrade your plan/i })
     ).toHaveAttribute("href", "/pricing");
   });
 
-  it("does not show an upgrade link when tier is premium", () => {
-    render(<BillingSection {...baseProps} membershipTier="premium" />);
+  it("does not show an upgrade link when tier is concierge", () => {
+    render(<BillingSection {...baseProps} membershipTier="concierge" />);
     expect(
       screen.queryByRole("link", { name: /upgrade your plan/i })
     ).not.toBeInTheDocument();
   });
 
   it("shows 'No active add-ons' when activeAddons is empty and hasParentSeat is false", () => {
-    render(<BillingSection {...baseProps} membershipTier="pro" />);
+    render(<BillingSection {...baseProps} membershipTier="explore" />);
     expect(screen.getByText(/no active add-ons/i)).toBeInTheDocument();
   });
 
@@ -123,13 +123,13 @@ describe("BillingSection", () => {
         {...baseProps}
         membershipTier="lite"
         activeAddons={[
-          { type: "explore", status: "active", current_period_end: null, cancel_at_period_end: false },
-          { type: "concierge", status: "active", current_period_end: null, cancel_at_period_end: false },
+          { type: "arrival_call", status: "active", current_period_end: null, cancel_at_period_end: false },
+          { type: "additional_support_call", status: "active", current_period_end: null, cancel_at_period_end: false },
         ]}
       />
     );
-    expect(screen.getByText("Explore")).toBeInTheDocument();
-    expect(screen.getByText("Concierge")).toBeInTheDocument();
+    expect(screen.getByText("1:1 Arrival Call")).toBeInTheDocument();
+    expect(screen.getByText("Additional Support Call")).toBeInTheDocument();
   });
 
   it("shows Parent Pack alongside subscription add-ons", () => {
@@ -139,12 +139,12 @@ describe("BillingSection", () => {
         membershipTier="lite"
         hasParentSeat={true}
         activeAddons={[
-          { type: "concierge", status: "active", current_period_end: null, cancel_at_period_end: false },
+          { type: "arrival_call", status: "active", current_period_end: null, cancel_at_period_end: false },
         ]}
       />
     );
     expect(screen.getByText("Parent Pack")).toBeInTheDocument();
-    expect(screen.getByText("Concierge")).toBeInTheDocument();
+    expect(screen.getByText("1:1 Arrival Call")).toBeInTheDocument();
   });
 
   it("renders the payment method placeholder row", () => {
@@ -174,11 +174,11 @@ describe("BillingSection", () => {
         {...baseProps}
         addonPricing={mockAddonPricing}
         activeAddons={[
-          { type: "explore", status: "active", current_period_end: null, cancel_at_period_end: false },
+          { type: "arrival_call", status: "active", current_period_end: null, cancel_at_period_end: false },
         ]}
       />
     );
-    // Only parent_pack and concierge should be available.
+    // Only parent_pack and additional_support_call should be available.
     expect(screen.getAllByRole("button", { name: /buy now/i }).length).toBe(2);
   });
 
@@ -189,8 +189,8 @@ describe("BillingSection", () => {
         addonPricing={mockAddonPricing}
         hasParentSeat={true}
         activeAddons={[
-          { type: "explore", status: "active", current_period_end: null, cancel_at_period_end: false },
-          { type: "concierge", status: "active", current_period_end: null, cancel_at_period_end: false },
+          { type: "arrival_call", status: "active", current_period_end: null, cancel_at_period_end: false },
+          { type: "additional_support_call", status: "active", current_period_end: null, cancel_at_period_end: false },
         ]}
       />
     );

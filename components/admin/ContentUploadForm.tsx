@@ -11,11 +11,9 @@ import type { ContentItem } from "@/types/admin";
 
 const TIERS: { value: ContentItem["tier"]; label: string }[] = [
   { value: "lite", label: "Lite" },
-  { value: "pro", label: "Pro" },
-  { value: "premium", label: "Premium" },
-  { value: "parent_pack", label: "Parent Pack" },
   { value: "explore", label: "Explore" },
   { value: "concierge", label: "Concierge" },
+  { value: "parent_pack", label: "Parent Pack" },
 ];
 
 export function ContentUploadForm() {

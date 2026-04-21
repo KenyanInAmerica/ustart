@@ -26,8 +26,8 @@ import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
 import { redirect } from "next/navigation";
 
 const exploreAccess: DashboardAccess = {
-  membershipRank: 1,
-  membershipTier: "lite",
+  membershipRank: 2,
+  membershipTier: "explore",
   hasMembership: true,
   hasParentSeat: false,
   hasExplore: true,
@@ -55,7 +55,7 @@ describe("ExplorePage", () => {
 
   it("renders the Explore heading", async () => {
     render(await ExplorePage());
-    expect(screen.getByText("Explore")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /ustart explore/i })).toBeInTheDocument();
   });
 
   it("renders the content grid", async () => {
@@ -63,8 +63,8 @@ describe("ExplorePage", () => {
     expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
-  it("redirects to /dashboard when has_explore is false", async () => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...exploreAccess, hasExplore: false });
+  it("redirects to /dashboard when membership_rank is below 2", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...exploreAccess, membershipRank: 1 });
     await ExplorePage();
     expect(redirect).toHaveBeenCalledWith("/dashboard");
   });

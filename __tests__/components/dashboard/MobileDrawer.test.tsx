@@ -4,7 +4,7 @@ import type { DashboardAccess } from "@/types";
 
 const fullAccess: DashboardAccess = {
   membershipRank: 3,
-  membershipTier: "premium",
+  membershipTier: "concierge",
   hasMembership: true,
   hasParentSeat: true,
   hasExplore: true,
@@ -74,8 +74,8 @@ describe("MobileDrawer", () => {
     render(<MobileDrawer {...defaultProps} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /ustart pro/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /ustart premium/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ustart explore/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /ustart concierge/i })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /parent pack/i })).toBeInTheDocument();
     expect(screen.getByText("Account & Billing")).toBeInTheDocument();
   });
@@ -88,13 +88,13 @@ describe("MobileDrawer", () => {
   it("locks all content items when membershipRank is 0", () => {
     render(<MobileDrawer {...defaultProps} access={noAccess} />);
     expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart pro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart explore/i })).not.toBeInTheDocument();
   });
 
   it("unlocks Lite only when membershipRank is 1", () => {
     render(<MobileDrawer {...defaultProps} access={{ ...noAccess, membershipRank: 1 }} />);
     expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart pro/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart explore/i })).not.toBeInTheDocument();
   });
 
   it("calls onClose when the overlay backdrop is clicked", () => {

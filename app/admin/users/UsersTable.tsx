@@ -110,8 +110,6 @@ export function UsersTable({ users, page, totalPages, search }: UsersTableProps)
               <tbody>
                 {users.map((user, i) => {
                   const addons = [
-                    user.has_explore && "Explore",
-                    user.has_concierge && "Concierge",
                     user.has_parent_seat && "Parent Pack",
                   ].filter(Boolean);
 

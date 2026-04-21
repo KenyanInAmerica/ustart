@@ -15,11 +15,9 @@
     page.tsx                      # Main dashboard — Greeting, StartHere, ContentCards, Community
     account/page.tsx              # Account & billing
     lite/page.tsx                 # Lite tier content
-    pro/page.tsx                  # Pro tier content
-    premium/page.tsx              # Premium tier content
+    explore/page.tsx              # Explore tier content
+    concierge/page.tsx            # Concierge tier content
     parent-pack/page.tsx          # Parent Pack + invitation flow
-    explore/page.tsx              # Explore add-on content
-    concierge/page.tsx            # Concierge add-on content
     my-documents/page.tsx         # Individually assigned PDFs
   /admin
     layout.tsx                    # Admin shell (AdminSidebar)
@@ -242,20 +240,24 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 
 | Table | Key Columns | Notes |
 |---|---|---|
-| `profiles` | id, email, first_name, last_name, phone_number, university_name, country_of_origin, role, student_id, is_admin, is_active, first_content_visit_at | Extends auth.users via handle_new_user trigger |
-| `memberships` | user_id, tier, status, purchased_at | One active per user (unique on user_id). tier: lite/pro/premium |
-| `one_time_purchases` | user_id, type, status, purchased_at, stripe_payment_intent_id | type: parent_seat. Unique on (user_id, type) |
-| `addons` | user_id, type, status, stripe_customer_id, stripe_subscription_id, stripe_product_id, current_period_end | type: explore/concierge. Multiple per user. |
+| `profiles` | id, email, first_name, last_name, phone_number, university_name, country_of_origin, arrival_date, graduation_date, city, intake_completed_at, role, student_id, is_admin, is_active, first_content_visit_at | Extends auth.users via handle_new_user trigger |
+| `memberships` | user_id, tier, billing, status, purchased_at | One active per user (unique on user_id). tier: lite/explore/concierge. billing tracks one-time vs monthly. |
+| `one_time_purchases` | user_id, type, status, purchased_at, stripe_payment_intent_id | type: parent_seat only. Unique on (user_id, type) |
+| `call_bookings` | id, user_id, type, status, stripe_payment_intent_id, calendly_event_id, booked_at, completed_at, created_at, updated_at | Multi-purchase support calls. type: arrival_call/additional_support_call |
+| `addons` | user_id, type, status, stripe_customer_id, stripe_subscription_id, stripe_product_id, current_period_end | type: arrival_call/additional_support_call only. Explore and Concierge are tiers, not addons. |
 | `parent_invitations` | id, student_id, parent_email, status, invite_token, invite_token_expires_at, invited_at, accepted_at, cancelled_at | Partial unique index: one pending/accepted per student |
 | `parent_content` | — | Placeholder — no content yet |
 | `community_agreements` | user_id, agreed_at | One row per user when rules accepted |
 | `config` | key, value | Key-value store. Currently holds whatsapp_invite_link |
-| `content_items` | id, title, description, tier, file_path, file_name, is_individual_only, uploaded_by, created_at, updated_at | tier: lite/pro/premium/parent_pack/explore/concierge |
+| `content_items` | id, title, description, tier, file_path, file_name, is_individual_only, uploaded_by, created_at, updated_at | tier: lite/explore/concierge/parent_pack |
 | `user_content_items` | id, user_id, content_item_id, assigned_by, created_at | Individual PDF assignments. Unique on (user_id, content_item_id) |
 | `pricing` | id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at | Single source of truth for all product pricing |
 | `contact_submissions` | id, name, email, message, user_id, created_at | Contact form submissions |
 | `audit_logs` | id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated) | Immutable event log. payload_text is a stored generated column for ILIKE search |
-| `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, active_addons, etc. |
+| `plan_task_templates` | id, phase, title, description, recommended_offset_days, is_active, created_at, updated_at | Phase-based planning templates |
+| `plan_tasks` | id, user_id, template_id, phase, title, description, due_date, completed_at, status, created_at, updated_at | Per-user tasks derived from plan templates |
+| `intake_responses` | id, user_id, responses, submitted_at, created_at | Per-user intake submission payloads |
+| `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, active_addons, etc. `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not addon rows. |
 
 **Critical column names:**
 - `addons.type` and `one_time_purchases.type` — the column is `type`, NOT `product`
@@ -266,7 +268,7 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 ## Key Functions & Views
 
 - `handle_new_user()` — trigger, auto-creates profiles row on every new auth signup
-- `tier_rank(tier)` — returns numeric rank (lite=1, pro=2, premium=3)
+- `tier_rank(tier)` — returns numeric rank (lite=1, explore=2, concierge=3)
 - `is_parent_of(student_id)` — security definer function used in RLS policies
 - `user_access` view — use this for all entitlement checks; never query memberships/addons directly for access decisions
 

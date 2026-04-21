@@ -4,8 +4,8 @@ import { fetchDashboardAccess } from "@/lib/dashboard/access";
 import { fetchTierContent } from "@/lib/dashboard/content";
 import { ContentGrid } from "@/components/dashboard/ContentGrid";
 
-// Concierge content page.
-// Server-side entitlement guard — requires the has_concierge add-on.
+// UStart Concierge content page.
+// Server-side entitlement guard — Concierge requires membership_rank >= 3.
 export default async function ConciergePage() {
   const [access, items] = await Promise.all([
     fetchDashboardAccess(),
@@ -13,15 +13,15 @@ export default async function ConciergePage() {
     trackContentVisit(),
   ]);
 
-  if (!access.hasConcierge) redirect("/dashboard");
+  if (access.membershipRank < 3) redirect("/dashboard");
 
   return (
     <div className="bg-[var(--bg)]">
       <h1 className="mb-1 font-primary text-3xl font-bold tracking-tight text-[var(--text)]">
-        Concierge
+        UStart Concierge
       </h1>
       <p className="mb-8 font-primary text-sm text-[var(--text-muted)]">
-        Priority support resources and session materials.
+        Everything in Explore plus our most advanced resources for long-term success in the US.
       </p>
       <ContentGrid items={items} />
     </div>

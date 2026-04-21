@@ -4,7 +4,7 @@ import type { DashboardAccess } from "@/types";
 
 const withPlan: DashboardAccess = {
   membershipRank: 2,
-  membershipTier: "pro",
+  membershipTier: "explore",
   hasMembership: true,
   hasParentSeat: false,
   hasExplore: false,
@@ -49,8 +49,8 @@ describe("AccountStrip", () => {
 
   it("shows tier name and purchased date when user has a plan", () => {
     render(<AccountStrip access={withPlan} />);
-    // "UStart Pro · purchased Jan 12, 2026"
-    expect(screen.getByText(/ustart pro/i)).toBeInTheDocument();
+    // "UStart Explore · purchased Jan 12, 2026"
+    expect(screen.getByText(/ustart explore/i)).toBeInTheDocument();
     expect(screen.getByText(/purchased jan 12, 2026/i)).toBeInTheDocument();
   });
 
@@ -74,7 +74,7 @@ describe("AccountStrip", () => {
   it("handles a null membershipPurchasedAt gracefully", () => {
     render(<AccountStrip access={{ ...withPlan, membershipPurchasedAt: null }} />);
     // Shows tier name without the date segment
-    expect(screen.getByText(/ustart pro/i)).toBeInTheDocument();
+    expect(screen.getByText(/ustart explore/i)).toBeInTheDocument();
     expect(screen.queryByText(/purchased/i)).not.toBeInTheDocument();
   });
 });

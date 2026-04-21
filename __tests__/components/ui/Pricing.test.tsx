@@ -17,18 +17,18 @@ describe("Pricing", () => {
   it("renders all three plan names", () => {
     render(<Pricing />);
     expect(screen.getByText("Lite")).toBeInTheDocument();
-    expect(screen.getByText("Pro")).toBeInTheDocument();
-    expect(screen.getByText("Premium")).toBeInTheDocument();
+    expect(screen.getByText("Explore")).toBeInTheDocument();
+    expect(screen.getByText("Concierge")).toBeInTheDocument();
   });
 
   it("renders all three plan prices", () => {
     render(<Pricing />);
     expect(screen.getByText("$49")).toBeInTheDocument();
-    expect(screen.getByText("$99")).toBeInTheDocument();
-    expect(screen.getByText("$149")).toBeInTheDocument();
+    expect(screen.getByText("$9.99")).toBeInTheDocument();
+    expect(screen.getByText("$19.99")).toBeInTheDocument();
   });
 
-  it("shows the Most Popular badge on the Pro plan only", () => {
+  it("shows the Most Popular badge on the Explore plan only", () => {
     render(<Pricing />);
     const badges = screen.getAllByText("Most Popular");
     expect(badges).toHaveLength(1);
