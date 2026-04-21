@@ -29,6 +29,50 @@ function initialParentPack(user: AdminUser): boolean {
   return user.has_parent_seat;
 }
 
+const INTAKE_CONCERN_LABELS: Record<string, string> = {
+  banking_credit: "Banking & Credit",
+  ssn: "SSN",
+  housing: "Housing",
+  transportation: "Transportation",
+  health_insurance: "Health Insurance",
+  tax_finance: "Tax & Finance",
+  campus_life: "Campus Life",
+  community_social: "Community & Social",
+};
+
+function formatPanelDate(value: string | null): string {
+  if (!value) return "—";
+  const parsed = new Date(`${value.slice(0, 10)}T00:00:00.000Z`);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
+function formatPanelTimestamp(value: string): string {
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(parsed);
+}
+
+function formatMainConcerns(value: string | null): string {
+  if (!value) return "—";
+  return value
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean)
+    .map((part) => INTAKE_CONCERN_LABELS[part] ?? part)
+    .join(", ");
+}
+
 export function UserPanel({ user, onClose }: UserPanelProps) {
   const [stagedTier, setStagedTier] = useState<Tier>(null);
   const [stagedParentPack, setStagedParentPack] = useState(false);
@@ -215,6 +259,48 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
                 </div>
               ))}
             </div>
+          </section>
+
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              Intake
+            </h3>
+            {user.intake_response ? (
+              <div className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-3">
+                {[
+                  { label: "School", value: user.intake_response.school ?? "—" },
+                  { label: "City", value: user.intake_response.city ?? "—" },
+                  {
+                    label: "Arrival date",
+                    value: formatPanelDate(user.intake_response.arrival_date),
+                  },
+                  {
+                    label: "Graduation date",
+                    value: formatPanelDate(user.intake_response.graduation_date),
+                  },
+                  {
+                    label: "Main concerns",
+                    value: formatMainConcerns(user.intake_response.main_concerns),
+                  },
+                  {
+                    label: "Completed",
+                    value: formatPanelTimestamp(user.intake_response.completed_at),
+                  },
+                ].map((row) => (
+                  <div
+                    key={row.label}
+                    className="flex justify-between gap-4 border-b border-[var(--border)] py-1.5 last:border-0"
+                  >
+                    <span className="text-xs text-[var(--text-muted)]">{row.label}</span>
+                    <span className="text-right text-sm text-[var(--text)]">{row.value}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-[var(--text-muted)]">
+                No intake completed yet.
+              </p>
+            )}
           </section>
         </div>
 
