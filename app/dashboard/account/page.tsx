@@ -51,8 +51,8 @@ export default async function AccountPage() {
   } | null;
 
   return (
-    <div>
-      <h1 className="font-syne text-2xl font-bold tracking-[-0.03em] text-white mb-8">
+    <div className="bg-[var(--bg)]">
+      <h1 className="mb-8 font-primary text-2xl font-bold tracking-[-0.03em] text-[var(--text)]">
         Account
       </h1>
       <ProfileSection

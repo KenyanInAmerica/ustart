@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { brand } from "@/lib/config/brand";
 
 type Props = {
   onOpen: () => void;
@@ -11,17 +12,17 @@ type Props = {
 // state managed by the parent MobileDashboardNav component.
 export function MobileTopBar({ onOpen }: Props) {
   return (
-    <div className="flex min-[860px]:hidden fixed top-0 left-0 right-0 h-14 z-[100] bg-[#0C1220] border-b border-white/[0.07] items-center justify-between px-5">
+    <div className="fixed left-0 right-0 top-0 z-[100] flex h-14 items-center justify-between border-b border-[var(--border)] bg-white px-5 min-[860px]:hidden">
       <Link
         href="/"
-        className="font-syne font-extrabold text-[16px] tracking-[-0.03em] text-white"
+        className="font-primary text-[16px] font-extrabold tracking-[-0.03em] text-[var(--text)]"
       >
-        UStart
+        {brand.name}
       </Link>
       <button
         onClick={onOpen}
         aria-label="Open navigation"
-        className="text-white/[0.68] p-1 cursor-pointer"
+        className="cursor-pointer p-1 text-[var(--text-mid)] transition-colors hover:text-[var(--text)]"
       >
         <svg
           width="20"

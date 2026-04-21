@@ -1,20 +1,15 @@
-// Profile section for the account page — personal info and contact/background fields.
-// Each subsection has an independent edit/save/cancel flow backed by the updateProfile
-// server action. Country of origin uses a lightweight filter-as-you-type combobox.
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { updateProfile } from "@/lib/actions/updateProfile";
 
-// Mirrors the server action's regex — strips spaces before testing.
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
-
-// Maximum number of countries shown in the filter dropdown at once.
 const COUNTRY_DROPDOWN_LIMIT = 8;
 
-// Full list of world countries (UN members + commonly recognised states).
 const COUNTRIES = [
   "Afghanistan", "Albania", "Algeria", "Andorra", "Angola",
   "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria",
@@ -59,7 +54,13 @@ const COUNTRIES = [
   "Zambia", "Zimbabwe",
 ];
 
-// Defined at module scope so React doesn't recreate it on every ProfileSection render.
+const labelClassName =
+  "mb-1 block font-primary text-[11px] text-[var(--text-muted)]";
+const inputClassName =
+  "w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-sm text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none transition-colors";
+const valueClassName = "font-primary text-sm text-[var(--text)]";
+const emptyClassName = "text-[var(--text-muted)]";
+
 function SubsectionHeader({
   title,
   editing,
@@ -76,32 +77,21 @@ function SubsectionHeader({
   onCancel: () => void;
 }) {
   return (
-    <div className="flex items-center justify-between mb-4">
-      <p className="font-syne text-sm font-bold text-white">{title}</p>
+    <div className="mb-4 flex items-center justify-between gap-3">
+      <p className="font-primary text-sm font-bold text-[var(--text)]">{title}</p>
       {editing ? (
-        <div className="flex items-center gap-3">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="font-dm-sans text-xs text-white/[0.42] hover:text-white transition-colors"
-          >
+        <div className="flex items-center gap-2">
+          <Button onClick={onCancel} disabled={loading} size="sm" variant="ghost">
             Cancel
-          </button>
-          <button
-            onClick={onSave}
-            disabled={loading}
-            className="font-dm-sans text-xs text-white bg-white/[0.1] border border-white/[0.12] px-3 py-1 rounded-lg hover:bg-white/[0.15] transition-colors disabled:opacity-50"
-          >
+          </Button>
+          <Button onClick={onSave} disabled={loading} size="sm">
             {loading ? "Saving…" : "Save"}
-          </button>
+          </Button>
         </div>
       ) : (
-        <button
-          onClick={onEdit}
-          className="font-dm-sans text-xs text-white/[0.42] hover:text-white transition-colors"
-        >
+        <Button onClick={onEdit} size="sm" variant="secondary">
           Edit
-        </button>
+        </Button>
       )}
     </div>
   );
@@ -125,8 +115,6 @@ export function ProfileSection({
   countryOfOrigin,
 }: Props) {
   const router = useRouter();
-
-  // ── Personal Info state ───────────────────────────────────────────────────
   const [savedFirstName, setSavedFirstName] = useState(firstName ?? "");
   const [savedLastName, setSavedLastName] = useState(lastName ?? "");
   const [draftFirstName, setDraftFirstName] = useState(firstName ?? "");
@@ -136,13 +124,35 @@ export function ProfileSection({
   const [personalError, setPersonalError] = useState("");
   const [personalSaved, setPersonalSaved] = useState(false);
 
-  // Auto-dismiss the personal info success message after 3 seconds.
+  const [savedPhone, setSavedPhone] = useState(phoneNumber ?? "");
+  const [savedUniversity, setSavedUniversity] = useState(universityName ?? "");
+  const [savedCountry, setSavedCountry] = useState(countryOfOrigin ?? "");
+  const [draftPhone, setDraftPhone] = useState(phoneNumber ?? "");
+  const [draftUniversity, setDraftUniversity] = useState(universityName ?? "");
+  const [draftCountry, setDraftCountry] = useState(countryOfOrigin ?? "");
+  const [editingContact, setEditingContact] = useState(false);
+  const [contactLoading, setContactLoading] = useState(false);
+  const [contactError, setContactError] = useState("");
+  const [contactSaved, setContactSaved] = useState(false);
+
+  const [countryQuery, setCountryQuery] = useState(countryOfOrigin ?? "");
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+
+  const filteredCountries = COUNTRIES.filter((country) =>
+    country.toLowerCase().includes(countryQuery.toLowerCase())
+  ).slice(0, COUNTRY_DROPDOWN_LIMIT);
+
   useEffect(() => {
-    if (personalSaved) {
-      const timer = setTimeout(() => setPersonalSaved(false), 3000);
-      return () => clearTimeout(timer);
-    }
+    if (!personalSaved) return;
+    const timer = setTimeout(() => setPersonalSaved(false), 3000);
+    return () => clearTimeout(timer);
   }, [personalSaved]);
+
+  useEffect(() => {
+    if (!contactSaved) return;
+    const timer = setTimeout(() => setContactSaved(false), 3000);
+    return () => clearTimeout(timer);
+  }, [contactSaved]);
 
   function handleEditPersonal() {
     setDraftFirstName(savedFirstName);
@@ -162,48 +172,21 @@ export function ProfileSection({
   async function handleSavePersonal() {
     setPersonalLoading(true);
     setPersonalError("");
-    const result = await updateProfile({ first_name: draftFirstName, last_name: draftLastName });
+    const result = await updateProfile({
+      first_name: draftFirstName,
+      last_name: draftLastName,
+    });
     setPersonalLoading(false);
-    if (result.success) {
-      setSavedFirstName(draftFirstName);
-      setSavedLastName(draftLastName);
-      setEditingPersonal(false);
-      setPersonalSaved(true);
-      // Refresh the page's server components so the dashboard Greeting picks up
-      // the new name on the next navigation (revalidatePath in the action
-      // handles the dashboard cache; refresh() re-fetches this page's data).
-      router.refresh();
-    } else {
+    if (!result.success) {
       setPersonalError(result.error);
+      return;
     }
+    setSavedFirstName(draftFirstName);
+    setSavedLastName(draftLastName);
+    setEditingPersonal(false);
+    setPersonalSaved(true);
+    router.refresh();
   }
-
-  // ── Contact & Background state ────────────────────────────────────────────
-  const [savedPhone, setSavedPhone] = useState(phoneNumber ?? "");
-  const [savedUniversity, setSavedUniversity] = useState(universityName ?? "");
-  const [savedCountry, setSavedCountry] = useState(countryOfOrigin ?? "");
-  const [draftPhone, setDraftPhone] = useState(phoneNumber ?? "");
-  const [draftUniversity, setDraftUniversity] = useState(universityName ?? "");
-  const [draftCountry, setDraftCountry] = useState(countryOfOrigin ?? "");
-  const [editingContact, setEditingContact] = useState(false);
-  const [contactLoading, setContactLoading] = useState(false);
-  const [contactError, setContactError] = useState("");
-  const [contactSaved, setContactSaved] = useState(false);
-
-  // Combobox state — tracks the text in the country input and dropdown visibility.
-  const [countryQuery, setCountryQuery] = useState(countryOfOrigin ?? "");
-  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
-  const filteredCountries = COUNTRIES.filter((c) =>
-    c.toLowerCase().includes(countryQuery.toLowerCase())
-  ).slice(0, COUNTRY_DROPDOWN_LIMIT);
-
-  // Auto-dismiss the contact info success message after 3 seconds.
-  useEffect(() => {
-    if (contactSaved) {
-      const timer = setTimeout(() => setContactSaved(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [contactSaved]);
 
   function handleEditContact() {
     setDraftPhone(savedPhone);
@@ -211,6 +194,7 @@ export function ProfileSection({
     setDraftCountry(savedCountry);
     setCountryQuery(savedCountry);
     setContactError("");
+    setContactSaved(false);
     setEditingContact(true);
   }
 
@@ -226,16 +210,16 @@ export function ProfileSection({
   }
 
   async function handleSaveContact() {
-    // Client-side phone guard mirrors the server action.
     if (draftPhone) {
-      const stripped = draftPhone.replace(/\s+/g, "");
-      if (!PHONE_REGEX.test(stripped)) {
+      const strippedPhone = draftPhone.replace(/\s+/g, "");
+      if (!PHONE_REGEX.test(strippedPhone)) {
         setContactError(
           "Please enter a valid international number e.g. +1 234 567 8900"
         );
         return;
       }
     }
+
     setContactLoading(true);
     setContactError("");
     const result = await updateProfile({
@@ -244,27 +228,25 @@ export function ProfileSection({
       country_of_origin: draftCountry,
     });
     setContactLoading(false);
-    if (result.success) {
-      setSavedPhone(draftPhone);
-      setSavedUniversity(draftUniversity);
-      setSavedCountry(draftCountry);
-      setShowCountryDropdown(false);
-      setEditingContact(false);
-      setContactSaved(true);
-    } else {
+    if (!result.success) {
       setContactError(result.error);
+      return;
     }
+    setSavedPhone(draftPhone);
+    setSavedUniversity(draftUniversity);
+    setSavedCountry(draftCountry);
+    setShowCountryDropdown(false);
+    setEditingContact(false);
+    setContactSaved(true);
   }
 
-  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <section className="mb-6">
-      <h2 className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-4">
+      <h2 className="mb-4 font-primary text-[13px] font-bold uppercase tracking-[0.06em] text-[var(--text)]">
         Profile
       </h2>
 
-      {/* Personal Info */}
-      <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 mb-3">
+      <Card className="mb-3 border border-[var(--border)]" padding="md">
         <SubsectionHeader
           title="Personal Info"
           editing={editingPersonal}
@@ -275,63 +257,55 @@ export function ProfileSection({
         />
         <div className="space-y-3">
           <div>
-            <label className="block font-dm-sans text-[11px] text-white/[0.42] mb-1">
-              First name
-            </label>
+            <label className={labelClassName}>First name</label>
             {editingPersonal ? (
               <input
                 type="text"
                 value={draftFirstName}
-                onChange={(e) => setDraftFirstName(e.target.value)}
+                onChange={(event) => setDraftFirstName(event.target.value)}
                 placeholder="Your first name"
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/[0.28] focus:outline-none focus:border-white/[0.28] transition-colors"
+                className={inputClassName}
               />
             ) : (
-              <p className="font-dm-sans text-sm text-white/[0.68]">
-                {savedFirstName || (
-                  <span className="text-white/[0.28]">Not set</span>
-                )}
+              <p className={valueClassName}>
+                {savedFirstName || <span className={emptyClassName}>Not set</span>}
               </p>
             )}
           </div>
           <div>
-            <label className="block font-dm-sans text-[11px] text-white/[0.42] mb-1">
-              Last name
-            </label>
+            <label className={labelClassName}>Last name</label>
             {editingPersonal ? (
               <input
                 type="text"
                 value={draftLastName}
-                onChange={(e) => setDraftLastName(e.target.value)}
+                onChange={(event) => setDraftLastName(event.target.value)}
                 placeholder="Your last name"
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/[0.28] focus:outline-none focus:border-white/[0.28] transition-colors"
+                className={inputClassName}
               />
             ) : (
-              <p className="font-dm-sans text-sm text-white/[0.68]">
-                {savedLastName || (
-                  <span className="text-white/[0.28]">Not set</span>
-                )}
+              <p className={valueClassName}>
+                {savedLastName || <span className={emptyClassName}>Not set</span>}
               </p>
             )}
           </div>
           <div>
-            <label className="block font-dm-sans text-[11px] text-white/[0.42] mb-1">
-              Email
-            </label>
-            {/* Email is always read-only — changes go through Supabase Auth */}
-            <p className="font-dm-sans text-sm text-white/[0.42]">{email}</p>
+            <label className={labelClassName}>Email</label>
+            <p className="font-primary text-sm text-[var(--text-muted)]">{email}</p>
           </div>
         </div>
         {personalError && (
-          <p className="font-dm-sans text-xs text-red-400 mt-3">{personalError}</p>
+          <p className="mt-3 font-primary text-xs text-[var(--destructive)]">
+            {personalError}
+          </p>
         )}
         {personalSaved && (
-          <p className="font-dm-sans text-xs text-emerald-400 mt-3">Profile updated.</p>
+          <p className="mt-3 font-primary text-xs text-emerald-600">
+            Profile updated.
+          </p>
         )}
-      </div>
+      </Card>
 
-      {/* Contact & Background */}
-      <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5">
+      <Card className="border border-[var(--border)]" padding="md">
         <SubsectionHeader
           title="Contact & Background"
           editing={editingContact}
@@ -342,78 +316,66 @@ export function ProfileSection({
         />
         <div className="space-y-3">
           <div>
-            <label className="block font-dm-sans text-[11px] text-white/[0.42] mb-1">
-              Phone number
-            </label>
+            <label className={labelClassName}>Phone number</label>
             {editingContact ? (
               <input
                 type="tel"
                 value={draftPhone}
-                onChange={(e) => setDraftPhone(e.target.value)}
+                onChange={(event) => setDraftPhone(event.target.value)}
                 placeholder="+1 234 567 8900"
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/[0.28] focus:outline-none focus:border-white/[0.28] transition-colors"
+                className={inputClassName}
               />
             ) : (
-              <p className="font-dm-sans text-sm text-white/[0.68]">
-                {savedPhone || <span className="text-white/[0.28]">Not set</span>}
+              <p className={valueClassName}>
+                {savedPhone || <span className={emptyClassName}>Not set</span>}
               </p>
             )}
           </div>
           <div>
-            <label className="block font-dm-sans text-[11px] text-white/[0.42] mb-1">
-              University / School
-            </label>
+            <label className={labelClassName}>University / School</label>
             {editingContact ? (
               <input
                 type="text"
                 value={draftUniversity}
-                onChange={(e) => setDraftUniversity(e.target.value)}
+                onChange={(event) => setDraftUniversity(event.target.value)}
                 placeholder="e.g. University of Michigan"
-                className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/[0.28] focus:outline-none focus:border-white/[0.28] transition-colors"
+                className={inputClassName}
               />
             ) : (
-              <p className="font-dm-sans text-sm text-white/[0.68]">
-                {savedUniversity || (
-                  <span className="text-white/[0.28]">Not set</span>
-                )}
+              <p className={valueClassName}>
+                {savedUniversity || <span className={emptyClassName}>Not set</span>}
               </p>
             )}
           </div>
-
-          {/* Country combobox — lightweight filter-as-you-type, no library */}
           <div className="relative">
-            <label className="block font-dm-sans text-[11px] text-white/[0.42] mb-1">
-              Country of origin
-            </label>
+            <label className={labelClassName}>Country of origin</label>
             {editingContact ? (
               <>
                 <input
                   type="text"
                   value={countryQuery}
-                  onChange={(e) => {
-                    setCountryQuery(e.target.value);
-                    setDraftCountry(e.target.value);
+                  onChange={(event) => {
+                    setCountryQuery(event.target.value);
+                    setDraftCountry(event.target.value);
                     setShowCountryDropdown(true);
                   }}
                   onFocus={() => setShowCountryDropdown(true)}
                   onBlur={() => setShowCountryDropdown(false)}
                   placeholder="Search countries…"
-                  className="w-full bg-white/[0.04] border border-white/[0.10] rounded-xl px-3 py-2 text-sm text-white placeholder:text-white/[0.28] focus:outline-none focus:border-white/[0.28] transition-colors"
+                  className={inputClassName}
                 />
                 {showCountryDropdown && filteredCountries.length > 0 && (
-                  <ul className="absolute z-10 mt-1 w-full bg-[#0C1220] border border-white/[0.12] rounded-xl overflow-hidden shadow-xl">
+                  <ul className="absolute z-10 mt-1 w-full overflow-hidden rounded-[var(--radius-sm)] border border-[var(--border)] bg-white shadow-[var(--shadow-md)]">
                     {filteredCountries.map((country) => (
                       <li
                         key={country}
-                        // onMouseDown with preventDefault keeps the input focused so
-                        // onBlur doesn't fire before the selection is registered.
-                        onMouseDown={(e) => {
-                          e.preventDefault();
+                        onMouseDown={(event) => {
+                          event.preventDefault();
                           setDraftCountry(country);
                           setCountryQuery(country);
                           setShowCountryDropdown(false);
                         }}
-                        className="px-3 py-2 text-sm text-white/[0.68] hover:bg-white/[0.05] hover:text-white cursor-pointer transition-colors"
+                        className="cursor-pointer px-3 py-2 text-sm text-[var(--text)] transition-colors hover:bg-[var(--bg-subtle)]"
                       >
                         {country}
                       </li>
@@ -422,21 +384,23 @@ export function ProfileSection({
                 )}
               </>
             ) : (
-              <p className="font-dm-sans text-sm text-white/[0.68]">
-                {savedCountry || (
-                  <span className="text-white/[0.28]">Not set</span>
-                )}
+              <p className={valueClassName}>
+                {savedCountry || <span className={emptyClassName}>Not set</span>}
               </p>
             )}
           </div>
         </div>
         {contactError && (
-          <p className="font-dm-sans text-xs text-red-400 mt-3">{contactError}</p>
+          <p className="mt-3 font-primary text-xs text-[var(--destructive)]">
+            {contactError}
+          </p>
         )}
         {contactSaved && (
-          <p className="font-dm-sans text-xs text-emerald-400 mt-3">Profile updated.</p>
+          <p className="mt-3 font-primary text-xs text-emerald-600">
+            Contact details updated.
+          </p>
         )}
-      </div>
+      </Card>
     </section>
   );
 }

@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Sign in to UStart</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      background-color: #F2F1EF;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      color: #1C2B3A;
+    }
+
+    table {
+      border-collapse: collapse;
+    }
+
+    img {
+      border: 0;
+      display: block;
+    }
+
+    a {
+      text-decoration: none;
+    }
+  </style>
+</head>
+
+<body style="background-color: #F2F1EF; margin: 0; padding: 0;">
+  <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+    style="background-color: #F2F1EF; padding: 48px 16px;">
+    <tr>
+      <td align="center">
+        <table width="100%" cellpadding="0" cellspacing="0" role="presentation"
+          style="max-width: 520px; width: 100%;">
+          <tr>
+            <td align="center" style="padding-bottom: 32px;">
+              <span style="
+                font-size: 24px;
+                font-weight: 700;
+                letter-spacing: -0.03em;
+                color: #3083DC;
+              ">UStart</span>
+              <p style="
+                margin-top: 6px;
+                font-size: 12px;
+                font-weight: 500;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: rgba(28,43,58,0.42);
+              ">Your Move, Made Simple</p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="
+              background-color: #FFFFFF;
+              border: 1px solid rgba(28,43,58,0.10);
+              border-radius: 16px;
+              padding: 44px 40px;
+            ">
+              <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+                <tr>
+                  <td align="center" style="padding-bottom: 16px;">
+                    <h1 style="
+                      font-size: 26px;
+                      font-weight: 700;
+                      letter-spacing: -0.03em;
+                      color: #1C2B3A;
+                      line-height: 1.2;
+                      margin: 0;
+                    ">Your sign-in link</h1>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 32px;">
+                    <p style="
+                      max-width: 360px;
+                      margin: 0;
+                      font-size: 15px;
+                      line-height: 1.65;
+                      color: rgba(28,43,58,0.68);
+                    ">
+                      Click the button below to sign in to your UStart account.
+                      This link expires in <strong style="color: #1C2B3A;">10 minutes</strong>
+                      and can only be used once.
+                    </p>
+                  </td>
+                </tr>
+                <tr>
+                  <td align="center" style="padding-bottom: 32px;">
+                    <a href="{{ .ConfirmationURL }}" style="
+                      display: inline-block;
+                      background-color: #3083DC;
+                      color: #FFFFFF;
+                      font-size: 15px;
+                      font-weight: 600;
+                      letter-spacing: -0.01em;
+                      padding: 14px 36px;
+                      border-radius: 8px;
+                    ">
+                      Sign in to UStart →
+                    </a>
+                  </td>
+                </tr>
+                <tr>
+                  <td style="padding-top: 8px;">
+                    <div style="border-top: 1px solid rgba(28,43,58,0.10); margin-bottom: 18px;"></div>
+                    <p style="
+                      margin: 0;
+                      font-size: 12px;
+                      line-height: 1.6;
+                      color: rgba(28,43,58,0.68);
+                    ">
+                      If the button doesn't work, copy and paste this link into your browser:
+                    </p>
+                    <p style="
+                      margin-top: 8px;
+                      word-break: break-all;
+                      font-size: 11px;
+                      line-height: 1.5;
+                      color: rgba(28,43,58,0.42);
+                    ">{{ .ConfirmationURL }}</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="center" style="padding-top: 28px;">
+              <p style="
+                margin: 0;
+                font-size: 12px;
+                line-height: 1.7;
+                color: rgba(28,43,58,0.42);
+              ">
+                You're receiving this because a sign-in was requested for your UStart account.<br>
+                If you didn't request this, you can safely ignore this email.<br><br>
+                © 2026 UStart ·
+                <a href="https://u-start.co.uk/privacy"
+                  style="color: rgba(28,43,58,0.68); text-decoration: underline;">Privacy Policy</a>
+                &nbsp;·&nbsp;
+                <a href="https://u-start.co.uk/terms"
+                  style="color: rgba(28,43,58,0.68); text-decoration: underline;">Terms</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+
+</html>

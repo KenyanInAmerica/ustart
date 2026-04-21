@@ -5,6 +5,7 @@
 
 import { useState, useTransition, useEffect } from "react";
 import { adminLinkParent } from "@/lib/actions/admin/invitations";
+import { Button } from "@/components/ui/Button";
 
 export function InvitationLinkForm() {
   const [studentEmail, setStudentEmail] = useState("");
@@ -42,7 +43,7 @@ export function InvitationLinkForm() {
     <form onSubmit={handleSubmit} className="space-y-4 max-w-lg">
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="block text-[13px] text-white/60 mb-1.5">
+          <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">
             Student email
           </label>
           <input
@@ -50,11 +51,11 @@ export function InvitationLinkForm() {
             value={studentEmail}
             onChange={(e) => { setStudentEmail(e.target.value); setError(null); }}
             placeholder="student@example.com"
-            className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
         <div>
-          <label className="block text-[13px] text-white/60 mb-1.5">
+          <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">
             Parent email
           </label>
           <input
@@ -62,21 +63,21 @@ export function InvitationLinkForm() {
             value={parentEmail}
             onChange={(e) => { setParentEmail(e.target.value); setError(null); }}
             placeholder="parent@example.com"
-            className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
       </div>
 
-      {error && <p className="text-red-400 text-[12px]">{error}</p>}
-      {success && <p className="text-emerald-400 text-[12px]">Parent linked successfully.</p>}
+      {error && <p className="text-[12px] text-[var(--destructive)]">{error}</p>}
+      {success && <p className="text-[12px] text-emerald-600">Parent linked successfully.</p>}
 
-      <button
+      <Button
         type="submit"
         disabled={isPending || !studentEmail.trim() || !parentEmail.trim()}
-        className="px-4 py-2 bg-white text-[#0C1220] text-[13px] font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50"
+        size="sm"
       >
         {isPending ? "Linking…" : "Link parent"}
-      </button>
+      </Button>
     </form>
   );
 }

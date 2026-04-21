@@ -4,6 +4,7 @@
 
 "use client";
 
+import { Button } from "@/components/ui/Button";
 import type { CommunityMember } from "@/types/admin";
 
 interface CommunityExportButtonProps {
@@ -41,10 +42,11 @@ export function CommunityExportButton({ members }: CommunityExportButtonProps) {
   }
 
   return (
-    <button
+    <Button
       onClick={handleExport}
       disabled={members.length === 0}
-      className="flex items-center gap-2 px-3 py-1.5 text-[13px] text-white/70 border border-white/[0.10] rounded-lg hover:text-white hover:border-white/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+      variant="secondary"
+      size="sm"
     >
       {/* Download icon */}
       <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
@@ -53,6 +55,6 @@ export function CommunityExportButton({ members }: CommunityExportButtonProps) {
         <line x1="12" y1="15" x2="12" y2="3" />
       </svg>
       Export CSV
-    </button>
+    </Button>
   );
 }

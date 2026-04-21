@@ -13,11 +13,11 @@ export default function HomePage() {
       <Navbar />
       <Hero />
       {/* 1px horizontal rules constrained to the content max-width to visually separate sections */}
-      <div className="h-px bg-[rgba(255,255,255,0.07)] max-w-[1160px] mx-auto" />
+      <div className="mx-auto h-px max-w-[1160px] bg-[var(--border)]" />
       <HowItWorks />
-      <div className="h-px bg-[rgba(255,255,255,0.07)] max-w-[1160px] mx-auto" />
+      <div className="mx-auto h-px max-w-[1160px] bg-[var(--border)]" />
       <Features />
-      <div className="h-px bg-[rgba(255,255,255,0.07)] max-w-[1160px] mx-auto" />
+      <div className="mx-auto h-px max-w-[1160px] bg-[var(--border)]" />
       <Pricing />
       <Footer />
     </>

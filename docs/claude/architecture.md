@@ -51,12 +51,14 @@
   # Landing page nav/footer → components/ui/. Authenticated layout → components/dashboard/.
   /ui                             # Presentational, reusable UI components (mostly landing page)
     Navbar.tsx                    # Landing page fixed nav
+    NavbarClient.tsx              # Client navbar shell — scroll shadow, mobile menu
     Hero.tsx                      # Landing page hero
     HowItWorks.tsx                # 3-step section
     Features.tsx                  # Feature grid
     Pricing.tsx                   # Landing page pricing cards
     Footer.tsx                    # Landing page footer
     Button.tsx                    # Shared button primitive
+    Card.tsx                      # Shared card wrapper
     ChevronIcon.tsx               # Icon component
     GetStartedLink.tsx            # CTA link
     SignOutButton.tsx              # Sign-out trigger (landing page context)
@@ -146,8 +148,10 @@
     log.ts                        # logAction() — fire-and-forget, never await
     actionBadge.ts                # Badge colour helpers — plain module, no directives
   /config
+    brand.ts                      # Centralised brand config — name, tagline, logo, font, colors
     pricing.ts                    # PricingItem, TierId, AddonId, ProductId types only
     getPricing.ts                 # getPricing(), getPublicPricing(), getPricingById() (React.cache)
+    productAccents.ts             # Per-product accent mapping for dashboard/admin UI
   /dashboard
     access.ts                     # fetchDashboardAccess() — cached entitlements from user_access view
     content.ts                    # fetchTierContent(), fetchUserDocuments() — cached
@@ -168,6 +172,11 @@
 /docs
   ustart-project-snapshot.md      # Living project snapshot — update on every PR
   staging-setup.md                # Staging environment setup guide
+  /supabase-email-templates
+    magic-link-staging.html       # Supabase magic-link email template — staging
+    magic-link-production.html    # Supabase magic-link email template — production
+    confirm-signup-staging.html   # Supabase confirm-signup email template — staging
+    confirm-signup-production.html # Supabase confirm-signup email template — production
   /claude                         # Claude Code context sub-files
     architecture.md               # This file
     conventions.md                # TypeScript, component, styling, action conventions
@@ -184,6 +193,35 @@ jest.config.js                    # Jest config (nextJest, jsdom default environ
 jest.setup.ts                     # @testing-library/jest-dom setup
 /.github/workflows/ci.yml         # CI — typecheck + lint + test on PRs to develop and main
 ```
+
+## Design Tokens
+
+The design system is fully light mode. Dark theme tokens and dark-mode overrides have been removed.
+
+| Variable | Value | Usage |
+|---|---|---|
+| `--bg` | `#F2F1EF` | Page background (creme) |
+| `--bg-card` | `#FFFFFF` | Card surfaces |
+| `--bg-card-hover` | `#F8F7F5` | Hovered card background |
+| `--bg-subtle` | `#ECEAE7` | Subtle backgrounds, locked states |
+| `--border` | `rgba(28,43,58,0.10)` | Default borders |
+| `--border-md` | `rgba(28,43,58,0.16)` | Medium-emphasis borders |
+| `--border-hi` | `rgba(28,43,58,0.24)` | High-emphasis borders |
+| `--text` | `#1C2B3A` | Primary text |
+| `--text-mid` | `rgba(28,43,58,0.68)` | Mid-emphasis text |
+| `--text-muted` | `rgba(28,43,58,0.42)` | Muted text |
+| `--accent` | `#3083DC` | Primary interactive blue |
+| `--accent-hover` | `#2470C7` | Accent hover state |
+| `--destructive` | `#E54B4B` | Destructive actions |
+
+Brand colors live in `lib/config/brand.ts`. Per-product accent colors live in `lib/config/productAccents.ts`.
+
+## Fonts
+
+- `Plus Jakarta Sans` is the single primary font.
+- It is loaded via `next/font/google` in `app/layout.tsx` as the CSS variable `--font-primary`.
+- Tailwind uses `font-primary` across the app; legacy `font-syne` and `font-dm-sans` utilities were removed.
+- To switch to Salmond later, update the font import in `app/layout.tsx`.
 
 ---
 

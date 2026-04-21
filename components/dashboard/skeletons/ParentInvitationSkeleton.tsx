@@ -2,18 +2,18 @@
 
 export function ParentInvitationSkeleton() {
   return (
-    <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
+    <div className="rounded-2xl border border-[var(--border)] bg-[var(--bg-card)] p-5">
       {/* "Invite a Parent" heading */}
-      <div className="h-3.5 w-32 bg-[var(--bg-card-hover)] rounded animate-pulse mb-4" />
+      <div className="mb-4 h-3.5 w-32 rounded bg-[var(--bg-subtle)] animate-pulse" />
       {/* Descriptive body text — 2 lines */}
       <div className="space-y-1.5 mb-4">
-        <div className="h-2.5 w-full bg-[var(--bg-card-hover)] rounded animate-pulse" />
-        <div className="h-2.5 w-3/4 bg-[var(--bg-card-hover)] rounded animate-pulse" />
+        <div className="h-2.5 w-full rounded bg-[var(--bg-subtle)] animate-pulse" />
+        <div className="h-2.5 w-3/4 rounded bg-[var(--bg-subtle)] animate-pulse" />
       </div>
       {/* Email input + Send button row */}
       <div className="flex gap-2">
-        <div className="flex-1 h-10 bg-[var(--bg-card-hover)] rounded-xl animate-pulse" />
-        <div className="h-10 w-36 bg-[var(--bg-card-hover)] rounded-xl animate-pulse" />
+        <div className="h-10 flex-1 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
+        <div className="h-10 w-36 rounded-xl bg-[var(--bg-subtle)] animate-pulse" />
       </div>
     </div>
   );

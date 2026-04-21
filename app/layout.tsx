@@ -1,27 +1,20 @@
 import type { Metadata } from "next";
-import { Syne, DM_Sans } from "next/font/google";
+import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { ContactFormProvider } from "@/components/ui/ContactFormProvider";
+import { brand } from "@/lib/config/brand";
 
-const syne = Syne({
+const primaryFont = Plus_Jakarta_Sans({
   subsets: ["latin"],
-  weight: ["400", "600", "700", "800"],
-  variable: "--font-syne",
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["300", "400", "500"],
-  style: ["normal", "italic"],
-  variable: "--font-dm-sans",
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-primary",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "UStart — Your university journey starts here",
+  title: `${brand.name} — ${brand.tagline}`,
   description:
-    "UStart gives you the tools, resources, and guidance to navigate the application process with confidence — at your own pace.",
+    "UStart gives international students the tools, resources, and guidance to navigate life in the US with confidence.",
   icons: {
     // /favicon.ico is a static fallback for dev (ImageResponse doesn't serve in
     // the dev pipeline); app/icon.tsx takes over in production builds.
@@ -40,8 +33,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${syne.variable} ${dmSans.variable} scroll-smooth`}>
-      <body className="bg-[#05080F] text-white font-dm-sans text-base leading-relaxed overflow-x-hidden antialiased">
+    <html lang="en" className={`${primaryFont.variable} font-primary scroll-smooth`}>
+      <body className="bg-[var(--bg)] text-[var(--text)] font-primary text-base leading-relaxed overflow-x-hidden antialiased">
         {/* ContactFormProvider enables the contact panel from any page via useContactForm() */}
         <ContactFormProvider>
           {children}

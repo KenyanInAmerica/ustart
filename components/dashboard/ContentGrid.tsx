@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import dynamic from "next/dynamic";
+import { Card } from "@/components/ui/Card";
 
 // PdfViewer sets up the pdfjs worker (a browser-only API) at module evaluation
 // time. ssr: false prevents Next.js from bundling or evaluating it on the server.
@@ -29,7 +30,7 @@ export function ContentGrid({ items }: ContentGridProps) {
 
   if (items.length === 0) {
     return (
-      <p className="text-[13px] text-white/30">
+      <p className="text-[13px] text-[var(--text-muted)]">
         No content available yet. Check back soon.
       </p>
     );
@@ -39,13 +40,14 @@ export function ContentGrid({ items }: ContentGridProps) {
     <>
       <div className="grid grid-cols-1 md-900:grid-cols-2 gap-4">
         {items.map((item) => (
-          <div
+          <Card
             key={item.id}
-            className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-5 py-4 flex flex-col gap-3"
+            className="flex flex-col gap-3 border border-[var(--border-md)] bg-white"
+            padding="md"
           >
             {/* PDF icon + title row */}
             <div className="flex items-start gap-3">
-              <span className="mt-0.5 shrink-0 text-white/30">
+              <span className="mt-0.5 shrink-0 text-[var(--text-muted)]">
                 <svg
                   className="w-4 h-4"
                   viewBox="0 0 24 24"
@@ -59,11 +61,11 @@ export function ContentGrid({ items }: ContentGridProps) {
                 </svg>
               </span>
               <div className="min-w-0">
-                <p className="font-syne font-semibold text-[14px] text-white leading-snug">
+                <p className="font-primary font-semibold text-[14px] leading-snug text-[var(--text)]">
                   {item.title}
                 </p>
                 {item.description && (
-                  <p className="text-[12px] text-white/50 mt-0.5 leading-relaxed">
+                  <p className="mt-0.5 text-[12px] leading-relaxed text-[var(--text-muted)]">
                     {item.description}
                   </p>
                 )}
@@ -72,11 +74,11 @@ export function ContentGrid({ items }: ContentGridProps) {
 
             <button
               onClick={() => setViewing(item)}
-              className="self-start text-[12px] text-white/60 hover:text-white border border-white/[0.10] hover:border-white/30 px-3 py-1.5 rounded-lg transition-colors"
+              className="self-start text-[12px] font-semibold text-[var(--accent)] transition-colors hover:underline"
             >
               View PDF
             </button>
-          </div>
+          </Card>
         ))}
       </div>
 

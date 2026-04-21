@@ -1,48 +1,36 @@
 import Link from "next/link";
 
-// Full-viewport hero with CSS-only animations. No client JS needed.
-// Background layers (dot grid + radial glow) are defined as CSS classes in globals.css
-// because Tailwind arbitrary values can't handle complex comma-containing gradient syntax.
 export function Hero() {
   return (
-    <div className="relative min-h-screen flex items-center justify-center text-center px-6 pt-[120px] pb-20 overflow-hidden">
-      {/* Subtle white dot grid across the full background — see .hero-dot-grid in globals.css */}
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[var(--bg)] px-6 pb-20 pt-[120px] text-center">
       <div
-        className="hero-dot-grid absolute inset-0 pointer-events-none"
+        className="hero-dot-grid pointer-events-none absolute inset-0 opacity-40"
         aria-hidden="true"
       />
 
-      {/* Soft radial glow centered behind content — pulses via animate-pulse-glow */}
       <div
-        className="hero-glow absolute top-[20%] left-1/2 w-[680px] h-[420px] pointer-events-none animate-pulse-glow"
+        className="hero-glow pointer-events-none absolute left-1/2 top-[20%] h-[420px] w-[680px] animate-pulse-glow opacity-40"
         aria-hidden="true"
       />
 
-      {/* Content stack: badge → headline → subtext → CTA, each with a staggered fadeUp delay */}
       <div className="relative z-[2] max-w-[760px]">
-        {/* Pill badge */}
-        <div className="inline-flex items-center gap-2 px-[14px] py-[5px] border border-[rgba(255,255,255,0.15)] rounded-full text-[12px] font-medium text-[rgba(255,255,255,0.70)] tracking-[0.04em] uppercase mb-8 animate-fade-up">
-          <span className="w-1.5 h-1.5 rounded-full bg-white opacity-60" aria-hidden="true" />
+        <div className="mb-8 inline-flex items-center gap-2 rounded-full border border-[var(--border-md)] bg-white px-[14px] py-[5px] text-[12px] font-medium uppercase tracking-[0.04em] text-[var(--text-mid)] animate-fade-up">
+          <span className="h-1.5 w-1.5 rounded-full bg-[var(--accent)] opacity-80" aria-hidden="true" />
           Built for international students in the US
         </div>
 
-        {/* Main headline — fluid size via clamp() so it scales between mobile and desktop */}
-        <h1 className="font-syne font-extrabold text-[clamp(42px,7vw,76px)] leading-[1.05] tracking-[-0.04em] text-white mb-6 animate-fade-up-1">
+        <h1 className="mb-6 font-primary text-[clamp(42px,7vw,76px)] font-extrabold leading-[1.05] tracking-[-0.04em] text-[var(--text)] animate-fade-up-1">
           Everything you need to thrive in the United States.
         </h1>
 
-        {/* Supporting subheadline */}
-        <p className="text-[clamp(16px,2vw,19px)] font-light text-[rgba(255,255,255,0.45)] max-w-[520px] mx-auto mb-12 leading-[1.65] animate-fade-up-2">
-          UStart helps international students navigate life in the US — from
-          opening a bank account to building credit — so you can focus on what
-          matters.
+        <p className="mx-auto mb-12 max-w-[520px] text-[clamp(16px,2vw,19px)] font-light leading-[1.65] text-[var(--text-muted)] animate-fade-up-2">
+          UStart helps international students navigate life in the US — from opening a bank account to building credit — so you can focus on what matters.
         </p>
 
-        {/* Ghost CTA — smooth-scrolls to the features section */}
         <div className="flex items-center justify-center animate-fade-up-3">
           <Link
             href="#features"
-            className="inline-flex items-center gap-1.5 text-sm text-[rgba(255,255,255,0.70)] hover:text-white transition-colors duration-200"
+            className="inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] border border-[var(--accent)] px-6 py-2.5 text-sm font-semibold text-[var(--accent)] transition-colors duration-200 hover:bg-[var(--accent)]/5"
           >
             See what&apos;s inside <span aria-hidden="true">→</span>
           </Link>

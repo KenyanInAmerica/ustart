@@ -1,21 +1,13 @@
 "use client";
 
-// Filter bar for the audit log.
-// All inputs update local component state — no query fires until the user
-// clicks Apply. Clear All resets all state and immediately navigates to the
-// unfiltered view. URL search params are updated only on Apply so links are
-// shareable and bookmarkable.
-
-import { useState, useRef, useEffect, useCallback, useTransition } from "react";
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { ChevronIcon } from "@/components/ui/ChevronIcon";
+import { Button } from "@/components/ui/Button";
 import { ACTION_GROUPS } from "@/lib/admin/auditLog";
 import { actionBadgeClass } from "@/lib/audit/actionBadge";
-import { ChevronIcon } from "@/components/ui/ChevronIcon";
 
-// Flat list of all action values — used for select-all logic.
 const ALL_ACTION_VALUES = ACTION_GROUPS.flatMap((g) => g.actions.map((a) => a.value));
-
-// ── Action dropdown ────────────────────────────────────────────────────────────
 
 interface ActionDropdownProps {
   selected: string[];
@@ -26,7 +18,6 @@ function ActionDropdown({ selected, onChange }: ActionDropdownProps) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Close on outside click.
   useEffect(() => {
     function onMouseDown(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) {
@@ -40,53 +31,42 @@ function ActionDropdown({ selected, onChange }: ActionDropdownProps) {
   const allSelected = ALL_ACTION_VALUES.every((v) => selected.includes(v));
 
   function toggleAction(value: string) {
-    const next = selected.includes(value)
-      ? selected.filter((v) => v !== value)
-      : [...selected, value];
-    onChange(next);
-    // Dropdown stays open — user can continue selecting.
+    onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value]);
   }
 
   function toggleAll() {
     onChange(allSelected ? [] : [...ALL_ACTION_VALUES]);
   }
 
-  const triggerLabel =
-    selected.length === 0 ? "All Actions" : `${selected.length} selected`;
+  const triggerLabel = selected.length === 0 ? "All Actions" : `${selected.length} selected`;
 
   return (
     <div ref={ref} className="relative">
-      {/* Trigger */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 bg-[#0C1220] border border-white/[0.07] rounded-lg px-3 py-2 text-[13px] text-white/70 hover:border-white/20 focus:outline-none focus:border-white/20 transition-colors min-w-[140px]"
+        className="flex min-w-[160px] items-center gap-2 rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-3 py-2 text-[13px] text-[var(--text)] transition-colors hover:bg-[var(--bg-subtle)]"
       >
-        <span className="flex-1 text-left truncate">{triggerLabel}</span>
-        {/* Chevron */}
-        <ChevronIcon className={`w-3.5 h-3.5 text-white/40 shrink-0 transition-transform ${open ? "rotate-180" : ""}`} />
+        <span className="flex-1 truncate text-left">{triggerLabel}</span>
+        <ChevronIcon className={`h-3.5 w-3.5 shrink-0 text-[var(--text-muted)] transition-transform ${open ? "rotate-180" : ""}`} />
       </button>
 
-      {/* Panel */}
       {open && (
-        <div className="absolute left-0 top-full mt-1 z-30 w-72 bg-[#0C1220] border border-white/[0.10] rounded-xl shadow-2xl max-h-96 overflow-y-auto">
-          {/* Select all / Deselect all */}
-          <div className="sticky top-0 bg-[#0C1220] border-b border-white/[0.07] px-3 py-2.5">
+        <div className="absolute left-0 top-full z-30 mt-1 max-h-96 w-72 overflow-y-auto rounded-[var(--radius-md)] border border-[var(--border)] bg-white shadow-[var(--shadow-lg)]">
+          <div className="sticky top-0 border-b border-[var(--border)] bg-white px-3 py-2.5">
             <button
               type="button"
               onClick={toggleAll}
-              className="text-[12px] text-white/50 hover:text-white transition-colors"
+              className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
             >
               {allSelected ? "Deselect all" : "Select all"}
             </button>
           </div>
 
-          {/* Grouped sections */}
           <div className="py-2">
             {ACTION_GROUPS.map((group) => (
               <div key={group.label} className="mb-1">
-                {/* Section header — non-interactive */}
-                <p className="px-3 pt-2 pb-1 text-[10px] font-semibold tracking-[0.08em] uppercase text-white/30">
+                <p className="px-3 pb-1 pt-2 text-[10px] font-semibold uppercase tracking-[0.08em] text-[var(--text-muted)]">
                   {group.label}
                 </p>
                 {group.actions.map((action) => {
@@ -94,21 +74,20 @@ function ActionDropdown({ selected, onChange }: ActionDropdownProps) {
                   return (
                     <label
                       key={action.value}
-                      className="flex items-center gap-2.5 px-3 py-1.5 hover:bg-white/[0.04] cursor-pointer transition-colors"
+                      className="flex cursor-pointer items-center gap-2.5 px-3 py-1.5 transition-colors hover:bg-[var(--bg-subtle)]"
                     >
                       <input
                         type="checkbox"
                         checked={checked}
                         onChange={() => toggleAction(action.value)}
-                        className="w-3.5 h-3.5 rounded accent-white/80 shrink-0 cursor-pointer"
+                        className="h-3.5 w-3.5 shrink-0 rounded accent-[var(--accent)]"
                       />
-                      <span className="text-[12px] text-white/70 flex-1">{action.label}</span>
-                      {/* Small badge showing the raw action string */}
+                      <span className="flex-1 text-[12px] text-[var(--text)]">{action.label}</span>
                       <span
-                        className={`text-[10px] px-1.5 py-0.5 rounded border shrink-0 ${
+                        className={`shrink-0 rounded border px-1.5 py-0.5 text-[10px] ${
                           checked
                             ? actionBadgeClass(action.value)
-                            : "border-white/[0.07] text-white/25"
+                            : "border-[var(--border)] text-[var(--text-muted)]"
                         }`}
                       >
                         {action.value.split(".").pop()}
@@ -125,15 +104,12 @@ function ActionDropdown({ selected, onChange }: ActionDropdownProps) {
   );
 }
 
-// ── Main filter bar ────────────────────────────────────────────────────────────
-
 export function AuditLogFilters() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  // Local state — initialised from URL on mount so a shared link pre-fills the UI.
   const [localSearch, setLocalSearch] = useState(searchParams.get("search") ?? "");
   const [localFrom, setLocalFrom] = useState(searchParams.get("from") ?? "");
   const [localTo, setLocalTo] = useState(searchParams.get("to") ?? "");
@@ -141,14 +117,9 @@ export function AuditLogFilters() {
   const [localActions, setLocalActions] = useState<string[]>(
     searchParams.get("actions")?.split(",").filter(Boolean) ?? []
   );
-  // Shown when date range is incomplete or missing.
   const [dateError, setDateError] = useState("");
 
-  // Builds URL params from current local state and navigates.
-  // Wrapped in startTransition so isPending is true while Next.js fetches the new page.
   const apply = useCallback(() => {
-    // Date range is required — the table can grow large enough that an unscoped
-    // query would be slow and unhelpful once the product has been live for months.
     if (!localFrom || !localTo) {
       setDateError("A date range is required. Please set both a start and end date.");
       return;
@@ -161,12 +132,11 @@ export function AuditLogFilters() {
     if (localTo) params.set("to", localTo);
     if (localRole && localRole !== "all") params.set("role", localRole);
     if (localActions.length > 0) params.set("actions", localActions.join(","));
-    // Reset pagination when filter set changes.
     const qs = params.toString();
     startTransition(() => {
       router.push(qs ? `${pathname}?${qs}` : pathname);
     });
-  }, [router, pathname, localSearch, localFrom, localTo, localRole, localActions]);
+  }, [localActions, localFrom, localRole, localSearch, localTo, pathname, router]);
 
   function clearAll() {
     setLocalSearch("");
@@ -184,87 +154,55 @@ export function AuditLogFilters() {
     localSearch || localFrom || localTo || localRole !== "all" || localActions.length > 0;
 
   return (
-    <div className="space-y-3 mb-6">
-      {/* Row 1: full-width text search — most general, placed prominently */}
+    <div className="mb-6 space-y-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4">
       <input
         type="text"
         placeholder="Search by email, action, or payload…"
         value={localSearch}
         onChange={(e) => setLocalSearch(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") apply(); }}
-        className="w-full bg-[#0C1220] border border-white/[0.07] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/20"
+        className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
       />
 
-      {/* Row 2: targeted filters */}
-      <div className="flex flex-wrap gap-2 items-center">
-        {/* Action type dropdown */}
+      <div className="flex flex-wrap items-center gap-2">
         <ActionDropdown selected={localActions} onChange={setLocalActions} />
-
-        {/* Date range */}
         <input
           type="date"
           value={localFrom}
           onChange={(e) => { setLocalFrom(e.target.value); setDateError(""); }}
-          className="bg-[#0C1220] border border-white/[0.07] rounded-lg px-3 py-2 text-[13px] text-white/70 focus:outline-none focus:border-white/20"
+          className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
         />
-        <span className="text-white/30 text-[13px]">to</span>
+        <span className="text-[13px] text-[var(--text-muted)]">to</span>
         <input
           type="date"
           value={localTo}
           onChange={(e) => { setLocalTo(e.target.value); setDateError(""); }}
-          className="bg-[#0C1220] border border-white/[0.07] rounded-lg px-3 py-2 text-[13px] text-white/70 focus:outline-none focus:border-white/20"
+          className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
         />
-
-        {/* Role filter — appearance-none hides the native arrow; custom chevron is positioned absolutely */}
         <div className="relative">
           <select
             value={localRole}
             onChange={(e) => setLocalRole(e.target.value)}
-            className="appearance-none bg-[#0C1220] border border-white/[0.07] rounded-lg pl-3 pr-8 py-2 text-[13px] text-white/70 focus:outline-none focus:border-white/20"
+            className="appearance-none rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] py-2 pl-3 pr-8 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
           >
             <option value="all">All actions</option>
             <option value="admin">Admin only</option>
             <option value="user">User only</option>
           </select>
-          {/* Custom chevron — pointer-events-none so clicks pass through to the select */}
-          <ChevronIcon className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/40 pointer-events-none" />
+          <ChevronIcon className="pointer-events-none absolute right-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-[var(--text-muted)]" />
         </div>
       </div>
 
-      {/* Date validation error */}
-      {dateError && (
-        <p className="text-[12px] text-red-400/80">{dateError}</p>
-      )}
+      {dateError && <p className="text-[12px] text-[var(--destructive)]">{dateError}</p>}
 
-      {/* Row 3: Apply / Clear All — spinner appears inside Apply while navigation is pending */}
       <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={apply}
-          disabled={isPending}
-          className="flex items-center gap-2 px-4 py-2 bg-white text-[#05080F] text-[13px] font-semibold rounded-lg hover:bg-white/90 transition-colors disabled:opacity-60"
-        >
-          {isPending && (
-            <svg
-              className="w-3.5 h-3.5 animate-spin"
-              viewBox="0 0 24 24"
-              fill="none"
-              aria-hidden="true"
-            >
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-            </svg>
-          )}
-          Apply
-        </button>
+        <Button type="button" onClick={apply} disabled={isPending} size="sm">
+          {isPending ? "Applying…" : "Apply"}
+        </Button>
         {hasFilters && !isPending && (
-          <button
-            type="button"
-            onClick={clearAll}
-            className="px-4 py-2 text-[13px] text-white/40 hover:text-white/70 transition-colors"
-          >
-            Clear All
-          </button>
+          <Button type="button" onClick={clearAll} variant="ghost" size="sm">
+            Clear
+          </Button>
         )}
       </div>
     </div>

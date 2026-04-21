@@ -3,10 +3,14 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+interface GetStartedLinkProps {
+  className?: string;
+}
+
 // Hides the "Get Started" CTA when the user is already on /pricing — linking
 // to the current page is redundant. Rendered by the server-component Navbar,
 // which can't call usePathname() directly.
-export function GetStartedLink() {
+export function GetStartedLink({ className }: GetStartedLinkProps) {
   const pathname = usePathname();
 
   if (pathname === "/pricing") return null;
@@ -14,7 +18,12 @@ export function GetStartedLink() {
   return (
     <Link
       href="/pricing"
-      className="inline-flex items-center bg-white text-[#05080F] text-sm font-medium px-5 py-[9px] rounded-lg hover:opacity-90 hover:-translate-y-px transition-all duration-[150ms]"
+      className={[
+        "inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-5 py-[9px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]",
+        className ?? "",
+      ]
+        .filter(Boolean)
+        .join(" ")}
     >
       Get Started
     </Link>

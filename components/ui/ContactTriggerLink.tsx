@@ -12,7 +12,7 @@ export function ContactTriggerLink() {
   return (
     <button
       onClick={open}
-      className="text-white underline underline-offset-2 hover:opacity-80 transition-opacity bg-transparent border-none p-0 cursor-pointer"
+      className="cursor-pointer border-none bg-transparent p-0 text-[var(--accent)] underline underline-offset-2 transition-opacity hover:opacity-80"
     >
       contact form
     </button>

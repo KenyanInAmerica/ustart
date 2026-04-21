@@ -16,11 +16,11 @@ export default async function PremiumPage() {
   if (access.membershipRank < 3) redirect("/dashboard");
 
   return (
-    <div>
-      <h1 className="font-syne text-3xl font-bold tracking-tight text-white mb-1">
+    <div className="bg-[var(--bg)]">
+      <h1 className="mb-1 font-primary text-3xl font-bold tracking-tight text-[var(--text)]">
         UStart Premium
       </h1>
-      <p className="font-dm-sans text-sm text-white/45 mb-8">
+      <p className="mb-8 font-primary text-sm text-[var(--text-muted)]">
         Premium resources and 1-on-1 session materials.
       </p>
       <ContentGrid items={items} />

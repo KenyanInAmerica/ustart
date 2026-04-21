@@ -1,15 +1,14 @@
 import Link from "next/link";
 
-// Small check icon used in the feature list of each plan card.
+import { Card } from "@/components/ui/Card";
+
 function CheckIcon() {
   return (
     <svg
-      className="shrink-0 mt-0.5 opacity-50"
-      width="14"
-      height="14"
+      className="mt-0.5 h-[14px] w-[14px] shrink-0 text-[var(--accent)]"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="white"
+      stroke="currentColor"
       strokeWidth="2"
       aria-hidden="true"
     >
@@ -18,8 +17,6 @@ function CheckIcon() {
   );
 }
 
-// All plans are one-time lifetime purchases. Subscriptions (Explore, Concierge)
-// and add-ons (Parent Pack) are only surfaced inside the dashboard after purchase.
 const plans = [
   {
     name: "Lite",
@@ -36,7 +33,7 @@ const plans = [
     name: "Pro",
     price: "$99",
     cadence: "one-time · lifetime access",
-    featured: true, // Highlighted with "Most Popular" pill and an inverted CTA button
+    featured: true,
     features: [
       "Everything in Lite",
       "Full content library access",
@@ -45,7 +42,7 @@ const plans = [
   },
   {
     name: "Premium",
-    price: "$199",
+    price: "$149",
     cadence: "one-time · lifetime access",
     featured: false,
     features: [
@@ -58,72 +55,66 @@ const plans = [
 
 export function Pricing() {
   return (
-    <section className="py-[72px] px-6 md-900:py-[100px] md-900:px-12 max-w-[1160px] mx-auto">
-      <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[rgba(255,255,255,0.45)] mb-4">
+    <section className="mx-auto max-w-[1160px] px-6 py-[72px] md-900:px-12 md-900:py-[100px]">
+      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text)]">
         Pricing
       </p>
-      <h2 className="font-syne font-bold text-[clamp(28px,4vw,42px)] tracking-[-0.03em] text-white mb-14 max-w-[480px]">
+      <h2 className="mb-14 max-w-[480px] font-primary text-[clamp(28px,4vw,42px)] font-bold tracking-[-0.03em] text-[var(--text)]">
         Start where you are.
       </h2>
 
-      <div className="grid grid-cols-1 md-900:grid-cols-3 gap-4 items-start">
+      <div className="grid grid-cols-1 items-start gap-5 md-900:grid-cols-3">
         {plans.map((plan) => (
-          <div
+          <Card
             key={plan.name}
             className={[
-              "relative rounded-2xl px-7 py-9 transition-colors duration-200",
-              // Featured card gets a brighter border to draw the eye
+              "relative mt-3 border transition-all duration-200",
               plan.featured
-                ? "bg-[#0E1624] border border-[rgba(255,255,255,0.25)] hover:border-[rgba(255,255,255,0.35)]"
-                : "bg-[#0C1220] border border-[rgba(255,255,255,0.07)] hover:border-[rgba(255,255,255,0.15)]",
+                ? "border-2 border-[var(--accent)] shadow-[var(--shadow-lg)]"
+                : "border-[var(--border-md)] hover:border-[var(--border-hi)] hover:shadow-[var(--shadow-lg)]",
             ].join(" ")}
+            padding="lg"
+            shadow="md"
           >
-            {/* "Most Popular" pill — absolutely positioned above the card's top edge */}
             {plan.featured && (
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 bg-white text-[#05080F] text-[11px] font-semibold tracking-[0.06em] uppercase px-3 py-1 rounded-full whitespace-nowrap">
+              <span className="absolute -top-3 left-1/2 z-10 -translate-x-1/2 whitespace-nowrap rounded-full border border-[var(--accent)] bg-[var(--accent)] px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.06em] text-white shadow-[var(--shadow-sm)]">
                 Most Popular
               </span>
             )}
 
-            <p className="font-syne font-bold text-[15px] text-[rgba(255,255,255,0.70)] uppercase tracking-[0.08em] mb-3">
+            <p className="mb-3 font-primary text-[15px] font-bold uppercase tracking-[0.08em] text-[var(--text-mid)]">
               {plan.name}
             </p>
-            <p className="font-syne font-extrabold text-[42px] leading-none tracking-[-0.04em] text-white mb-1.5">
+            <p className="mb-1.5 font-primary text-[42px] font-extrabold leading-none tracking-[-0.04em] text-[var(--text)]">
               {plan.price}
             </p>
-            <p className="text-[13px] text-[rgba(255,255,255,0.45)] mb-7">
+            <p className="mb-7 text-[13px] text-[var(--text-muted)]">
               {plan.cadence}
             </p>
 
-            {/* Divider between price block and feature list */}
-            <div className="h-px bg-[rgba(255,255,255,0.07)] mb-6" />
+            <div className="mb-6 h-px bg-[var(--border)]" />
 
-            <ul className="flex flex-col gap-3 mb-8">
-              {plan.features.map((feat) => (
-                <li key={feat} className="flex items-start gap-2.5 text-[13.5px] text-[rgba(255,255,255,0.70)]">
+            <ul className="mb-8 flex flex-col gap-3">
+              {plan.features.map((feature) => (
+                <li
+                  key={feature}
+                  className="flex items-start gap-2.5 text-[13.5px] text-[var(--text-muted)]"
+                >
                   <CheckIcon />
-                  {feat}
+                  {feature}
                 </li>
               ))}
             </ul>
 
-            {/* Featured plan uses a solid white CTA; others use a ghost button */}
             <Link
               href="/pricing"
-              className={[
-                "block w-full text-center py-3 rounded-lg text-sm font-medium transition-all duration-200",
-                plan.featured
-                  ? "bg-white text-[#05080F] border border-white hover:opacity-90"
-                  : "bg-transparent text-white border border-[rgba(255,255,255,0.15)] hover:bg-[rgba(255,255,255,0.06)]",
-              ].join(" ")}
+              className="inline-flex min-h-10 w-full items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-2.5 text-center font-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
             >
               Get Started
             </Link>
-          </div>
+          </Card>
         ))}
       </div>
-
-
     </section>
   );
 }

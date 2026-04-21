@@ -1,3 +1,5 @@
+import { Card } from "@/components/ui/Card";
+
 const steps = [
   {
     num: "01",
@@ -16,44 +18,34 @@ const steps = [
   },
 ];
 
-// Three-step onboarding overview rendered in a 3-column grid.
-// Steps are separated by a border that switches direction based on viewport:
-//   - mobile: border-bottom (stacked vertically)
-//   - desktop (md-900+): border-right (side by side)
-// The last step gets no separator in either layout.
 export function HowItWorks() {
   return (
-    <section className="py-[72px] px-6 md-900:py-[100px] md-900:px-12 max-w-[1160px] mx-auto">
-      <p className="text-[11px] font-semibold tracking-[0.12em] uppercase text-[rgba(255,255,255,0.45)] mb-4">
+    <section className="mx-auto max-w-[1160px] px-6 py-[72px] md-900:px-12 md-900:py-[100px]">
+      <p className="mb-4 text-[11px] font-semibold uppercase tracking-[0.12em] text-[var(--text)]">
         Process
       </p>
-      <h2 className="font-syne font-bold text-[clamp(28px,4vw,42px)] tracking-[-0.03em] text-white mb-14 max-w-[480px]">
+      <h2 className="mb-14 max-w-[480px] font-primary text-[clamp(28px,4vw,42px)] font-bold tracking-[-0.03em] text-[var(--text)]">
         Three steps to get started.
       </h2>
 
-      <div className="grid grid-cols-1 md-900:grid-cols-3">
-        {steps.map((step, i) => (
-          <div
+      <div className="grid grid-cols-1 gap-5 md-900:grid-cols-3">
+        {steps.map((step) => (
+          <Card
             key={step.num}
-            className={[
-              "py-8 px-0 md-900:py-10 md-900:px-10",
-              // Add separator after every step except the last
-              i < steps.length - 1
-                ? "border-b border-[rgba(255,255,255,0.07)] md-900:border-b-0 md-900:border-r md-900:border-[rgba(255,255,255,0.07)]"
-                : "",
-            ].join(" ")}
+            className="border border-[var(--border-md)]"
+            padding="lg"
+            shadow="md"
           >
-            {/* Ghost step number — very low opacity, purely decorative */}
-            <div className="font-syne font-extrabold text-[72px] leading-none tracking-[-0.04em] text-[rgba(255,255,255,0.04)] mb-6">
+            <div className="mb-6 font-primary text-[72px] font-extrabold leading-none tracking-[-0.04em] text-[var(--accent)]/15">
               {step.num}
             </div>
-            <h3 className="font-syne font-bold text-lg text-white mb-2.5">
+            <h3 className="mb-2.5 font-primary text-lg font-bold text-[var(--text)]">
               {step.title}
             </h3>
-            <p className="text-sm text-[rgba(255,255,255,0.45)] leading-[1.65]">
+            <p className="text-sm leading-[1.65] text-[var(--text-muted)]">
               {step.desc}
             </p>
-          </div>
+          </Card>
         ))}
       </div>
     </section>

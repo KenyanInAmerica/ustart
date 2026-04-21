@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 16, 2026
+**Date:** April 20, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -59,9 +59,8 @@ Stripe is the source of truth for entitlements once integrated. Supabase reflect
 
 **Fonts**
 
-- Syne — headlines, wordmark, nav labels, section headings
-- DM Sans — body copy, nav items, user info
-- Loaded via `next/font/google` in root layout
+- Plus Jakarta Sans — single primary font, loaded via `next/font/google` as CSS variable `--font-primary`. Substitute for brand font Salmond. To switch to Salmond: update the font import in `app/layout.tsx` only.
+- `font-primary` Tailwind class replaces former `font-syne` and `font-dm-sans`
 
 ---
 
@@ -93,16 +92,59 @@ GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANO
 
 Defined in `app/globals.css` — use these exact names in Tailwind arbitrary values (e.g. `bg-[var(--bg-card)]`).
 
-| Variable         | Value                    | Usage                   |
-| ---------------- | ------------------------ | ----------------------- |
-| `--bg-deep`      | `#05080F`                | Page background         |
-| `--bg-card`      | `#0C1220`                | Card/sidebar background |
-| `--bg-card-hover`| `#111927`                | Hovered card background |
-| `--border`       | `rgba(255,255,255,0.07)` | Default borders         |
-| `--border-bright`| `rgba(255,255,255,0.15)` | High-emphasis borders   |
-| `--text-primary` | `#FFFFFF`                | Primary text            |
-| `--text-muted`   | `rgba(255,255,255,0.45)` | Muted text              |
-| `--text-mid`     | `rgba(255,255,255,0.70)` | Mid-emphasis text       |
+| Variable | Value | Usage |
+|---|---|---|
+| `--bg` | `#F2F1EF` | Page background (creme) |
+| `--bg-card` | `#FFFFFF` | Card surfaces |
+| `--bg-card-hover` | `#F8F7F5` | Hovered card background |
+| `--bg-subtle` | `#ECEAE7` | Subtle backgrounds, locked states |
+| `--border` | `rgba(28,43,58,0.10)` | Default borders |
+| `--border-md` | `rgba(28,43,58,0.16)` | Medium emphasis borders |
+| `--border-hi` | `rgba(28,43,58,0.24)` | High emphasis borders |
+| `--text` | `#1C2B3A` | Primary text (navy) |
+| `--text-mid` | `rgba(28,43,58,0.68)` | Mid-emphasis text |
+| `--text-muted` | `rgba(28,43,58,0.42)` | Muted text |
+| `--accent` | `#3083DC` | Primary interactive (sky blue) |
+| `--accent-hover` | `#2470C7` | Accent hover state |
+| `--destructive` | `#E54B4B` | Destructive actions (warm red) |
+| `--shadow-sm/md/lg` | `elevation tokens` | Card shadows |
+
+### Brand Palette
+
+| Name | Hex | Usage |
+|---|---|---|
+| Sky Blue | `#3083DC` | CTAs, active states, Lite accent |
+| Warm Red | `#E54B4B` | Alerts, destructive, admin badge |
+| Creme | `#F2F1EF` | Page backgrounds |
+| Navy | `#1C2B3A` | Primary text, headings |
+
+### Phase Accent Colors
+
+| Phase | Color | Hex |
+|---|---|---|
+| Before Arrival | Mint Green | `#4ECBA5` |
+| First 7 Days | Warm Yellow | `#F5C842` |
+| Settling In | Lavender | `#9B8EC4` |
+| Ongoing Support | Sky Blue | `#3083DC` |
+
+### Product Accent Colors
+
+Defined in `lib/config/productAccents.ts`.
+
+| Product | Hex |
+|---|---|
+| Lite | `#3083DC` |
+| Explore | `#4ECBA5` |
+| Concierge | `#9B8EC4` |
+| Parent Pack | `#F5C842` |
+| Community | `#4ECBA5` |
+
+### Design System Notes
+
+- Tagline: `"Your Move, Made Simple"` (from `brand.ts`, easily configurable)
+- Design system is now fully light mode — dark theme removed entirely
+- `ParentInvitationSection` is hidden behind `PARENT_INVITATION_ENABLED = false` — code intact, not rendered
+- `components/layout/Nav.tsx` and `components/layout/Footer.tsx` were deleted as unused stubs during the design system overhaul
 
 ---
 
@@ -151,8 +193,10 @@ Defined in `app/globals.css` — use these exact names in Tailwind arbitrary val
   /community-rules       # Public community rules page (placeholder)
 /components
   /ui
-    Button.tsx, ChevronIcon.tsx, GetStartedLink.tsx
-    SignOutButton.tsx, Navbar.tsx, Footer.tsx
+    Button.tsx                    # Shared button component — primary, secondary, ghost, destructive variants with loading state
+    Card.tsx                      # Shared card wrapper — configurable shadow and padding
+    ChevronIcon.tsx, GetStartedLink.tsx
+    SignOutButton.tsx, Navbar.tsx, NavbarClient.tsx, Footer.tsx
     ContactFormProvider.tsx    # React context — exposes useContactForm() hook. Added Feature 14.
     ContactPanel.tsx           # Slide-out contact panel (auth + unauth variants). Added Feature 14.
     ContactTriggerLink.tsx     # Inline "use client" button for server-rendered pages. Added Feature 14.
@@ -163,7 +207,7 @@ Defined in `app/globals.css` — use these exact names in Tailwind arbitrary val
     ContentCards.tsx, ContentCardsSection.tsx, ContentGrid.tsx
     CommunitySection.tsx, CommunitySectionWrapper.tsx
     AccountStrip.tsx, AccountStripSection.tsx
-    ParentInvitationSection.tsx, ParentInvitationWrapper.tsx
+    ParentInvitationSection.tsx, ParentInvitationWrapper.tsx  # Present but render-gated by PARENT_INVITATION_ENABLED = false
     AddonModal.tsx, PdfViewer.tsx (react-pdf backed), SignOutButton.tsx
     skeletons/  # Loading skeletons for each Suspense section
   /account   ProfileSection.tsx, BillingSection.tsx
@@ -188,7 +232,9 @@ Defined in `app/globals.css` — use these exact names in Tailwind arbitrary val
              log.ts (logAction — fire-and-forget insert into audit_logs)
              actionBadge.ts (actionBadgeClass, actionCategory — plain module, safe for Server Components)
   /pdf       watermark.ts, fetch.ts
-  /config    pricing.ts (types only), getPricing.ts (fetch utils)
+  /config    brand.ts (centralised brand config — name, tagline, logo, font, colors, phase accents)
+             productAccents.ts (per-product accent color mapping)
+             pricing.ts (types only), getPricing.ts (fetch utils)
   /actions
     signOut.ts                  # signOut() — logs AUTH_SIGN_OUT then signs out
     updateProfile.ts            # updateProfile() — diff-based, logs changes
@@ -213,6 +259,11 @@ Defined in `app/globals.css` — use these exact names in Tailwind arbitrary val
 /docs
   ustart-project-snapshot.md  # Living project snapshot — updated on every PR
   staging-setup.md             # Staging environment setup guide
+  /supabase-email-templates
+    magic-link-staging.html
+    magic-link-production.html
+    confirm-signup-staging.html
+    confirm-signup-production.html
   /claude                      # Claude Code context sub-files
     architecture.md            # Folder structure, DB schema, Supabase clients, env vars, auth flow
     conventions.md             # TypeScript, component, styling, action conventions
@@ -527,6 +578,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 
 | Feature    | Description                                  | Status                          |
 | ---------- | -------------------------------------------- | ------------------------------- |
+| Design System | Light mode overhaul, brand identity, component library | ✅ Built |
 | Feature 1  | Shell & Layout                               | ✅ Built                        |
 | Feature 2  | Greeting & User State                        | ✅ Built                        |
 | Feature 3  | Start Here / Onboarding Progress             | ✅ Built                        |

@@ -10,35 +10,35 @@ export default async function AdminAdminsPage() {
 
   return (
     <div className="px-8 py-8 max-w-3xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Admins
       </h1>
-      <p className="text-[13px] text-white/40 mb-8">
+      <p className="mb-8 text-[13px] text-[var(--text-muted)]">
         Manage who has admin access to this portal.
       </p>
 
       {/* Grant form */}
-      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5 mb-8">
-        <h2 className="text-[13px] font-medium text-white mb-4">Grant admin access</h2>
+      <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">Grant admin access</h2>
         <div className="relative">
           <AdminGrantForm />
         </div>
       </div>
 
       {/* Current admins */}
-      <h2 className="text-[13px] font-medium tracking-[0.06em] uppercase text-white/40 mb-4">
+      <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
         Current admins
       </h2>
 
       {admins.length === 0 ? (
-        <p className="text-[13px] text-white/30">No admins found.</p>
+        <p className="text-[13px] text-[var(--text-muted)]">No admins found.</p>
       ) : (
-        <div className="border border-white/[0.07] rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Email</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Name</th>
+              <tr className="bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Name</th>
                 <th className="px-4 py-3" />
               </tr>
             </thead>
@@ -46,10 +46,10 @@ export default async function AdminAdminsPage() {
               {admins.map((admin, i) => (
                 <tr
                   key={admin.id}
-                  className={i < admins.length - 1 ? "border-b border-white/[0.05]" : ""}
+                  className={`${i < admins.length - 1 ? "border-b border-[var(--border)]" : ""} transition-colors hover:bg-[var(--bg-subtle)]`}
                 >
-                  <td className="px-4 py-3 text-[13px] text-white/80">{admin.email}</td>
-                  <td className="px-4 py-3 text-[13px] text-white/60">
+                  <td className="px-4 py-3 text-[13px] text-[var(--text)]">{admin.email}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-mid)]">
                     {[admin.first_name, admin.last_name].filter(Boolean).join(" ") || "—"}
                   </td>
                   <td className="px-4 py-3 text-right">
