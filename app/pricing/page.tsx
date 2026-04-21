@@ -33,7 +33,7 @@ function billingLabel(billing: PricingItem["billing"]): string {
   return "per year";
 }
 
-const TIER_RANK: Record<string, number> = { lite: 1, pro: 2, premium: 3 };
+const TIER_RANK: Record<string, number> = { lite: 1, explore: 2, concierge: 3 };
 
 type CtaState = "buy" | "has-access" | "included";
 
@@ -64,7 +64,7 @@ export default async function PricingPage() {
       ? { price: parentPackPricing.price }
       : null;
 
-  const featuredId = tiers[1]?.id ?? "pro";
+  const featuredId = tiers[1]?.id ?? "explore";
 
   return (
     <>
@@ -88,13 +88,13 @@ export default async function PricingPage() {
             {tiers.map((plan) => {
               const isFeatured = plan.id === featuredId;
               const ctaState = isAuthenticated ? getCtaState(plan.id, userRank) : "buy";
-              const isTier = (["lite", "pro", "premium"] as string[]).includes(plan.id);
+              const isTier = (["lite", "explore", "concierge"] as string[]).includes(plan.id);
 
               return (
                 <Card
                   key={plan.id}
                   className={[
-                    "relative flex flex-col gap-6 border bg-white",
+                    "relative flex h-full flex-col gap-6 border bg-white",
                     isFeatured
                       ? "border-2 border-[var(--accent)]"
                       : "border border-[var(--border)]",
@@ -138,11 +138,13 @@ export default async function PricingPage() {
                     </ul>
                   )}
 
-                  <BuyNowButton
-                    featured={isFeatured}
-                    ctaState={ctaState}
-                    parentPackUpsell={ctaState === "buy" && isTier ? parentPackUpsell : null}
-                  />
+                  <div className="mt-auto">
+                    <BuyNowButton
+                      featured={isFeatured}
+                      ctaState={ctaState}
+                      parentPackUpsell={ctaState === "buy" && isTier ? parentPackUpsell : null}
+                    />
+                  </div>
                 </Card>
               );
             })}

@@ -6,14 +6,8 @@ import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAcce
 import type { AdminUser } from "@/types/admin";
 import { setUserAddon, setUserMembershipTier } from "@/lib/actions/admin/users";
 
-type Tier = "lite" | "pro" | "premium" | null;
-type Addon = "explore" | "concierge" | "parent_pack";
-
-interface StagedAddons {
-  explore: boolean;
-  concierge: boolean;
-  parent_pack: boolean;
-}
+type Tier = "lite" | "explore" | "concierge" | null;
+type Addon = "parent_pack";
 
 interface UserPanelProps {
   user: AdminUser | null;
@@ -23,35 +17,23 @@ interface UserPanelProps {
 const TIER_OPTIONS: { value: Tier; label: string; accent: ProductAccent }[] = [
   { value: null, label: "No plan", accent: "default" },
   { value: "lite", label: "Lite", accent: "lite" },
-  { value: "pro", label: "Pro", accent: "pro" },
-  { value: "premium", label: "Premium", accent: "premium" },
+  { value: "explore", label: "Explore", accent: "explore" },
+  { value: "concierge", label: "Concierge", accent: "concierge" },
 ];
 
 function initialTier(user: AdminUser): Tier {
   return (user.membership_tier as Tier) ?? null;
 }
 
-function initialAddons(user: AdminUser): StagedAddons {
-  return {
-    explore: user.has_explore,
-    concierge: user.has_concierge,
-    parent_pack: user.has_parent_seat,
-  };
+function initialParentPack(user: AdminUser): boolean {
+  return user.has_parent_seat;
 }
 
 export function UserPanel({ user, onClose }: UserPanelProps) {
   const [stagedTier, setStagedTier] = useState<Tier>(null);
-  const [stagedAddons, setStagedAddons] = useState<StagedAddons>({
-    explore: false,
-    concierge: false,
-    parent_pack: false,
-  });
+  const [stagedParentPack, setStagedParentPack] = useState(false);
   const [committedTier, setCommittedTier] = useState<Tier>(null);
-  const [committedAddons, setCommittedAddons] = useState<StagedAddons>({
-    explore: false,
-    concierge: false,
-    parent_pack: false,
-  });
+  const [committedParentPack, setCommittedParentPack] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, startSaveTransition] = useTransition();
@@ -59,11 +41,11 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
   useEffect(() => {
     if (!user) return;
     const tier = initialTier(user);
-    const addons = initialAddons(user);
+    const parentPack = initialParentPack(user);
     setStagedTier(tier);
-    setStagedAddons(addons);
+    setStagedParentPack(parentPack);
     setCommittedTier(tier);
-    setCommittedAddons(addons);
+    setCommittedParentPack(parentPack);
     setSaveError(null);
     setSaveSuccess(false);
   }, [user]);
@@ -86,14 +68,11 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
   if (!user) return null;
 
   const isDirty =
-    stagedTier !== committedTier ||
-    stagedAddons.explore !== committedAddons.explore ||
-    stagedAddons.concierge !== committedAddons.concierge ||
-    stagedAddons.parent_pack !== committedAddons.parent_pack;
+    stagedTier !== committedTier || stagedParentPack !== committedParentPack;
 
   function handleCancel() {
     setStagedTier(committedTier);
-    setStagedAddons(committedAddons);
+    setStagedParentPack(committedParentPack);
     setSaveError(null);
     setSaveSuccess(false);
   }
@@ -103,7 +82,7 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
     setSaveSuccess(false);
     const userId = user!.id;
     const savedTier = committedTier;
-    const savedAddons = committedAddons;
+    const savedParentPack = committedParentPack;
 
     startSaveTransition(async () => {
       const errors: string[] = [];
@@ -113,11 +92,9 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
         if (!result.success) errors.push(`Tier: ${result.error}`);
       }
 
-      for (const key of ["explore", "concierge", "parent_pack"] as Addon[]) {
-        if (stagedAddons[key] !== savedAddons[key]) {
-          const result = await setUserAddon(userId, key, stagedAddons[key]);
-          if (!result.success) errors.push(`${key}: ${result.error}`);
-        }
+      if (stagedParentPack !== savedParentPack) {
+        const result = await setUserAddon(userId, "parent_pack", stagedParentPack);
+        if (!result.success) errors.push(`parent_pack: ${result.error}`);
       }
 
       if (errors.length > 0) {
@@ -125,7 +102,7 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
       } else {
         setSaveSuccess(true);
         setCommittedTier(stagedTier);
-        setCommittedAddons(stagedAddons);
+        setCommittedParentPack(stagedParentPack);
       }
     });
   }
@@ -184,43 +161,59 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
 
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
-              Add-ons
+              Add-ons &amp; Calls
             </h3>
             <div className="space-y-3">
-              {(
-                [
-                  { key: "explore" as Addon, label: "Explore", accent: "explore" as ProductAccent },
-                  { key: "concierge" as Addon, label: "Concierge", accent: "concierge" as ProductAccent },
-                  { key: "parent_pack" as Addon, label: "Parent Pack", accent: "parent_pack" as ProductAccent },
-                ]
-              ).map(({ key, label, accent }) => {
-                const active = stagedAddons[key];
-                const changed = active !== committedAddons[key];
-                return (
-                  <div key={key} className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-3 py-2.5">
-                    <span className="text-[13px] font-medium text-[var(--text)]">
-                      {label}
-                      {changed && (
-                        <span className="ml-1.5 text-[10px] text-yellow-700">unsaved</span>
-                      )}
-                    </span>
-                    <button
-                      role="switch"
-                      aria-checked={active}
-                      onClick={() => setStagedAddons((prev) => ({ ...prev, [key]: !prev[key] }))}
-                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors ${
-                        active ? accentSurfaceClass(accent) : "border-[var(--border)] bg-white"
-                      }`}
-                    >
-                      <span
-                        className={`mt-[1px] inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
-                          active ? "translate-x-4" : "translate-x-0.5 border border-[var(--border)]"
-                        }`}
-                      />
-                    </button>
-                  </div>
-                );
-              })}
+              <div className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-3 py-2.5">
+                <span className="text-[13px] font-medium text-[var(--text)]">
+                  Parent Pack
+                  {stagedParentPack !== committedParentPack && (
+                    <span className="ml-1.5 text-[10px] text-yellow-700">unsaved</span>
+                  )}
+                </span>
+                <button
+                  role="switch"
+                  aria-checked={stagedParentPack}
+                  onClick={() => setStagedParentPack((prev) => !prev)}
+                  className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border transition-colors ${
+                    stagedParentPack
+                      ? accentSurfaceClass("parent_pack")
+                      : "border-[var(--border)] bg-white"
+                  }`}
+                >
+                  <span
+                    className={`mt-[1px] inline-block h-4 w-4 rounded-full bg-white shadow transition-transform ${
+                      stagedParentPack
+                        ? "translate-x-4"
+                        : "translate-x-0.5 border border-[var(--border)]"
+                    }`}
+                  />
+                </button>
+              </div>
+
+              {[
+                { label: "1:1 Arrival Call", accent: "arrival_call" as ProductAccent },
+                {
+                  label: "Additional Support Call",
+                  accent: "additional_support_call" as ProductAccent,
+                },
+              ].map(({ label, accent }) => (
+                <div
+                  key={label}
+                  className="flex items-center justify-between rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-3 py-2.5"
+                >
+                  <span className="text-[13px] font-medium text-[var(--text)]">
+                    {label}
+                  </span>
+                  <span
+                    className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold ${accentSurfaceClass(
+                      accent
+                    )}`}
+                  >
+                    Read only
+                  </span>
+                </div>
+              ))}
             </div>
           </section>
         </div>

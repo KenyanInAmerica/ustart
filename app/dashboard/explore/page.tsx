@@ -4,8 +4,8 @@ import { fetchDashboardAccess } from "@/lib/dashboard/access";
 import { fetchTierContent } from "@/lib/dashboard/content";
 import { ContentGrid } from "@/components/dashboard/ContentGrid";
 
-// Explore content page.
-// Server-side entitlement guard — requires the has_explore add-on.
+// UStart Explore content page.
+// Server-side entitlement guard — Explore requires membership_rank >= 2.
 export default async function ExplorePage() {
   const [access, items] = await Promise.all([
     fetchDashboardAccess(),
@@ -13,15 +13,15 @@ export default async function ExplorePage() {
     trackContentVisit(),
   ]);
 
-  if (!access.hasExplore) redirect("/dashboard");
+  if (access.membershipRank < 2) redirect("/dashboard");
 
   return (
     <div className="bg-[var(--bg)]">
       <h1 className="mb-1 font-primary text-3xl font-bold tracking-tight text-[var(--text)]">
-        Explore
+        UStart Explore
       </h1>
       <p className="mb-8 font-primary text-sm text-[var(--text-muted)]">
-        Extended resources for deeper exploration.
+        Everything in Lite plus deeper guides to help you settle in and thrive.
       </p>
       <ContentGrid items={items} />
     </div>

@@ -41,7 +41,7 @@ const mockUserData = {
   phone_number: "+12025551234",
   university_name: "University of Michigan",
   country_of_origin: "Kenya",
-  membership_tier: "pro",
+  membership_tier: "explore",
   membership_purchased_at: "2026-01-12T00:00:00Z",
   active_addons: [],
   has_parent_seat: false,

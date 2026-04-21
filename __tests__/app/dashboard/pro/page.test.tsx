@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import ProPage from "@/app/dashboard/pro/page";
+import ExplorePage from "@/app/dashboard/explore/page";
 import type { DashboardAccess } from "@/types";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({
@@ -26,9 +26,9 @@ jest.mock("next/navigation", () => ({
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
 import { redirect } from "next/navigation";
 
-const proAccess: DashboardAccess = {
+const exploreAccess: DashboardAccess = {
   membershipRank: 2,
-  membershipTier: "pro",
+  membershipTier: "explore",
   hasMembership: true,
   hasParentSeat: false,
   hasExplore: false,
@@ -43,30 +43,30 @@ const proAccess: DashboardAccess = {
   parentInvitationAcceptedAt: null,
 };
 
-describe("ProPage", () => {
+describe("ExplorePage", () => {
   beforeEach(() => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue(proAccess);
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue(exploreAccess);
     (redirect as unknown as jest.Mock).mockReset();
   });
 
   it("renders without error", async () => {
-    const { container } = render(await ProPage());
+    const { container } = render(await ExplorePage());
     expect(container).toBeTruthy();
   });
 
   it("renders the page heading", async () => {
-    render(await ProPage());
-    expect(screen.getByRole("heading", { name: /ustart pro/i })).toBeInTheDocument();
+    render(await ExplorePage());
+    expect(screen.getByRole("heading", { name: /ustart explore/i })).toBeInTheDocument();
   });
 
   it("renders the content grid", async () => {
-    render(await ProPage());
+    render(await ExplorePage());
     expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
   it("redirects to /dashboard when membership_rank is below 2", async () => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...proAccess, membershipRank: 1 });
-    await ProPage();
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...exploreAccess, membershipRank: 1 });
+    await ExplorePage();
     expect(redirect).toHaveBeenCalledWith("/dashboard");
   });
 });

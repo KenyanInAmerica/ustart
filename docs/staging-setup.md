@@ -138,12 +138,12 @@ CREATE INDEX audit_logs_payload_text_trgm_idx
 
 INSERT INTO public.pricing (id, name, description, price, billing, features, is_public, display_order, stripe_product_id, stripe_price_id)
 VALUES
-  ('lite',        'Lite',       'Core content library', 49,    'one-time', '[]', TRUE,  1, 'prod_placeholder', 'price_placeholder'),
-  ('pro',         'Pro',        'Full library',         99,    'one-time', '[]', TRUE,  2, 'prod_placeholder', 'price_placeholder'),
-  ('premium',     'Premium',    'Full library + 1-on-1',149,   'one-time', '[]', TRUE,  3, 'prod_placeholder', 'price_placeholder'),
-  ('parent_pack', 'Parent Pack','Parent access',        29,    'one-time', '[]', FALSE, 4, 'prod_placeholder', 'price_placeholder'),
-  ('explore',     'Explore',    'Explore add-on',       9.99,  'monthly',  '[]', FALSE, 5, 'prod_placeholder', 'price_placeholder'),
-  ('concierge',   'Concierge',  'Concierge add-on',     19.99, 'monthly',  '[]', FALSE, 6, 'prod_placeholder', 'price_placeholder')
+  ('lite', 'Lite', 'Core content library', 49, 'one-time', '[]', TRUE, 1, 'prod_placeholder', 'price_placeholder'),
+  ('explore', 'Explore', 'Deeper guidance membership', 9.99, 'monthly', '[]', TRUE, 2, 'prod_placeholder', 'price_placeholder'),
+  ('concierge', 'Concierge', 'Highest-touch membership', 19.99, 'monthly', '[]', TRUE, 3, 'prod_placeholder', 'price_placeholder'),
+  ('parent_pack', 'Parent Pack', 'Parent access', 29, 'one-time', '[]', FALSE, 4, 'prod_placeholder', 'price_placeholder'),
+  ('arrival_call', '1:1 Arrival Call', 'Arrival support add-on', 0.00, 'one-time', '[]', FALSE, 7, 'prod_placeholder', 'price_placeholder'),
+  ('additional_support_call', 'Additional Support Call', 'Extra support add-on', 0.00, 'one-time', '[]', FALSE, 8, 'prod_placeholder', 'price_placeholder')
 ON CONFLICT (id) DO NOTHING;
 ```
 

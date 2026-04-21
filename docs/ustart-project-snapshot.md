@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 20, 2026
+**Date:** April 21, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -8,13 +8,13 @@
 
 ## Project Overview
 
-UStart is a paid access portal for international students navigating life in the United States. Students purchase a one-time membership tier and can add recurring subscriptions on top. Parents get their own separate login linked to the student's account.
+UStart is a paid access portal for international students navigating life in the United States. Students purchase a membership tier, can add Parent Pack if needed, and can separately purchase support calls. Parents get their own separate login linked to the student's account.
 
 ### Core Model
 
-- **Memberships** — one-time purchases, tiered (Lite → Pro → Premium). Access is cumulative. One active membership per user at a time.
-- **One-time add-ons** — Parent Pack — lifetime purchase giving a parent their own login linked to the student's account.
-- **Subscriptions** — Explore and Concierge — recurring add-ons, surfaced inside the dashboard only (not on public pricing page).
+- **Tiers (`memberships`)** — Lite (`one-time`), Explore (`monthly`), Concierge (`monthly`). Access is cumulative. One active membership per user at a time.
+- **One-time add-ons (`one_time_purchases`)** — Parent Pack only. It gives a parent their own login linked to the student's account.
+- **Purchasable calls (`call_bookings`)** — `arrival_call` and `additional_support_call`. Users can buy these multiple times.
 
 Stripe is the source of truth for entitlements once integrated. Supabase reflects it.
 
@@ -163,7 +163,7 @@ Defined in `lib/config/productAccents.ts`.
     /page.tsx            # Overview — stats (including inactive accounts count) and recent signups
     /users               # User management — inactive badge, Reactivate/Delete/Erase/Manage actions
     /community           # Community members view
-    /invitations         # Parent invitations + manual linking tool
+    /invitations         # Parent invitations + manual linking tool (route kept, hidden from sidebar)
     /content             # PDF upload and content management
     /admins              # Admin access management
     /settings            # WhatsApp link, config, and pricing management
@@ -180,11 +180,9 @@ Defined in `lib/config/productAccents.ts`.
     /layout.tsx          # Dashboard shell layout (includes Footer)
     /page.tsx            # Dashboard main page
     /lite                # UStart Lite content
-    /pro                 # UStart Pro content
-    /premium             # UStart Premium content
+    /explore             # UStart Explore content
+    /concierge           # UStart Concierge content
     /parent-pack         # Parent Pack content + invitation flow
-    /explore             # Explore content
-    /concierge           # Concierge content
     /account             # Account & billing page
     /my-documents        # Individually assigned PDFs
   /pricing               # Public pricing page (includes Footer)
@@ -326,10 +324,11 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 
 | Table                  | Purpose                                                                                                                                                                                    |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `profiles`             | Extends auth.users. Columns: id, email, first_name, last_name, role, student_id, phone_number, university_name, country_of_origin, first_content_visit_at, is_admin, is_active             |
-| `memberships`          | One-time tier purchases (lite, pro, premium). One active per user. Unique constraint on user_id.                                                                                           |
-| `one_time_purchases`   | Lifetime add-on purchases (parent_seat). Unique constraint on (user_id, type).                                                                                                             |
-| `addons`               | Recurring subscriptions (explore, concierge). Multiple per user.                                                                                                                           |
+| `profiles`             | Extends auth.users. Columns: id, email, first_name, last_name, role, student_id, phone_number, university_name, country_of_origin, arrival_date, graduation_date, city, intake_completed_at, first_content_visit_at, is_admin, is_active |
+| `memberships`          | Tier purchases (`lite`, `explore`, `concierge`) with `billing` column. One active per user. Unique constraint on user_id.                                                               |
+| `one_time_purchases`   | One-time purchases (`parent_seat`) only. Unique constraint on (user_id, type).                                                                                                            |
+| `call_bookings`        | Tracks purchasable call bookings. Users can purchase multiple. Columns: id, user_id, type (`arrival_call` \| `additional_support_call`), status (`purchased` \| `booked` \| `completed` \| `cancelled`), stripe_payment_intent_id, calendly_event_id, booked_at, completed_at |
+| `addons`               | Subscription rows for support-call products only: `arrival_call`, `additional_support_call`. Explore and Concierge are tiers, not addons.                                               |
 | `parent_invitations`   | Tracks parent invitation state. Partial unique index on student_id for pending/accepted rows only. invite_token (UUID) and invite_token_expires_at added for pre-fetch-safe invitation flow. Token valid 72 hours. |
 | `parent_content`       | Curated content for parent accounts. Placeholder.                                                                                                                                          |
 | `community_agreements` | Tracks community rule acceptance per user.                                                                                                                                                 |
@@ -339,11 +338,16 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 | `pricing`              | Single source of truth for all product pricing. Columns: id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at |
 | `contact_submissions`  | Stores contact form submissions until Resend is integrated. Columns: id, name, email, message, user_id, created_at. Added Feature 14.                                                      |
 | `audit_logs`           | Immutable event log of all auditable actions. Columns: id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated). Added Audit Log feature. |
+| `plan_task_templates`  | Plan builder template rows. Phase-based default tasks with title, description, active flag, and display offsets.                                                                            |
+| `plan_tasks`           | Per-user task rows derived from plan templates. Tracks phase, due date, completion, and status.                                                                                             |
+| `intake_responses`     | Per-user intake submission payloads stored as JSONB. Used with `profiles.intake_completed_at` to power future planning flows.                                                               |
 
 ### Column Notes
 
 - `addons.type` — column is named `type`, NOT `product`. Do not use `product` in queries.
 - `one_time_purchases.type` — column is named `type`, NOT `product`.
+- `memberships.billing` — TEXT NOT NULL DEFAULT `'one-time'`. The live schema now carries billing cadence on the membership row itself.
+- `profiles.arrival_date`, `profiles.graduation_date`, `profiles.city`, `profiles.intake_completed_at` — added for the plan/intake schema expansion.
 - `addons` Stripe columns (`stripe_customer_id`, `stripe_subscription_id`, `stripe_product_id`, `current_period_end`) — not-null constraints dropped. Placeholders: `cus_placeholder`, `sub_placeholder`, `prod_placeholder`. TODO: replace in Feature 12.
 - `one_time_purchases.stripe_payment_intent_id` — not-null constraint dropped. Placeholder: `pi_placeholder`. TODO: replace in Feature 12.
 - `one_time_purchases.user_id` — now references `profiles(id)` ON DELETE CASCADE. Fixed in pre-launch schema cleanup Step 1.
@@ -358,13 +362,16 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 | `profiles.role`                      | CHECK (role = ANY ('student', 'parent')) DEFAULT 'student'                                                   |
 | `profiles.is_active`                 | boolean NOT NULL DEFAULT true (added Feature 14)                                                             |
 | `memberships.status`                 | CHECK (status = ANY ('active', 'upgraded', 'revoked'))                                                       |
-| `memberships.tier`                   | CHECK (tier = ANY ('lite', 'pro', 'premium'))                                                                |
+| `memberships.tier`                   | CHECK (tier = ANY ('lite', 'explore', 'concierge'))                                                          |
 | `memberships.user_id`                | UNIQUE constraint                                                                                            |
 | `one_time_purchases.status`          | CHECK (status = ANY ('active', 'refunded'))                                                                  |
-| `one_time_purchases.type`            | CHECK (type = 'parent_seat')                                                                                 |
+| `one_time_purchases.type`            | CHECK (type = ANY ('parent_seat'))                                                                           |
 | `one_time_purchases.(user_id, type)` | UNIQUE constraint                                                                                            |
 | `parent_invitations`                 | Partial unique index `one_active_invite_per_student` on (student_id) WHERE status IN ('pending', 'accepted') |
-| `content_items.tier`                 | CHECK (tier = ANY ('lite','pro','premium','parent_pack','explore','concierge'))                              |
+| `call_bookings.type`                 | CHECK (type = ANY ('arrival_call', 'additional_support_call'))                                               |
+| `call_bookings.status`               | CHECK (status = ANY ('purchased', 'booked', 'completed', 'cancelled'))                                      |
+| `addons.type`                        | CHECK (type = ANY ('arrival_call', 'additional_support_call'))                                               |
+| `content_items.tier`                 | CHECK (tier = ANY ('lite','explore','concierge','parent_pack'))                                             |
 | `content_items.is_individual_only`   | boolean NOT NULL DEFAULT false                                                                               |
 | `pricing.billing`                    | CHECK (billing = ANY ('one-time', 'monthly', 'yearly'))                                                      |
 
@@ -386,10 +393,11 @@ CREATE INDEX audit_logs_payload_text_trgm_idx
 ## Key Functions & Views
 
 - `handle_new_user()` — trigger that auto-creates a profiles row on every new Supabase auth signup
-- `tier_rank(tier)` — returns numeric rank (Lite=1, Pro=2, Premium=3)
+- `tier_rank(tier)` — returns numeric rank (Lite=1, Explore=2, Concierge=3)
 - `tier_includes_parent_seat(tier)` — **dropped** in pre-launch schema cleanup Step 2
 - `is_parent_of(student_id)` — security definer function used in RLS policy
 - `user_access` view — returns full access state: has_membership, has_parent_seat, has_explore, has_concierge, membership_rank, active_addons, has_agreed_to_community, phone_number, first_name, last_name, university_name, country_of_origin, first_content_visit_at, invited_parent_email, parent_invitation_status, parent_invitation_accepted_at
+  Note: `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not `addons` rows.
 
 ---
 
@@ -402,7 +410,7 @@ All live pricing data is fetched from the `public.pricing` table in Supabase. `l
 - Admin can update: description, price, features, is_public per product
 - Admin cannot update: name, billing type (read-only — require codebase/schema changes)
 - Stripe fields (`stripe_product_id`, `stripe_price_id`) — visible but read-only until Feature 12
-- Pricing seeded with: lite ($49), pro ($99), premium ($149), parent_pack ($29), explore ($9.99/mo), concierge ($19.99/mo)
+- Pricing seeded with: lite ($49), explore ($9.99/mo), concierge ($19.99/mo), parent_pack ($29), arrival_call ($0.00 pending Morgan confirmation), additional_support_call ($0.00 pending Morgan confirmation)
 
 ---
 
@@ -422,17 +430,17 @@ All live pricing data is fetched from the `public.pricing` table in Supabase. `l
 
 ## Tier Access Model
 
-| Tier    | Lite Content | Pro Content | Premium Content |
-| ------- | ------------ | ----------- | --------------- |
-| Lite    | ✓            | ✗           | ✗               |
-| Pro     | ✓            | ✓           | ✗               |
-| Premium | ✓            | ✓           | ✓               |
+| Tier      | Lite Content | Explore Content | Concierge Content |
+| --------- | ------------ | --------------- | ----------------- |
+| Lite      | ✓            | ✗               | ✗                 |
+| Explore   | ✓            | ✓               | ✗                 |
+| Concierge | ✓            | ✓               | ✓                 |
 
-| Add-on      | Type                       | Table                |
-| ----------- | -------------------------- | -------------------- |
-| Parent Pack | One-time lifetime purchase | `one_time_purchases` |
-| Explore     | Recurring subscription     | `addons`             |
-| Concierge   | Recurring subscription     | `addons`             |
+| Product Type | Products | Table |
+| ------------ | -------- | ----- |
+| Tier | Lite, Explore, Concierge | `memberships` |
+| One-time add-on | Parent Pack | `one_time_purchases` |
+| Purchasable calls | 1:1 Arrival Call, Additional Support Call | `call_bookings` |
 
 ---
 
@@ -579,6 +587,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Feature    | Description                                  | Status                          |
 | ---------- | -------------------------------------------- | ------------------------------- |
 | Design System | Light mode overhaul, brand identity, component library | ✅ Built |
+| Phase 2 Schema Changes | Membership rename, intake fields, planning tables, pricing/product model updates | ✅ Built |
 | Feature 1  | Shell & Layout                               | ✅ Built                        |
 | Feature 2  | Greeting & User State                        | ✅ Built                        |
 | Feature 3  | Start Here / Onboarding Progress             | ✅ Built                        |
@@ -596,7 +605,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Audit Log  | Admin audit log with full event tracking across all user and admin actions | ✅ Built |
 | Env Setup  | Staging environment, CI pipeline, branch model, migration workflow, production guard | ✅ Built |
 | Pre-launch | Schema Cleanup & Production Config           | 🔄 In Progress (Steps 1–2 done) |
-| Feature 12 | Stripe Integration                           | ⏸ Deferred                      |
+| Feature 12 | Stripe Integration                           | ⏸ Deferred — tier structure now locked to Lite / Explore / Concierge |
 | Feature 13 | Resend Integration                           | ✅ Built                         |
 
 ---
@@ -642,7 +651,7 @@ Run after Stripe products and prices are created in the Stripe dashboard.
 
 ```sql
 UPDATE public.pricing SET stripe_product_id = 'prod_xxx', stripe_price_id = 'price_xxx' WHERE id = 'lite';
--- repeat for pro, premium, parent_pack, explore, concierge
+-- repeat for explore, concierge, parent_pack, arrival_call, additional_support_call
 ```
 
 ### Step 5 — Export schema
@@ -685,8 +694,7 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 
 **Business Owner Decisions Pending**
 
-- Finalise membership tier names — currently lite, pro, premium
-- Finalise add-on list — currently parent_seat, explore, concierge
+- Confirm pricing for `arrival_call` and `additional_support_call` with Morgan — currently `0.00` placeholders
 - Confirm upgrade pricing model — proration vs full price
 - Confirm parent-to-student relationship — currently one parent → one student
 - Define parent content model — `parent_content` table is a placeholder
@@ -717,7 +725,8 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 ## Supabase Configuration Checklist
 
 - ✅ Project created
-- ✅ Schema applied (all tables including content_items, user_content_items, pricing, contact_submissions, audit_logs)
+- ✅ Schema applied (all tables including content_items, user_content_items, pricing, contact_submissions, audit_logs, plan_task_templates, plan_tasks, intake_responses)
+- ✅ Parent invitation UI hidden in dashboard (`PARENT_INVITATION_ENABLED = false`) and admin sidebar link hidden pending Parent Pack simplification
 - ✅ RLS enabled on all tables
 - ✅ handle_new_user trigger active
 - ✅ is_parent_of security definer function active

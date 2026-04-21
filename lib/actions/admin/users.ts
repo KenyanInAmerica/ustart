@@ -1,9 +1,9 @@
 // Server actions for admin user management.
 // All mutations use the service client to bypass RLS.
 // Table mapping (from schema):
-//   memberships         — one-time tier purchases (lite, pro, premium)
+//   memberships         — one-time tier purchases (lite, explore, concierge)
 //   one_time_purchases  — lifetime add-on purchases; type column holds 'parent_seat'
-//   addons              — recurring subscriptions; type column holds 'explore' | 'concierge'
+//   addons              — purchasable call products; type column holds arrival/support calls only
 
 "use server";
 
@@ -44,7 +44,7 @@ async function requireAdmin(): Promise<
 // Writes to the memberships table which backs the membership_tier column in user_access.
 export async function setUserMembershipTier(
   userId: string,
-  tier: "lite" | "pro" | "premium" | null
+  tier: "lite" | "explore" | "concierge" | null
 ): Promise<ActionResult> {
   try {
     const auth = await requireAdmin();
@@ -78,12 +78,10 @@ export async function setUserMembershipTier(
 }
 
 // Adds or removes an add-on for a user.
-// parent_pack  → one_time_purchases (type = 'parent_seat')
-// explore      → addons             (type = 'explore')
-// concierge    → addons             (type = 'concierge')
+// parent_pack → one_time_purchases (type = 'parent_seat')
 export async function setUserAddon(
   userId: string,
-  addon: "explore" | "concierge" | "parent_pack",
+  addon: "parent_pack",
   enabled: boolean
 ): Promise<ActionResult> {
   try {
@@ -92,58 +90,29 @@ export async function setUserAddon(
 
     const service = createServiceClient();
 
-    if (addon === "parent_pack") {
-      // Parent Pack is a one-time purchase stored in one_time_purchases, type = 'parent_seat'.
-      if (enabled) {
-        // TODO: replace placeholder Stripe payment intent ID with real value from Stripe
-        // webhook once Stripe integration is complete (Feature 12)
-        const { error } = await service
-          .from("one_time_purchases")
-          .upsert(
-            {
-              user_id: userId,
-              type: "parent_seat",
-              purchased_at: new Date().toISOString(),
-              stripe_payment_intent_id: "pi_placeholder",
-            },
-            { onConflict: "user_id,type", ignoreDuplicates: true }
-          );
-        if (error) return { success: false, error: error.message };
-      } else {
-        const { error } = await service
-          .from("one_time_purchases")
-          .delete()
-          .eq("user_id", userId)
-          .eq("type", "parent_seat");
-        if (error) return { success: false, error: error.message };
-      }
+    // Parent Pack is a one-time purchase stored in one_time_purchases, type = 'parent_seat'.
+    if (enabled) {
+      // TODO: replace placeholder Stripe payment intent ID with real value from Stripe
+      // webhook once Stripe integration is complete (Feature 12)
+      const { error } = await service
+        .from("one_time_purchases")
+        .upsert(
+          {
+            user_id: userId,
+            type: "parent_seat",
+            purchased_at: new Date().toISOString(),
+            stripe_payment_intent_id: "pi_placeholder",
+          },
+          { onConflict: "user_id,type", ignoreDuplicates: true }
+        );
+      if (error) return { success: false, error: error.message };
     } else {
-      // explore and concierge are recurring subscriptions stored in the addons table.
-      if (enabled) {
-        // TODO: replace placeholder Stripe IDs with real values from Stripe webhook
-        // once Stripe integration is complete (Feature 12)
-        const { error } = await service
-          .from("addons")
-          .upsert(
-            {
-              user_id: userId,
-              type: addon,
-              status: "active",
-              stripe_customer_id: "cus_placeholder",
-              stripe_subscription_id: "sub_placeholder",
-              stripe_product_id: "prod_placeholder",
-            },
-            { onConflict: "user_id,type", ignoreDuplicates: true }
-          );
-        if (error) return { success: false, error: error.message };
-      } else {
-        const { error } = await service
-          .from("addons")
-          .delete()
-          .eq("user_id", userId)
-          .eq("type", addon);
-        if (error) return { success: false, error: error.message };
-      }
+      const { error } = await service
+        .from("one_time_purchases")
+        .delete()
+        .eq("user_id", userId)
+        .eq("type", "parent_seat");
+      if (error) return { success: false, error: error.message };
     }
 
     revalidatePath("/admin/users");

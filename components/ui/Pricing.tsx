@@ -30,25 +30,26 @@ const plans = [
     ],
   },
   {
-    name: "Pro",
-    price: "$99",
-    cadence: "one-time · lifetime access",
+    name: "Explore",
+    price: "$9.99",
+    cadence: "per month",
     featured: true,
     features: [
       "Everything in Lite",
-      "Full content library access",
-      "Community access",
+      "Deeper settling-in guidance",
+      "More detailed planning support",
+      "Subscription upgrade path",
     ],
   },
   {
-    name: "Premium",
-    price: "$149",
-    cadence: "one-time · lifetime access",
+    name: "Concierge",
+    price: "$19.99",
+    cadence: "per month",
     featured: false,
     features: [
-      "Everything in Pro",
-      "Priority support",
-      "1-on-1 guidance sessions",
+      "Everything in Explore",
+      "Highest-tier support guidance",
+      "Advanced long-term success resources",
     ],
   },
 ];
@@ -68,7 +69,7 @@ export function Pricing() {
           <Card
             key={plan.name}
             className={[
-              "relative mt-3 border transition-all duration-200",
+              "relative mt-3 flex h-full flex-col border transition-all duration-200",
               plan.featured
                 ? "border-2 border-[var(--accent)] shadow-[var(--shadow-lg)]"
                 : "border-[var(--border-md)] hover:border-[var(--border-hi)] hover:shadow-[var(--shadow-lg)]",
@@ -106,12 +107,14 @@ export function Pricing() {
               ))}
             </ul>
 
-            <Link
-              href="/pricing"
-              className="inline-flex min-h-10 w-full items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-2.5 text-center font-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
-            >
-              Get Started
-            </Link>
+            <div className="mt-auto">
+              <Link
+                href="/pricing"
+                className="inline-flex min-h-10 w-full items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-2.5 text-center font-primary text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
+              >
+                Get Started
+              </Link>
+            </div>
           </Card>
         ))}
       </div>

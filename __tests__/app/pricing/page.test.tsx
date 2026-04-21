@@ -75,11 +75,11 @@ const mockTiers: PricingItem[] = [
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    id: "pro",
-    name: "Pro",
-    description: "Full library",
-    price: 99,
-    billing: "one-time",
+    id: "explore",
+    name: "Explore",
+    description: "Deeper guidance",
+    price: 9.99,
+    billing: "monthly",
     features: ["Everything in Lite", "Community access"],
     is_public: true,
     display_order: 2,
@@ -88,12 +88,12 @@ const mockTiers: PricingItem[] = [
     updated_at: "2026-01-01T00:00:00Z",
   },
   {
-    id: "premium",
-    name: "Premium",
-    description: "All access",
-    price: 199,
-    billing: "one-time",
-    features: ["Everything in Pro", "1-on-1 sessions"],
+    id: "concierge",
+    name: "Concierge",
+    description: "Highest-touch plan",
+    price: 19.99,
+    billing: "monthly",
+    features: ["Everything in Explore", "1-on-1 sessions"],
     is_public: true,
     display_order: 3,
     stripe_product_id: null,
@@ -174,15 +174,15 @@ describe("PricingPage", () => {
   it("renders all three tier plan names", async () => {
     render(await PricingPage());
     expect(screen.getByText("Lite")).toBeInTheDocument();
-    expect(screen.getByText("Pro")).toBeInTheDocument();
-    expect(screen.getByText("Premium")).toBeInTheDocument();
+    expect(screen.getByText("Explore")).toBeInTheDocument();
+    expect(screen.getByText("Concierge")).toBeInTheDocument();
   });
 
   it("renders prices for all tiers", async () => {
     render(await PricingPage());
     expect(screen.getByText("$49")).toBeInTheDocument();
-    expect(screen.getByText("$99")).toBeInTheDocument();
-    expect(screen.getByText("$199")).toBeInTheDocument();
+    expect(screen.getByText("$9.99")).toBeInTheDocument();
+    expect(screen.getByText("$19.99")).toBeInTheDocument();
   });
 
   it("renders feature items", async () => {
@@ -278,10 +278,10 @@ describe("PricingPage", () => {
     const tiersWithAddon: PricingItem[] = [
       ...mockTiers,
       {
-        id: "explore",
-        name: "Explore",
-        description: "Extra content",
-        price: 29,
+        id: "arrival_call",
+        name: "1:1 Arrival Call",
+        description: "Extra support",
+        price: 0,
         billing: "one-time",
         features: null,
         is_public: true,
@@ -295,7 +295,7 @@ describe("PricingPage", () => {
     setupAuthenticated({ membershipRank: 0, hasParentSeat: false });
     render(await PricingPage());
     const buttons = screen.getAllByTestId("buy-now-button");
-    // Last button is for "explore" — should not get the upsell.
+    // Last button is a non-tier support product — it should not get the upsell.
     expect(buttons[buttons.length - 1]).toHaveAttribute("data-has-upsell", "false");
     // First three (tier cards) should get the upsell.
     [0, 1, 2].forEach((i) =>

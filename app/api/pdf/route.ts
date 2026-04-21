@@ -97,14 +97,12 @@ export async function GET(request: NextRequest) {
 
       const { data: accessData } = await service
         .from("user_access")
-        .select("membership_rank, has_explore, has_concierge, has_parent_seat")
+        .select("membership_rank, has_parent_seat")
         .eq("id", entitlementUserId)
         .maybeSingle();
 
       const ua = accessData as {
         membership_rank: number | null;
-        has_explore: boolean | null;
-        has_concierge: boolean | null;
         has_parent_seat: boolean | null;
       } | null;
 
@@ -114,20 +112,14 @@ export async function GET(request: NextRequest) {
           case "lite":
             authorized = rank >= 1;
             break;
-          case "pro":
+          case "explore":
             authorized = rank >= 2;
             break;
-          case "premium":
+          case "concierge":
             authorized = rank >= 3;
             break;
           case "parent_pack":
             authorized = ua.has_parent_seat === true;
-            break;
-          case "explore":
-            authorized = ua.has_explore === true;
-            break;
-          case "concierge":
-            authorized = ua.has_concierge === true;
             break;
         }
       }

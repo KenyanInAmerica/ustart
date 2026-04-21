@@ -4,7 +4,7 @@ import type { DashboardAccess } from "@/types";
 
 const fullAccess: DashboardAccess = {
   membershipRank: 3,
-  membershipTier: "premium",
+  membershipTier: "concierge",
   hasMembership: true,
   hasParentSeat: true,
   hasExplore: true,
@@ -86,18 +86,18 @@ describe("Sidebar", () => {
     expect(link).toHaveAttribute("href", "/dashboard/account");
   });
 
-  it("unlocks Lite, Pro, Premium when membershipRank is 3", () => {
+  it("unlocks Lite, Explore, Concierge when membershipRank is 3", () => {
     render(<Sidebar {...defaultProps} access={{ ...fullAccess, membershipRank: 3 }} />);
     expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/lite");
-    expect(screen.getByRole("link", { name: /ustart pro/i })).toHaveAttribute("href", "/dashboard/pro");
-    expect(screen.getByRole("link", { name: /ustart premium/i })).toHaveAttribute("href", "/dashboard/premium");
+    expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute("href", "/dashboard/explore");
+    expect(screen.getByRole("link", { name: /ustart concierge/i })).toHaveAttribute("href", "/dashboard/concierge");
   });
 
-  it("locks Pro and Premium when membershipRank is 1", () => {
+  it("locks Explore and Concierge when membershipRank is 1", () => {
     render(<Sidebar {...defaultProps} access={{ ...noAccess, membershipRank: 1 }} />);
     expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart pro/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart premium/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart explore/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /ustart concierge/i })).not.toBeInTheDocument();
   });
 
   it("locks all content nav when membershipRank is 0", () => {
@@ -106,11 +106,9 @@ describe("Sidebar", () => {
     expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
   });
 
-  it("locks Parent Pack, Explore, Concierge when addons are false", () => {
+  it("locks Parent Pack when the seat is missing", () => {
     render(<Sidebar {...defaultProps} access={noAccess} />);
     expect(screen.queryByRole("link", { name: /parent pack/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /explore/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /concierge/i })).not.toBeInTheDocument();
   });
 
   it("unlocks Parent Pack when hasParentSeat is true", () => {
