@@ -18,6 +18,16 @@ export interface AdminUser {
   is_admin: boolean;
   // false when the account has been soft-deleted via softDeleteUser.
   is_active: boolean;
+  intake_response?: AdminIntakeResponse | null;
+}
+
+export interface AdminIntakeResponse {
+  school: string | null;
+  city: string | null;
+  arrival_date: string | null;
+  graduation_date: string | null;
+  main_concerns: string | null;
+  completed_at: string;
 }
 
 // A content item row from the content_items table.

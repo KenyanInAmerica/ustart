@@ -8,6 +8,7 @@ import { cache } from "react";
 import { createServiceClient } from "@/lib/supabase/service";
 import type {
   AdminUser,
+  AdminIntakeResponse,
   AdminStats,
   CommunityMember,
   ContentItem,
@@ -258,6 +259,11 @@ export async function fetchAdminUsers(
     ).map((a) => [a.id, a])
   );
 
+  const intakeEntries = await Promise.all(
+    profiles.map(async (profile) => [profile.id, await fetchUserIntake(profile.id)] as const)
+  );
+  const intakeMap = new Map(intakeEntries);
+
   return {
     users: profiles.map((p) => {
       const access = accessMap.get(p.id);
@@ -276,10 +282,28 @@ export async function fetchAdminUsers(
         has_parent_seat: access?.has_parent_seat ?? false,
         is_admin: p.is_admin ?? false,
         is_active: p.is_active ?? true,
+        intake_response: intakeMap.get(p.id) ?? null,
       };
     }) as AdminUser[],
     total: count ?? 0,
   };
+}
+
+export async function fetchUserIntake(
+  userId: string
+): Promise<AdminIntakeResponse | null> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("intake_responses")
+    .select(
+      "school, city, arrival_date, graduation_date, main_concerns, completed_at"
+    )
+    .eq("user_id", userId)
+    .order("completed_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  return (data as AdminIntakeResponse | null) ?? null;
 }
 
 // Fetches the individually assigned content items for a single user.

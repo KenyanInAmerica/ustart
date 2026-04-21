@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
 import { fetchDashboardAccess } from "@/lib/dashboard/access";
@@ -23,6 +24,12 @@ function getInitials(email: string): string {
   return local.slice(0, 2).toUpperCase();
 }
 
+type ProfileRedirectRow = {
+  id: string;
+  intake_completed_at: string | null;
+  role: "student" | "parent" | null;
+};
+
 // Persistent dashboard shell — wraps all /dashboard/* routes.
 // Server Component: fetches the user session and full entitlement snapshot server-side
 // so the Sidebar and MobileDrawer receive real data without a client-side fetch.
@@ -37,11 +44,27 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
+  if (!user) {
+    return redirect("/sign-in");
+  }
+
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("id, intake_completed_at, role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const profile = profileData as ProfileRedirectRow | null;
+
+  if (profile?.role !== "parent" && profile?.intake_completed_at == null) {
+    return redirect("/intake");
+  }
+
   // fetchDashboardAccess is memoised with React.cache — calling it here and
   // in the streaming page sections results in only one DB round-trip per request.
   const access = await fetchDashboardAccess();
 
-  const userEmail = user?.email ?? "";
+  const userEmail = user.email ?? "";
   const userInitials = userEmail ? getInitials(userEmail) : "U";
   const planName = access.membershipTier
     ? (TIER_NAMES[access.membershipTier] ?? access.membershipTier)

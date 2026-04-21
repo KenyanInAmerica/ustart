@@ -144,6 +144,7 @@ Defined in `lib/config/productAccents.ts`.
 - Tagline: `"Your Move, Made Simple"` (from `brand.ts`, easily configurable)
 - Design system is now fully light mode — dark theme removed entirely
 - `ParentInvitationSection` is hidden behind `PARENT_INVITATION_ENABLED = false` — code intact, not rendered
+- Signed-in users without `profiles.intake_completed_at` are redirected to `/intake` before the dashboard shell loads
 - `components/layout/Nav.tsx` and `components/layout/Footer.tsx` were deleted as unused stubs during the design system overhaul
 
 ---
@@ -175,6 +176,9 @@ Defined in `lib/config/productAccents.ts`.
   /invite
     page.tsx              # Parent invitation confirmation page — validates invite token server-side, renders Accept button or branded error state
     AcceptButton.tsx      # "use client" — handles Accept click, calls acceptInvitation(), shows inline success/error state
+  /intake
+    page.tsx              # Authenticated page — redirects if intake complete or signed out
+    IntakeForm.tsx        # "use client" — intake form with concern checkboxes and validation
   /content               # Authenticated content index page
   /dashboard             # Authenticated student/parent portal
     /layout.tsx          # Dashboard shell layout (includes Footer)
@@ -224,7 +228,7 @@ Defined in `lib/config/productAccents.ts`.
                contactNotification.ts  # Admin notification email template for contact form submissions
                parentInvitation.ts     # Parent invitation email template — CTA links to /invite confirmation page
   /dashboard access.ts (fetchDashboardAccess, fetchWhatsappLink)
-  /admin     data.ts (fetchAdminOverview includes inactiveAccounts count)
+  /admin     data.ts (fetchAdminOverview includes inactiveAccounts count, fetchUserIntake)
              auditLog.ts (fetchAuditLog, AuditLogFilters, ACTION_GROUPS, PAGE_SIZE)
   /audit     actions.ts (AuditAction const enum + AuditActionType)
              log.ts (logAction — fire-and-forget insert into audit_logs)
@@ -239,6 +243,7 @@ Defined in `lib/config/productAccents.ts`.
     acceptCommunityRules.ts     # acceptCommunityRules() — inserts agreement row
     trackContentVisit.ts        # trackContentVisit() — idempotent first-visit stamp
     contactForm.ts              # submitContactForm() — inserts submission, sends Resend notification
+    intake.ts                   # submitIntake() — validates intake, stores column-based intake response, marks profiles.intake_completed_at
     parentInvitation.ts         # sendParentInvitation(), resendParentInvitation(),
                                 #   cancelParentInvitation(), unlinkParent(), acceptInvitation()
                                 #   Updated Feature 13: invite token flow (UUID + 72h expiry),
@@ -340,7 +345,7 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 | `audit_logs`           | Immutable event log of all auditable actions. Columns: id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated). Added Audit Log feature. |
 | `plan_task_templates`  | Plan builder template rows. Phase-based default tasks with title, description, active flag, and display offsets.                                                                            |
 | `plan_tasks`           | Per-user task rows derived from plan templates. Tracks phase, due date, completion, and status.                                                                                             |
-| `intake_responses`     | Per-user intake submission payloads stored as JSONB. Used with `profiles.intake_completed_at` to power future planning flows.                                                               |
+| `intake_responses`     | Stores submitted intake form data. `main_concerns` is a comma-separated string of concern keys, and the most recent row is used for admin visibility and future planning flows.              |
 
 ### Column Notes
 
@@ -590,6 +595,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Phase 2 Schema Changes | Membership rename, intake fields, planning tables, pricing/product model updates | ✅ Built |
 | Feature 1  | Shell & Layout                               | ✅ Built                        |
 | Feature 2  | Greeting & User State                        | ✅ Built                        |
+| Phase 3    | Intake Form                                  | ✅ Built                        |
 | Feature 3  | Start Here / Onboarding Progress             | ✅ Built                        |
 | Feature 4  | Content Cards with Access Gating             | ✅ Built                        |
 | Feature 5  | Community Section                            | ✅ Built                        |
@@ -691,6 +697,8 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Reactivate `csr@u-start.co.uk` in Google Workspace (currently archived), then set as `RESEND_NOTIFICATION_EMAIL` in Vercel production
 - Notify parent via Resend when unlinked (see `TODO` in `lib/actions/parentInvitation.ts → unlinkParent`) — deferred post-launch
 - Confirm Resend API keys are scoped to correct sending domains — staging key: staging.u-start.co.uk, production key: u-start.co.uk
+- Add school column to profiles table before Phase 4 (currently stored in intake_responses only)
+- Consider moving main_concerns to JSONB array in a future migration for easier querying
 
 **Business Owner Decisions Pending**
 

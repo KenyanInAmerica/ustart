@@ -35,6 +35,9 @@
   /invite
     page.tsx                      # Parent invitation confirmation (public, no auth)
     AcceptButton.tsx              # "use client" — calls acceptInvitation() on click
+  /intake
+    page.tsx                      # Authenticated intake gate page
+    IntakeForm.tsx                # "use client" intake form + validation
   /community-rules/page.tsx       # Public community rules page
   /content/page.tsx               # Authenticated content index placeholder
   /pricing/page.tsx               # Public pricing page
@@ -95,7 +98,7 @@
     RecentSignupsSection.tsx      # Recent signups table (Suspense)
     skeletons/                    # Admin loading skeletons
     UsersTable.tsx                # User management table (client component)
-    UserPanel.tsx                 # Slide-out user detail panel
+    UserPanel.tsx                 # Slide-out user detail panel with read-only intake section
     InvitationLinkForm.tsx        # Manual parent invitation form
     ContentUploadForm.tsx         # PDF upload form
     ContentDeleteButton.tsx       # Individual content delete action
@@ -127,6 +130,7 @@
     acceptCommunityRules.ts       # acceptCommunityRules() — inserts agreement row
     trackContentVisit.ts          # trackContentVisit() — idempotent first-visit stamp
     contactForm.ts                # submitContactForm() — inserts + sends Resend notification
+    intake.ts                     # submitIntake() — validates, stores intake payload, marks profile complete
     parentInvitation.ts           # sendParentInvitation(), resendParentInvitation(),
                                   # cancelParentInvitation(), unlinkParent(), acceptInvitation()
     /admin
@@ -139,7 +143,7 @@
                                   # softDeleteUser(), hardDeleteUser(), reactivateUser(),
                                   # assignContentToUser(), revokeContentFromUser(), etc.
   /admin
-    data.ts                       # fetchAdminOverview(), fetchUsers() — server data functions
+    data.ts                       # fetchAdminOverview(), fetchUsers(), fetchUserIntake() — server data functions
     auditLog.ts                   # fetchAuditLog(), ACTION_GROUPS, PAGE_SIZE
   /audit
     actions.ts                    # AuditAction const object + AuditActionType union
@@ -256,7 +260,7 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 | `audit_logs` | id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated) | Immutable event log. payload_text is a stored generated column for ILIKE search |
 | `plan_task_templates` | id, phase, title, description, recommended_offset_days, is_active, created_at, updated_at | Phase-based planning templates |
 | `plan_tasks` | id, user_id, template_id, phase, title, description, due_date, completed_at, status, created_at, updated_at | Per-user tasks derived from plan templates |
-| `intake_responses` | id, user_id, responses, submitted_at, created_at | Per-user intake submission payloads |
+| `intake_responses` | id, user_id, school, city, arrival_date, graduation_date, main_concerns, completed_at | Per-user intake submission data stored in concrete columns |
 | `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, active_addons, etc. `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not addon rows. |
 
 **Critical column names:**

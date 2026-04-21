@@ -25,6 +25,7 @@ const mockUser: AdminUser = {
   has_parent_seat: false,
   is_admin: false,
   is_active: true,
+  intake_response: null,
 };
 
 const inactiveUser: AdminUser = { ...mockUser, is_active: false };
