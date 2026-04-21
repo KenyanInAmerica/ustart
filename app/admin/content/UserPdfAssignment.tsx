@@ -1,11 +1,8 @@
-// Client component for individual user PDF assignment in the Content section.
-// Admins search for a user, then see that user's existing assignments and the
-// full content library. Each assign/revoke fires immediately and the list
-// re-fetches so the UI reflects the current state without a page reload.
-
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
+import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 import type { ContentItem, UserContentItem } from "@/types/admin";
 import {
   searchUsersForAssignment,
@@ -27,6 +24,19 @@ interface UserPdfAssignmentProps {
   allContent: ContentItem[];
 }
 
+function tierAccent(tier: ContentItem["tier"]): ProductAccent {
+  switch (tier) {
+    case "explore":
+      return "explore";
+    case "concierge":
+      return "concierge";
+    case "parent_pack":
+      return "parent_pack";
+    default:
+      return "lite";
+  }
+}
+
 export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
   const [searchInput, setSearchInput] = useState("");
   const [searchResults, setSearchResults] = useState<UserResult[]>([]);
@@ -36,7 +46,6 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
   const [assignments, setAssignments] = useState<UserContentItem[]>([]);
   const [isLoadingAssignments, startAssignmentsTransition] = useTransition();
 
-  // Each section owns its own feedback so messages appear inline, not at the top.
   const [revokeError, setRevokeError] = useState<string | null>(null);
   const [revokeSuccess, setRevokeSuccess] = useState<string | null>(null);
   const [isRevoking, startRevokeTransition] = useTransition();
@@ -50,8 +59,6 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
   const [isUploading, startUploadTransition] = useTransition();
   const [uploadFileName, setUploadFileName] = useState<string | null>(null);
 
-  // Sets a message then clears it after 3 s so it doesn't linger when the
-  // admin navigates to another part of the page.
   function flash(setter: (v: string | null) => void, message: string) {
     setter(message);
     setTimeout(() => setter(null), 3000);
@@ -119,7 +126,6 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
         flash(setAssignError, result.error);
       } else {
         flash(setAssignSuccess, "PDF assigned successfully.");
-        // Re-fetch so the assigned/available lists stay in sync.
         const data = await getUserAssignments(selectedUser.id);
         setAssignments(data);
       }
@@ -147,22 +153,20 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
     });
   }
 
-  // Exclude already-assigned content from the available list.
   const assignedIds = new Set(assignments.map((a) => a.content_item_id));
   const availableContent = allContent.filter((c) => !assignedIds.has(c.id));
 
   return (
     <section>
-      <h2 className="font-syne font-extrabold text-xl tracking-[-0.02em] text-white mb-1">
+      <h2 className="mb-1 font-primary text-xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Individual user assignments
       </h2>
-      <p className="text-[13px] text-white/40 mb-6">
+      <p className="mb-6 text-[13px] text-[var(--text-muted)]">
         Assign PDFs directly to a specific user to supplement their tier access.
       </p>
 
-      {/* User search */}
-      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5 mb-5">
-        <h3 className="text-[12px] font-medium tracking-[0.06em] uppercase text-white/40 mb-3">
+      <div className="mb-5 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+        <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
           Find user
         </h3>
         <form onSubmit={handleSearch} className="flex gap-2">
@@ -170,29 +174,29 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             placeholder="Search by name or email…"
-            className="flex-1 bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+            className="flex-1 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
           />
-          <button
+          <Button
             type="submit"
             disabled={isSearching || !searchInput.trim()}
-            className="px-4 py-2 bg-white/[0.08] text-white text-[13px] rounded-lg hover:bg-white/[0.12] transition-colors disabled:opacity-50 shrink-0"
+            variant="secondary"
+            size="sm"
           >
             {isSearching ? "Searching…" : "Search"}
-          </button>
+          </Button>
         </form>
 
-        {/* Search results — shown only before a user is selected */}
         {searchResults.length > 0 && !selectedUser && (
-          <ul className="mt-3 space-y-0.5 border border-white/[0.07] rounded-lg overflow-hidden">
+          <ul className="mt-3 space-y-0.5 overflow-hidden rounded-[var(--radius-md)] border border-[var(--border)]">
             {searchResults.map((u) => (
               <li key={u.id}>
                 <button
                   onClick={() => selectUser(u)}
-                  className="w-full text-left px-4 py-2.5 hover:bg-white/[0.04] transition-colors"
+                  className="w-full px-4 py-2.5 text-left transition-colors hover:bg-[var(--bg-subtle)]"
                 >
-                  <p className="text-[13px] text-white/80">{u.email}</p>
+                  <p className="text-[13px] text-[var(--text)]">{u.email}</p>
                   {(u.first_name || u.last_name) && (
-                    <p className="text-[12px] text-white/40 mt-0.5">
+                    <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
                       {[u.first_name, u.last_name].filter(Boolean).join(" ")}
                     </p>
                   )}
@@ -202,130 +206,108 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
           </ul>
         )}
 
-        {/* Selected user badge */}
         {selectedUser && (
-          <div className="mt-3 flex items-center justify-between border-t border-white/[0.07] pt-3">
+          <div className="mt-3 flex items-center justify-between border-t border-[var(--border)] pt-3">
             <div>
-              <p className="text-[13px] text-white">{selectedUser.email}</p>
-              <p className="text-[12px] text-white/40 mt-0.5">
+              <p className="text-[13px] text-[var(--text)]">{selectedUser.email}</p>
+              <p className="mt-0.5 text-[12px] text-[var(--text-muted)]">
                 {selectedUser.membership_tier
                   ? `Plan: ${selectedUser.membership_tier.charAt(0).toUpperCase() + selectedUser.membership_tier.slice(1)}`
                   : "No plan"}
               </p>
             </div>
-            <button
-              onClick={clearUser}
-              className="text-[12px] text-white/40 hover:text-white transition-colors"
-            >
+            <Button onClick={clearUser} variant="ghost" size="sm">
               Clear
-            </button>
+            </Button>
           </div>
         )}
       </div>
 
-      {/* Assignment management — only visible once a user is selected */}
       {selectedUser && (
         <div className="space-y-4">
-          {/* Currently individually assigned */}
-          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5">
-            <h3 className="text-[12px] font-medium tracking-[0.06em] uppercase text-white/40 mb-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
               Individually assigned
             </h3>
             {isLoadingAssignments ? (
-              <p className="text-[13px] text-white/30">Loading…</p>
+              <p className="text-[13px] text-[var(--text-muted)]">Loading…</p>
             ) : assignments.length === 0 ? (
-              <p className="text-[13px] text-white/30">No individual PDFs assigned.</p>
+              <p className="text-[13px] text-[var(--text-muted)]">No individual PDFs assigned.</p>
             ) : (
               <ul className="space-y-1.5">
                 {assignments.map((a) => (
                   <li
                     key={a.id}
-                    className="flex items-center justify-between gap-3 px-3 py-2 bg-white/[0.03] border border-white/[0.07] rounded-lg"
+                    className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2"
                   >
                     <div>
-                      <p className="text-[13px] text-white/80 leading-snug">
+                      <p className="text-[13px] leading-snug text-[var(--text)]">
                         {a.content_item?.title ?? a.content_item_id}
                       </p>
                       {a.content_item?.tier && (
-                        <span className="text-[11px] text-white/40 capitalize">
+                        <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${accentSurfaceClass(tierAccent(a.content_item.tier))}`}>
                           {a.content_item.tier.replace("_", " ")}
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => handleRevoke(a.id)}
-                      disabled={isRevoking}
-                      className="text-[12px] text-white/30 hover:text-red-400 transition-colors shrink-0 disabled:opacity-50"
-                    >
+                    <Button onClick={() => handleRevoke(a.id)} disabled={isRevoking} variant="destructive" size="sm">
                       Revoke
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
             )}
-            {/* Revoke feedback — inline below the list */}
-            {revokeError && <p className="text-red-400 text-[12px] mt-3">{revokeError}</p>}
-            {revokeSuccess && <p className="text-emerald-400 text-[12px] mt-3">{revokeSuccess}</p>}
+            {revokeError && <p className="mt-3 text-[12px] text-[var(--destructive)]">{revokeError}</p>}
+            {revokeSuccess && <p className="mt-3 text-[12px] text-emerald-600">{revokeSuccess}</p>}
           </div>
 
-          {/* Available to assign */}
-          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5">
-            <h3 className="text-[12px] font-medium tracking-[0.06em] uppercase text-white/40 mb-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
               Available PDFs
             </h3>
             {availableContent.length === 0 ? (
-              <p className="text-[13px] text-white/30">All PDFs are already assigned.</p>
+              <p className="text-[13px] text-[var(--text-muted)]">All PDFs are already assigned.</p>
             ) : (
               <ul className="space-y-1.5">
                 {availableContent.map((c) => (
                   <li
                     key={c.id}
-                    className="flex items-center justify-between gap-3 px-3 py-2 bg-white/[0.03] border border-white/[0.07] rounded-lg"
+                    className="flex items-center justify-between gap-3 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2"
                   >
                     <div>
-                      <p className="text-[13px] text-white/80 leading-snug">{c.title}</p>
-                      <span className="text-[11px] text-white/40 capitalize">
+                      <p className="text-[13px] leading-snug text-[var(--text)]">{c.title}</p>
+                      <span className={`inline-flex rounded-full px-2 py-0.5 text-[11px] font-semibold capitalize ${accentSurfaceClass(tierAccent(c.tier))}`}>
                         {c.tier.replace("_", " ")}
                       </span>
                     </div>
-                    <button
-                      onClick={() => handleAssign(c.id)}
-                      disabled={isAssigning}
-                      className="text-[12px] text-white/50 hover:text-emerald-400 transition-colors shrink-0 disabled:opacity-50"
-                    >
+                    <Button onClick={() => handleAssign(c.id)} disabled={isAssigning} size="sm">
                       Assign
-                    </button>
+                    </Button>
                   </li>
                 ))}
               </ul>
             )}
-            {/* Assign feedback — inline below the list */}
-            {assignError && <p className="text-red-400 text-[12px] mt-3">{assignError}</p>}
-            {assignSuccess && <p className="text-emerald-400 text-[12px] mt-3">{assignSuccess}</p>}
+            {assignError && <p className="mt-3 text-[12px] text-[var(--destructive)]">{assignError}</p>}
+            {assignSuccess && <p className="mt-3 text-[12px] text-emerald-600">{assignSuccess}</p>}
           </div>
 
-          {/* Upload a new PDF and assign it directly to this user */}
-          <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5">
-            <h3 className="text-[12px] font-medium tracking-[0.06em] uppercase text-white/40 mb-3">
+          <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
               Upload &amp; assign new PDF
             </h3>
-            {/* No tier selector — individual uploads are never served in tier feeds.
-                The action sets is_individual_only = true so the file is invisible
-                to all users except the one it's assigned to. */}
             <form onSubmit={handleUploadAssign} className="space-y-3">
               <input
                 name="title"
                 placeholder="Title"
                 required
-                className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+                className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
               />
-              {/* File picker — show chosen file name so the admin knows what's queued */}
               <div>
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <span className="px-3 py-2 bg-white/[0.08] text-white/70 text-[13px] rounded-lg hover:bg-white/[0.12] transition-colors shrink-0">
+                <label className="flex cursor-pointer items-center gap-3">
+                  <span className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-white">
                     Choose PDF
                   </span>
-                  <span className="text-[13px] text-white/40 truncate">
+                  <span className="truncate text-[13px] text-[var(--text-muted)]">
                     {uploadFileName ?? "No file chosen"}
                   </span>
                   <input
@@ -334,23 +316,16 @@ export function UserPdfAssignment({ allContent }: UserPdfAssignmentProps) {
                     accept="application/pdf"
                     required
                     className="sr-only"
-                    onChange={(e) =>
-                      setUploadFileName(e.target.files?.[0]?.name ?? null)
-                    }
+                    onChange={(e) => setUploadFileName(e.target.files?.[0]?.name ?? null)}
                   />
                 </label>
               </div>
-              <button
-                type="submit"
-                disabled={isUploading}
-                className="px-4 py-2 bg-white/[0.08] text-white text-[13px] rounded-lg hover:bg-white/[0.12] transition-colors disabled:opacity-50"
-              >
+              <Button type="submit" disabled={isUploading} size="sm">
                 {isUploading ? "Uploading…" : "Upload & Assign"}
-              </button>
+              </Button>
             </form>
-            {/* Upload feedback — inline below the form */}
-            {uploadError && <p className="text-red-400 text-[12px] mt-3">{uploadError}</p>}
-            {uploadSuccess && <p className="text-emerald-400 text-[12px] mt-3">{uploadSuccess}</p>}
+            {uploadError && <p className="mt-3 text-[12px] text-[var(--destructive)]">{uploadError}</p>}
+            {uploadSuccess && <p className="mt-3 text-[12px] text-emerald-600">{uploadSuccess}</p>}
           </div>
         </div>
       )}

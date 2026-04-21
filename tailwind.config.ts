@@ -8,9 +8,28 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      colors: {
+        bg: "var(--bg)",
+        "bg-card": "var(--bg-card)",
+        "bg-card-hover": "var(--bg-card-hover)",
+        "bg-subtle": "var(--bg-subtle)",
+        border: "var(--border)",
+        "border-md": "var(--border-md)",
+        "border-hi": "var(--border-hi)",
+        text: "var(--text)",
+        "text-mid": "var(--text-mid)",
+        "text-muted": "var(--text-muted)",
+        accent: "var(--accent)",
+        "accent-hover": "var(--accent-hover)",
+        destructive: "var(--destructive)",
+        "destructive-hover": "var(--destructive-hover)",
+        navy: "#1C2B3A",
+        "sky-blue": "#3083DC",
+        "warm-red": "#E54B4B",
+        creme: "#F2F1EF",
+      },
       fontFamily: {
-        syne: ["var(--font-syne)", "sans-serif"],
-        "dm-sans": ["var(--font-dm-sans)", "sans-serif"],
+        primary: ["var(--font-primary)", "sans-serif"],
       },
       screens: {
         "md-900": "900px",

@@ -3,13 +3,13 @@
 export default function AuditLogLoading() {
   return (
     <div className="px-8 py-8 max-w-7xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Audit Log
       </h1>
-      <div className="flex items-center gap-3 mt-16 text-white/30 text-[13px]">
+      <div className="mt-16 flex items-center gap-3 text-[13px] text-[var(--text-muted)]">
         {/* Spinning ring */}
         <svg
-          className="w-5 h-5 animate-spin text-white/40"
+          className="h-5 w-5 animate-spin text-[var(--text-muted)]"
           viewBox="0 0 24 24"
           fill="none"
           aria-hidden="true"

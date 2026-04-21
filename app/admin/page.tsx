@@ -11,10 +11,10 @@ import { SectionErrorBoundary } from "@/components/ui/SectionErrorBoundary";
 export default function AdminOverviewPage() {
   return (
     <div className="px-8 py-8 max-w-5xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Overview
       </h1>
-      <p className="text-[13px] text-white/40 mb-8">
+      <p className="mb-8 text-[13px] text-[var(--text-muted)]">
         Platform snapshot — live data from the database.
       </p>
 

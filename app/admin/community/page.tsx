@@ -11,10 +11,10 @@ export default async function AdminCommunityPage() {
     <div className="px-8 py-8 max-w-5xl">
       <div className="flex items-start justify-between mb-6">
         <div>
-          <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+          <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
             Community
           </h1>
-          <p className="text-[13px] text-white/40">
+          <p className="text-[13px] text-[var(--text-muted)]">
             {members.length} member{members.length !== 1 ? "s" : ""} have agreed to community rules
           </p>
         </div>
@@ -22,32 +22,32 @@ export default async function AdminCommunityPage() {
       </div>
 
       {members.length === 0 ? (
-        <p className="text-[13px] text-white/30">No community members yet.</p>
+        <p className="text-[13px] text-[var(--text-muted)]">No community members yet.</p>
       ) : (
-        <div className="border border-white/[0.07] rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Email</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Name</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">University</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Phone</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Agreed</th>
+              <tr className="bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Name</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">University</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Phone</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Agreed</th>
               </tr>
             </thead>
             <tbody>
               {members.map((m, i) => (
                 <tr
                   key={m.id}
-                  className={i < members.length - 1 ? "border-b border-white/[0.05]" : ""}
+                  className={`${i < members.length - 1 ? "border-b border-[var(--border)]" : ""} transition-colors hover:bg-[var(--bg-subtle)]`}
                 >
-                  <td className="px-4 py-3 text-[13px] text-white/80">{m.email}</td>
-                  <td className="px-4 py-3 text-[13px] text-white/60">
+                  <td className="px-4 py-3 text-[13px] text-[var(--text)]">{m.email}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-mid)]">
                     {[m.first_name, m.last_name].filter(Boolean).join(" ") || "—"}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-white/50">{m.university_name ?? "—"}</td>
-                  <td className="px-4 py-3 text-[13px] text-white/50">{m.phone_number ?? "—"}</td>
-                  <td className="px-4 py-3 text-[13px] text-white/40">
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-muted)]">{m.university_name ?? "—"}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-muted)]">{m.phone_number ?? "—"}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-muted)]">
                     {new Date(m.agreed_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",

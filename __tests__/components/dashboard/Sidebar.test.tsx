@@ -77,7 +77,7 @@ describe("Sidebar", () => {
     render(<Sidebar {...defaultProps} />);
     const dashLink = screen.getByRole("link", { name: /dashboard/i });
     expect(dashLink).toHaveAttribute("href", "/dashboard");
-    expect(dashLink.className).toMatch(/bg-white/);
+    expect(dashLink.className).toMatch(/text-\[#3083DC\]/);
   });
 
   it("renders Account & Billing link pointing to /dashboard/account", () => {

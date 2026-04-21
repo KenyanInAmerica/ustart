@@ -27,11 +27,11 @@ export function AccountStrip({ access }: Props) {
     : null;
 
   return (
-    <div className="bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 flex items-center justify-between gap-4">
+    <div className="flex items-center justify-between gap-4 rounded-2xl border border-[var(--border)] border-l-4 border-l-[#F5C842] bg-white p-5">
       <div className="flex items-start gap-3">
         {/* Credit card / billing icon */}
         <svg
-          className="w-4 h-4 text-white/[0.42] flex-shrink-0 mt-0.5"
+          className="mt-0.5 h-4 w-4 flex-shrink-0 text-yellow-700"
           viewBox="0 0 24 24"
           fill="none"
           stroke="currentColor"
@@ -43,11 +43,11 @@ export function AccountStrip({ access }: Props) {
         </svg>
 
         <div>
-          <p className="font-syne text-sm font-bold text-white mb-1">
+          <p className="mb-1 font-primary text-sm font-bold text-[var(--text)]">
             Billing &amp; Subscription
           </p>
           {access.hasMembership && tierName ? (
-            <p className="font-dm-sans text-xs text-white/[0.42]">
+            <p className="font-primary text-xs text-[var(--text-muted)]">
               {tierName}
               {access.membershipPurchasedAt
                 ? ` · purchased ${formatPurchaseDate(access.membershipPurchasedAt)}`
@@ -57,7 +57,7 @@ export function AccountStrip({ access }: Props) {
             // No plan — link straight to pricing so there's a clear next action.
             <Link
               href="/pricing"
-              className="font-dm-sans text-xs text-white/[0.42] hover:text-white/[0.70] underline transition-colors"
+              className="font-primary text-xs text-[var(--text-muted)] underline transition-colors hover:text-[var(--text)]"
             >
               No active plan — view plans →
             </Link>
@@ -69,9 +69,9 @@ export function AccountStrip({ access }: Props) {
       {access.hasMembership && (
         <Link
           href="/dashboard/account"
-          className="font-dm-sans text-sm text-white/[0.68] hover:text-white transition-colors flex-shrink-0"
+          className="flex-shrink-0 inline-flex items-center justify-center rounded-[var(--radius-sm)] border border-[var(--border-md)] bg-white px-3.5 py-2 text-sm font-semibold text-[var(--text)] transition-colors duration-200 hover:bg-[var(--bg-subtle)]"
         >
-          Manage →
+          Manage
         </Link>
       )}
     </div>

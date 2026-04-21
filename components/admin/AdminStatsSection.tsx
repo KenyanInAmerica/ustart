@@ -1,56 +1,46 @@
-// Async Server Component for the admin stats grid and members-by-tier cards.
-// Streams in independently of RecentSignupsSection so neither blocks the other.
-
 import { fetchAdminOverview } from "@/lib/admin/data";
+import { Card } from "@/components/ui/Card";
 
 export async function AdminStatsSection() {
   const { stats } = await fetchAdminOverview();
 
   const statCards = [
-    { label: "Total Users", value: stats.totalUsers },
-    { label: "Total Students", value: stats.totalStudents },
-    { label: "Total Parents", value: stats.totalParents },
-    { label: "Inactive accounts", value: stats.inactiveAccounts },
-    { label: "Pending invitations", value: stats.pendingInvitations },
-    { label: "Community members", value: stats.communityMembers },
-    { label: "Explore add-on", value: stats.activeExplore },
-    { label: "Concierge add-on", value: stats.activeConcierge },
-    { label: "Parent Pack", value: stats.activeParentPack },
+    { label: "Total Users", value: stats.totalUsers, accent: "border-l-[#3083DC]" },
+    { label: "Total Students", value: stats.totalStudents, accent: "border-l-[#4ECBA5]" },
+    { label: "Total Parents", value: stats.totalParents, accent: "border-l-[#F5C842]" },
+    { label: "Inactive accounts", value: stats.inactiveAccounts, accent: "border-l-[#E54B4B]" },
+    { label: "Pending invitations", value: stats.pendingInvitations, accent: "border-l-[#F5C842]" },
+    { label: "Community members", value: stats.communityMembers, accent: "border-l-[#4ECBA5]" },
+    { label: "Explore add-on", value: stats.activeExplore, accent: "border-l-[#4ECBA5]" },
+    { label: "Concierge add-on", value: stats.activeConcierge, accent: "border-l-[#9B8EC4]" },
+    { label: "Parent Pack", value: stats.activeParentPack, accent: "border-l-[#F5C842]" },
   ];
 
   const tierOrder = ["lite", "pro", "premium"];
 
   return (
     <>
-      {/* Stat cards */}
-      <div className="grid grid-cols-3 gap-4 mb-10">
+      <div className="mb-10 grid grid-cols-3 gap-4">
         {statCards.map((card) => (
-          <div
-            key={card.label}
-            className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-5 py-4"
-          >
-            <p className="text-[12px] text-white/40 mb-1">{card.label}</p>
-            <p className="text-3xl font-syne font-extrabold text-white">{card.value}</p>
-          </div>
+          <Card key={card.label} className={`border border-[var(--border)] border-l-4 ${card.accent}`} padding="md">
+            <p className="mb-1 text-sm text-[var(--text-muted)]">{card.label}</p>
+            <p className="font-primary text-2xl font-bold text-[var(--text)]">{card.value}</p>
+          </Card>
         ))}
       </div>
 
-      {/* Members by tier */}
       <div className="mb-10">
-        <h2 className="text-[13px] font-medium tracking-[0.06em] uppercase text-white/40 mb-4">
+        <h2 className="mb-4 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
           Members by tier
         </h2>
         <div className="flex gap-4">
           {tierOrder.map((tier) => (
-            <div
-              key={tier}
-              className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-5 py-4 w-36"
-            >
-              <p className="text-[12px] text-white/40 mb-1 capitalize">{tier}</p>
-              <p className="text-2xl font-syne font-extrabold text-white">
+            <Card key={tier} className="w-36 border border-[var(--border)]" padding="md">
+              <p className="mb-1 text-sm capitalize text-[var(--text-muted)]">{tier}</p>
+              <p className="font-primary text-2xl font-bold text-[var(--text)]">
                 {stats.membersByTier[tier] ?? 0}
               </p>
-            </div>
+            </Card>
           ))}
         </div>
       </div>

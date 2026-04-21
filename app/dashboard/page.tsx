@@ -28,7 +28,7 @@ export default function DashboardPage() {
       </Suspense>
 
       {/* Content Cards */}
-      <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
+      <p className="mb-[14px] mt-9 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
         Your Content
       </p>
       <SectionErrorBoundary label="Content cards">
@@ -38,7 +38,7 @@ export default function DashboardPage() {
       </SectionErrorBoundary>
 
       {/* Community */}
-      <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
+      <p className="mb-[14px] mt-9 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
         Community
       </p>
       <SectionErrorBoundary label="Community section">
@@ -48,7 +48,7 @@ export default function DashboardPage() {
       </SectionErrorBoundary>
 
       {/* Account */}
-      <p className="font-syne text-[13px] font-bold tracking-[0.06em] uppercase text-white/[0.42] mb-[14px] mt-9">
+      <p className="mb-[14px] mt-9 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
         Account
       </p>
       <SectionErrorBoundary label="Account strip">

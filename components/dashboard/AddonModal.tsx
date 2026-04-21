@@ -1,10 +1,9 @@
-// Purchase modal for locked add-on cards (Parent Pack, Explore, Concierge).
-// Shown when a user clicks a locked add-on — displays product details and a
-// mock Buy Now CTA. The real Stripe checkout redirect replaces the handler in Feature 12.
-
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import type { PricingItem } from "@/lib/config/pricing";
 
 interface AddonModalProps {
@@ -12,7 +11,6 @@ interface AddonModalProps {
   onClose: () => void;
 }
 
-// Map billing cadence to display string.
 function billingLabel(billing: PricingItem["billing"]): string {
   if (billing === "one-time") return "one-time · lifetime access";
   if (billing === "monthly") return "per month";
@@ -22,44 +20,44 @@ function billingLabel(billing: PricingItem["billing"]): string {
 export function AddonModal({ item, onClose }: AddonModalProps) {
   const [purchased, setPurchased] = useState(false);
 
-  // Close on Escape key.
   useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onClose();
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") onClose();
     }
+
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onClose]);
 
   function handleBuyNow() {
     setPurchased(true);
-    // TODO: replace with Stripe checkout session redirect (Feature 12)
   }
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-label={`Purchase ${item.name}`}
     >
-      <div
-        className="bg-[#0C1220] border border-white/[0.10] rounded-2xl flex flex-col w-full max-w-sm"
-        onClick={(e) => e.stopPropagation()}
+      <Card
+        className="flex w-full max-w-sm flex-col border border-[var(--border)]"
+        onClick={(event) => event.stopPropagation()}
+        padding="sm"
+        shadow="lg"
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07]">
-          <h2 className="font-syne font-semibold text-[14px] text-white">
+        <div className="flex items-center justify-between border-b border-[var(--border)] px-5 py-4">
+          <h2 className="font-primary text-[14px] font-semibold text-[var(--text)]">
             {item.name}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors"
+            className="text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
             aria-label="Close"
           >
             <svg
-              className="w-5 h-5"
+              className="h-5 w-5"
               viewBox="0 0 24 24"
               fill="none"
               stroke="currentColor"
@@ -72,66 +70,55 @@ export function AddonModal({ item, onClose }: AddonModalProps) {
           </button>
         </div>
 
-        {/* Body */}
-        <div className="px-5 py-5 flex flex-col gap-4">
-          {/* Price + cadence */}
+        <div className="flex flex-col gap-4 px-5 py-5">
           <div>
-            <p className="font-syne font-extrabold text-3xl tracking-[-0.04em] text-white">
+            <p className="font-primary text-3xl font-extrabold tracking-[-0.04em] text-[var(--text)]">
               ${item.price}
             </p>
-            <p className="font-dm-sans text-xs text-white/40 mt-0.5">
+            <p className="mt-0.5 font-primary text-xs text-[var(--text-muted)]">
               {billingLabel(item.billing)}
             </p>
           </div>
 
-          {/* Description */}
           {item.description && (
-            <p className="font-dm-sans text-sm text-white/50 leading-relaxed">
+            <p className="font-primary text-sm leading-relaxed text-[var(--text-muted)]">
               {item.description}
             </p>
           )}
 
-          {/* Feature list */}
           {item.features && item.features.length > 0 && (
             <ul className="flex flex-col gap-1.5">
-              {item.features.map((feat) => (
-                <li key={feat} className="flex items-start gap-2">
+              {item.features.map((feature) => (
+                <li key={feature} className="flex items-start gap-2">
                   <svg
-                    className="shrink-0 mt-0.5 opacity-40"
-                    width="13"
-                    height="13"
+                    className="mt-0.5 h-[13px] w-[13px] shrink-0 text-[var(--accent)] opacity-50"
                     viewBox="0 0 24 24"
                     fill="none"
-                    stroke="white"
+                    stroke="currentColor"
                     strokeWidth="2"
                     aria-hidden="true"
                   >
                     <polyline points="20 6 9 17 4 12" />
                   </svg>
-                  <span className="font-dm-sans text-sm text-white/55">
-                    {feat}
+                  <span className="font-primary text-sm text-[var(--text-muted)]">
+                    {feature}
                   </span>
                 </li>
               ))}
             </ul>
           )}
 
-          {/* CTA */}
           {purchased ? (
-            <p className="text-center text-sm text-white/50 py-1">
+            <p className="py-1 text-center text-sm text-[var(--text-muted)]">
               Checkout coming soon. Please check back shortly.
             </p>
           ) : (
-            <button
-              onClick={handleBuyNow}
-              className="w-full bg-white text-[#05080F] py-3 rounded-xl text-sm font-medium hover:opacity-90 transition-opacity"
-            >
-              {/* TODO: replace with Stripe checkout session redirect (Feature 12) */}
+            <Button onClick={handleBuyNow} className="w-full">
               Buy Now
-            </button>
+            </Button>
           )}
         </div>
-      </div>
+      </Card>
     </div>
   );
 }

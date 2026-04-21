@@ -4,6 +4,8 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { navSections, isNavItemLocked } from "@/components/dashboard/navItems";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
+import { brand } from "@/lib/config/brand";
+import { accentHexByProduct, type ProductAccent } from "@/lib/config/productAccents";
 import type { DashboardAccess } from "@/types";
 
 type Props = {
@@ -13,70 +15,77 @@ type Props = {
   access: DashboardAccess;
 };
 
-// Desktop sidebar — fixed 240px left column, hidden below 860px via the layout.
-// "use client" so usePathname() can highlight the active nav item.
+function navAccent(href: string): ProductAccent {
+  switch (href) {
+    case "/dashboard/explore":
+      return "explore";
+    case "/dashboard/concierge":
+      return "concierge";
+    case "/dashboard/parent-pack":
+      return "parent_pack";
+    case "/dashboard/community":
+      return "community";
+    default:
+      return "default";
+  }
+}
+
+function activeClassName(href: string): string {
+  const hex = accentHexByProduct[navAccent(href)];
+  return `bg-[${hex}]/10 font-semibold text-[${hex}]`;
+}
+
 export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
   const pathname = usePathname();
+  const itemClassName =
+    "flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[9px] text-sm transition-colors duration-150";
+  const inactiveClassName =
+    "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]";
 
   return (
-    <aside className="hidden min-[860px]:flex flex-col fixed top-0 left-0 bottom-0 w-[240px] z-50 bg-[#0C1220] border-r border-white/[0.07] overflow-y-auto py-7">
-      {/* Wordmark */}
+    <aside className="fixed bottom-0 left-0 top-0 z-50 hidden w-[240px] flex-col overflow-y-auto border-r border-[var(--border)] bg-white py-7 min-[860px]:flex">
       <Link
         href="/"
-        className="font-syne font-extrabold text-[18px] tracking-[-0.03em] text-white px-6 pb-7 border-b border-white/[0.07] mb-5"
+        className="mb-5 border-b border-[var(--border)] px-6 pb-7 font-primary text-[18px] font-extrabold tracking-[-0.03em] text-[var(--text)]"
       >
-        UStart
+        {brand.name}
       </Link>
 
-      {/* Nav sections */}
       <nav className="flex-1">
         {navSections.map((section, sIdx) => (
-          <div key={section.label} className="px-3 mb-1">
-            {/* Section label — no top margin on the first section */}
+          <div key={section.label} className="mb-1 px-3">
             <span
-              className={`block px-3 mb-1 text-[10px] font-semibold tracking-[0.1em] uppercase text-white/[0.42] ${sIdx === 0 ? "" : "mt-4"}`}
+              className={`mb-1 block px-3 text-xs font-semibold uppercase tracking-widest text-[var(--text)] ${sIdx === 0 ? "" : "mt-4"}`}
             >
               {section.label}
             </span>
 
             {section.items.map((item) => {
               const isActive = pathname === item.href;
-              // Lock state is computed from the user's full entitlement snapshot
-              // rather than static flags, so each item reflects real access.
               const isLocked = isNavItemLocked(item, access);
 
               if (isLocked) {
-                // Locked items are non-interactive — rendered as a div to avoid
-                // creating a real link that could be keyboard-navigated.
                 return (
                   <div
                     key={item.href}
-                    className="flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm text-white/[0.28] pointer-events-none"
+                    className={`${itemClassName} pointer-events-none bg-[var(--bg-subtle)] text-[var(--text-muted)]`}
                     aria-disabled="true"
                   >
                     {item.icon}
                     {item.label}
-                    <span className="ml-auto text-[10px] bg-white/[0.04] border border-white/[0.07] text-white/[0.42] px-[7px] py-[2px] rounded-full">
+                    <span className="ml-auto rounded-full border border-[var(--border)] bg-white px-[7px] py-[2px] text-[10px] text-[var(--text-muted)]">
                       Locked
                     </span>
                   </div>
                 );
               }
 
-              // The dashboard link uses a hard <a> instead of <Link> so it always
-              // bypasses the Next.js client-side router cache and fetches fresh
-              // entitlement data (membership, onboarding steps). All other links
-              // use <Link> so pages like the PDF viewer can keep their state.
               if (item.href === "/dashboard") {
                 return (
                   <a
                     key={item.href}
                     href={item.href}
-                    className={`flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors duration-150 ${
-                      isActive
-                        ? "bg-white/[0.07] text-white font-medium"
-                        : "text-white/[0.68] hover:bg-white/[0.05] hover:text-white"
-                    }`}
+                    className={`${itemClassName} ${isActive ? activeClassName(item.href) : inactiveClassName}`}
                   >
                     {item.icon}
                     {item.label}
@@ -88,11 +97,7 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center gap-[10px] px-3 py-[9px] rounded-lg text-sm transition-colors duration-150 ${
-                    isActive
-                      ? "bg-white/[0.07] text-white font-medium"
-                      : "text-white/[0.68] hover:bg-white/[0.05] hover:text-white"
-                  }`}
+                  className={`${itemClassName} ${isActive ? activeClassName(item.href) : inactiveClassName}`}
                 >
                   {item.icon}
                   {item.label}
@@ -103,22 +108,19 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
         ))}
       </nav>
 
-      {/* Footer — user info + sign out */}
-      <div className="mt-auto pt-4 px-3 border-t border-white/[0.07]">
-        <div className="flex items-center gap-[10px] px-3 py-[10px] rounded-lg">
-          {/* Avatar circle with initials */}
-          <div className="w-8 h-8 rounded-full bg-white/[0.1] flex items-center justify-center text-[12px] font-semibold text-white flex-shrink-0 font-syne">
+      <div className="mt-auto border-t border-[var(--border)] px-3 pt-4">
+        <div className="flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[10px]">
+          <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-[var(--bg-subtle)] font-primary text-[12px] font-semibold text-[var(--text)]">
             {userInitials}
           </div>
-          <div className="flex-1 min-w-0">
-            <div className="text-[12px] text-white/[0.42] truncate">{userEmail}</div>
-            <div className="text-[11px] text-white/30">{planName}</div>
+          <div className="min-w-0 flex-1">
+            <div className="truncate text-[12px] text-[var(--text-mid)]">{userEmail}</div>
+            <div className="text-[11px] text-[var(--text-muted)]">{planName}</div>
           </div>
         </div>
-        {/* Badge shown only on parent accounts to distinguish their session */}
         {access.role === "parent" && (
-          <div className="px-3 mb-2">
-            <span className="text-[10px] font-semibold bg-white/[0.06] border border-white/[0.10] text-white/[0.54] px-2 py-[3px] rounded-full">
+          <div className="mb-2 px-3">
+            <span className="rounded-full border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-[3px] text-[10px] font-semibold text-[var(--text-mid)]">
               Parent Account
             </span>
           </div>

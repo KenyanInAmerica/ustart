@@ -7,13 +7,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import { AddonModal } from "@/components/dashboard/AddonModal";
+import { Card } from "@/components/ui/Card";
+import { accentIconClass, accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 import type { DashboardAccess } from "@/types";
 import type { PricingItem, AddonId } from "@/lib/config/pricing";
 
 type Props = {
   access: DashboardAccess;
-  // Pre-fetched pricing for the three add-ons — passed from the server component
-  // parent so this client component never calls a server-only function directly.
   addonPricing: Partial<Record<AddonId, PricingItem>>;
 };
 
@@ -24,58 +24,69 @@ type CardDef = {
   description: string;
   href: string;
   unlocked: boolean;
+  accent: ProductAccent;
   icon: React.ReactNode;
 };
 
-// True if the card id is one of the three add-ons (not a membership tier).
 function isAddon(id: string): id is AddonId {
   return id === "parent_pack" || id === "explore" || id === "concierge";
 }
 
-// Lock icon used on cards the user cannot yet access.
 function LockIcon() {
   return (
-    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
       <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
     </svg>
   );
 }
 
-// Defined at module scope so React doesn't recreate it on every ContentCards render.
 function CardBody({ card }: { card: CardDef }) {
   return (
     <>
-      {/* Icon + badge row */}
-      <div className="flex items-start justify-between mb-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${card.unlocked ? "bg-white/[0.07] text-white" : "bg-white/[0.03] text-white/[0.28]"}`}>
-          {card.unlocked ? card.icon : <LockIcon />}
+      <div className="mb-4 flex items-start justify-between">
+        <div
+          className={`flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl ${
+            card.unlocked ? accentIconClass(card.accent) : "bg-[var(--bg-subtle)] text-[var(--text-muted)]"
+          }`}
+        >
+          {card.unlocked ? card.icon : <span className="opacity-40"><LockIcon /></span>}
         </div>
-        <span className={`text-[10px] font-bold tracking-[0.1em] uppercase px-[7px] py-[2px] rounded-full border ${card.unlocked ? "text-white/[0.42] bg-white/[0.04] border-white/[0.07]" : "text-white/[0.28] bg-white/[0.02] border-white/[0.05]"}`}>
+        <span
+          className={`rounded-full px-[7px] py-[2px] text-[10px] font-bold uppercase tracking-[0.1em] ${
+            card.unlocked
+              ? accentSurfaceClass(card.accent)
+              : "border border-[var(--border)] bg-[var(--bg-subtle)] text-[var(--text-muted)]"
+          }`}
+        >
           {card.badge}
         </span>
       </div>
 
-      {/* Title + description */}
-      <p className={`font-syne text-sm font-bold mb-1 ${card.unlocked ? "text-white" : "text-white/[0.28]"}`}>
+      <p className={`mb-1 font-primary text-sm font-semibold ${card.unlocked ? "text-[var(--text)]" : "text-[var(--text-muted)]"}`}>
         {card.label}
       </p>
-      <p className={`font-dm-sans text-xs leading-relaxed mb-4 ${card.unlocked ? "text-white/[0.42]" : "text-white/[0.20]"}`}>
+      <p className="mb-4 font-primary text-xs leading-relaxed text-[var(--text-muted)]">
         {card.description}
       </p>
 
-      {/* CTA */}
       {card.unlocked ? (
-        <span className="text-xs font-medium text-white/[0.42]">Access content →</span>
+        <span className="inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white">
+          Open section
+        </span>
       ) : (
-        <span className="text-xs text-white/[0.28]">View plans →</span>
+        <span className="inline-flex items-center gap-2 text-xs text-[var(--text-muted)]">
+          <span className="opacity-40">
+            <LockIcon />
+          </span>
+          Locked
+        </span>
       )}
     </>
   );
 }
 
 export function ContentCards({ access, addonPricing }: Props) {
-  // Which add-on modal is currently open. Null when no modal is shown.
   const [openAddon, setOpenAddon] = useState<AddonId | null>(null);
 
   const cards: CardDef[] = [
@@ -86,8 +97,9 @@ export function ContentCards({ access, addonPricing }: Props) {
       description: "Core resources to get started — banking, SSN, credit cards, and student essentials.",
       href: "/dashboard/lite",
       unlocked: access.membershipRank >= 1,
+      accent: "lite",
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
           <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
         </svg>
@@ -100,8 +112,9 @@ export function ContentCards({ access, addonPricing }: Props) {
       description: "Everything in Lite plus deeper guides to help you settle in and thrive.",
       href: "/dashboard/pro",
       unlocked: access.membershipRank >= 2,
+      accent: "pro",
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
         </svg>
       ),
@@ -113,8 +126,9 @@ export function ContentCards({ access, addonPricing }: Props) {
       description: "Everything in Pro plus our most advanced resources for long-term success in the US.",
       href: "/dashboard/premium",
       unlocked: access.membershipRank >= 3,
+      accent: "premium",
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       ),
@@ -126,8 +140,9 @@ export function ContentCards({ access, addonPricing }: Props) {
       description: "Dedicated resources for parents supporting their student's journey in the US.",
       href: "/dashboard/parent-pack",
       unlocked: access.hasParentSeat,
+      accent: "parent_pack",
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
           <circle cx="9" cy="7" r="4" />
           <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
@@ -142,8 +157,9 @@ export function ContentCards({ access, addonPricing }: Props) {
       description: "School-specific guides, city breakdowns, and living resources updated regularly.",
       href: "/dashboard/explore",
       unlocked: access.hasExplore,
+      accent: "explore",
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <circle cx="12" cy="12" r="10" />
           <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76" />
         </svg>
@@ -156,8 +172,9 @@ export function ContentCards({ access, addonPricing }: Props) {
       description: "1-on-1 sessions with an advisor who knows the US system inside and out.",
       href: "/dashboard/concierge",
       unlocked: access.hasConcierge,
+      accent: "concierge",
       icon: (
-        <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
           <path d="M20 7H4a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z" />
           <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
         </svg>
@@ -167,49 +184,53 @@ export function ContentCards({ access, addonPricing }: Props) {
 
   return (
     <>
-      {/* 3-column grid on desktop, 2 on tablet, 1 on mobile */}
-      <div className="grid grid-cols-1 min-[560px]:grid-cols-2 min-[860px]:grid-cols-3 gap-3">
+      <div className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2 min-[860px]:grid-cols-3">
         {cards.map((card) => {
           if (card.unlocked) {
-            // Entire card is a link for unlocked content.
             return (
               <Link
                 key={card.id}
                 href={card.href}
-                className="block bg-[#0C1220] border border-white/[0.07] rounded-2xl p-5 hover:border-white/[0.14] hover:bg-white/[0.02] transition-colors duration-150"
+                className="block transition-transform duration-150 hover:-translate-y-px"
               >
-                <CardBody card={card} />
+                <Card
+                  className="h-full border border-[var(--border-md)] shadow-[var(--shadow-md)] transition-all duration-200 hover:border-[var(--border-hi)] hover:shadow-[var(--shadow-lg)]"
+                  padding="md"
+                >
+                  <CardBody card={card} />
+                </Card>
               </Link>
             );
           }
 
           if (isAddon(card.id)) {
-            // Locked add-on: whole card opens the purchase modal.
             return (
               <button
                 key={card.id}
                 onClick={() => setOpenAddon(card.id as AddonId)}
-                className="text-left bg-[#0C1220] border border-white/[0.05] rounded-2xl p-5 w-full hover:border-white/[0.10] transition-colors duration-150"
+                className="w-full text-left transition-transform duration-150 hover:-translate-y-px"
               >
-                <CardBody card={card} />
+                <Card className="h-full border border-[var(--border)] bg-[var(--bg-subtle)] shadow-none" padding="md">
+                  <CardBody card={card} />
+                </Card>
               </button>
             );
           }
 
-          // Locked tier card: whole card links to /pricing.
           return (
             <Link
               key={card.id}
               href="/pricing"
-              className="block bg-[#0C1220] border border-white/[0.05] rounded-2xl p-5 hover:border-white/[0.10] transition-colors duration-150"
+              className="block transition-transform duration-150 hover:-translate-y-px"
             >
-              <CardBody card={card} />
+              <Card className="h-full border border-[var(--border)] bg-[var(--bg-subtle)] shadow-none" padding="md">
+                <CardBody card={card} />
+              </Card>
             </Link>
           );
         })}
       </div>
 
-      {/* Add-on purchase modal — only rendered when an add-on is selected */}
       {openAddon && addonPricing[openAddon] && (
         <AddonModal
           item={addonPricing[openAddon]!}

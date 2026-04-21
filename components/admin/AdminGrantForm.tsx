@@ -1,9 +1,7 @@
-// Form for granting admin access to an existing user by email.
-// Calls grantAdminAccess server action; the target user must already have an account.
-
 "use client";
 
 import { useState, useTransition } from "react";
+import { Button } from "@/components/ui/Button";
 import { grantAdminAccess } from "@/lib/actions/admin/admins";
 
 export function AdminGrantForm() {
@@ -33,8 +31,8 @@ export function AdminGrantForm() {
   return (
     <div>
       <form onSubmit={handleSubmit} className="flex items-end gap-3">
-        <div className="flex-1 max-w-sm">
-          <label className="block text-[13px] text-white/60 mb-1.5">
+        <div className="max-w-sm flex-1">
+          <label className="mb-1.5 block text-[13px] text-[var(--text-mid)]">
             Email address
           </label>
           <input
@@ -46,22 +44,17 @@ export function AdminGrantForm() {
               setSuccess(false);
             }}
             placeholder="user@example.com"
-            className="w-full bg-white/[0.05] border border-white/[0.10] rounded-lg px-3 py-2 text-[13px] text-white placeholder:text-white/30 focus:outline-none focus:border-white/30"
+            className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isPending || !email.trim()}
-          className="px-4 py-2 bg-white text-[#0C1220] text-[13px] font-medium rounded-lg hover:bg-white/90 transition-colors disabled:opacity-50 shrink-0"
-        >
+        <Button type="submit" disabled={isPending || !email.trim()} size="sm">
           {isPending ? "Granting…" : "Grant access"}
-        </button>
+        </Button>
       </form>
 
-      {/* Feedback below the input row, not inside the flex container */}
-      {error && <p className="text-red-400 text-[12px] mt-3">{error}</p>}
-      {success && <p className="text-emerald-400 text-[12px] mt-3">Admin access granted.</p>}
+      {error && <p className="mt-3 text-[12px] text-[var(--destructive)]">{error}</p>}
+      {success && <p className="mt-3 text-[12px] text-emerald-600">Admin access granted.</p>}
     </div>
   );
 }

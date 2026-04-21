@@ -32,12 +32,12 @@ export class SectionErrorBoundary extends Component<Props, State> {
       const label = this.props.label ?? "This section";
       return (
         <div className="bg-[var(--bg-card)] border border-[var(--border)] rounded-2xl p-5">
-          <p className="font-dm-sans text-sm text-[var(--text-muted)] mb-3">
+          <p className="font-primary text-sm text-[var(--text-muted)] mb-3">
             {label} failed to load.
           </p>
           <button
             onClick={this.reset}
-            className="font-dm-sans text-sm text-[var(--text-mid)] border border-[var(--border)] rounded-lg px-3 py-1.5 hover:border-[var(--border-bright)] hover:text-[var(--text-primary)] transition-colors"
+            className="font-primary text-sm text-[var(--text-mid)] border border-[var(--border)] rounded-lg px-3 py-1.5 hover:border-[var(--border-hi)] hover:text-[var(--text)] transition-colors"
           >
             Retry
           </button>

@@ -22,12 +22,12 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
 
   function statusBadge(status: string) {
     const styles: Record<string, string> = {
-      pending: "bg-yellow-500/10 text-yellow-400 border-yellow-500/20",
-      accepted: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-      cancelled: "bg-white/[0.05] text-white/40 border-white/[0.10]",
+      pending: "bg-[#F5C842]/10 text-yellow-700 border-[#F5C842]/30",
+      accepted: "bg-[#4ECBA5]/10 text-[#4ECBA5] border-[#4ECBA5]/20",
+      cancelled: "bg-[var(--bg-subtle)] text-[var(--text-muted)] border-[var(--border)]",
     };
     return (
-      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] border capitalize ${styles[status] ?? ""}`}>
+      <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[11px] capitalize ${styles[status] ?? ""}`}>
         {status}
       </span>
     );
@@ -35,21 +35,21 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
 
   return (
     <div className="px-8 py-8 max-w-5xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Parent Invitations
       </h1>
-      <p className="text-[13px] text-white/40 mb-8">
+      <p className="mb-8 text-[13px] text-[var(--text-muted)]">
         View and manage parent–student links, or manually link a parent below.
       </p>
 
       {/* Manual link form */}
-      <div className="bg-white/[0.03] border border-white/[0.07] rounded-xl px-6 py-5 mb-8">
-        <h2 className="text-[13px] font-medium text-white mb-4">Manually link a parent</h2>
+      <div className="mb-8 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
+        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">Manually link a parent</h2>
         <InvitationLinkForm />
       </div>
 
       {/* Status filter tabs */}
-      <div className="flex gap-1 mb-5">
+      <div className="mb-5 flex gap-1">
         {STATUS_OPTIONS.map((opt) => {
           const href = opt.value ? `/admin/invitations?status=${opt.value}` : "/admin/invitations";
           const active = (statusFilter ?? "") === opt.value;
@@ -57,10 +57,10 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
             <Link
               key={opt.value}
               href={href}
-              className={`px-3 py-1.5 text-[13px] rounded-lg transition-colors ${
+              className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px] transition-colors ${
                 active
-                  ? "bg-white/[0.08] text-white"
-                  : "text-white/40 hover:text-white hover:bg-white/[0.04]"
+                  ? "bg-[#3083DC]/10 text-[#3083DC]"
+                  : "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
               }`}
             >
               {opt.label}
@@ -70,35 +70,35 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
       </div>
 
       {invitations.length === 0 ? (
-        <p className="text-[13px] text-white/30">No invitations found.</p>
+        <p className="text-[13px] text-[var(--text-muted)]">No invitations found.</p>
       ) : (
-        <div className="border border-white/[0.07] rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--border)] bg-white">
           <table className="w-full">
             <thead>
-              <tr className="border-b border-white/[0.07] bg-white/[0.02]">
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Student</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Parent email</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Status</th>
-                <th className="text-left px-4 py-3 text-[12px] text-white/40 font-medium">Invited</th>
+              <tr className="bg-[var(--bg-subtle)] text-[var(--text-muted)]">
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Student</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Parent email</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide">Invited</th>
               </tr>
             </thead>
             <tbody>
               {invitations.map((inv, i) => (
                 <tr
                   key={inv.id}
-                  className={i < invitations.length - 1 ? "border-b border-white/[0.05]" : ""}
+                  className={`${i < invitations.length - 1 ? "border-b border-[var(--border)]" : ""} transition-colors hover:bg-[var(--bg-subtle)]`}
                 >
                   <td className="px-4 py-3">
-                    <p className="text-[13px] text-white/80">{inv.student_email ?? "—"}</p>
+                    <p className="text-[13px] text-[var(--text)]">{inv.student_email ?? "—"}</p>
                     {(inv.student_first_name || inv.student_last_name) && (
-                      <p className="text-[12px] text-white/40">
+                      <p className="text-[12px] text-[var(--text-muted)]">
                         {[inv.student_first_name, inv.student_last_name].filter(Boolean).join(" ")}
                       </p>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-[13px] text-white/60">{inv.parent_email}</td>
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-mid)]">{inv.parent_email}</td>
                   <td className="px-4 py-3">{statusBadge(inv.status)}</td>
-                  <td className="px-4 py-3 text-[13px] text-white/40">
+                  <td className="px-4 py-3 text-[13px] text-[var(--text-muted)]">
                     {new Date(inv.invited_at).toLocaleDateString("en-US", {
                       month: "short",
                       day: "numeric",

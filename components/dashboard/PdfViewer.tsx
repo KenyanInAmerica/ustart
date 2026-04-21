@@ -33,7 +33,7 @@ function Spinner() {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-12">
       <svg
-        className="w-7 h-7 animate-spin text-white/10"
+        className="h-7 w-7 animate-spin text-[var(--text-muted)]"
         viewBox="0 0 24 24"
         fill="none"
         aria-hidden="true"
@@ -52,7 +52,7 @@ function Spinner() {
           d="M4 12a8 8 0 018-8v2a6 6 0 00-6 6H4z"
         />
       </svg>
-      <span className="text-white/40 text-xs font-dm-sans">
+      <span className="text-xs font-primary text-[var(--text-muted)]">
         Loading document...
       </span>
     </div>
@@ -154,7 +154,7 @@ export function PdfViewer({ contentItemId, title, onClose }: PdfViewerProps) {
   return (
     // Backdrop — click outside the card to close.
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-navy/40 p-4 backdrop-blur-sm"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
@@ -162,17 +162,17 @@ export function PdfViewer({ contentItemId, title, onClose }: PdfViewerProps) {
     >
       {/* Card — stopPropagation prevents the backdrop click handler from firing */}
       <div
-        className="bg-[#0C1220] border border-white/[0.10] rounded-2xl flex flex-col w-full max-w-3xl h-[90vh]"
+        className="flex h-[90vh] w-full max-w-3xl flex-col rounded-[var(--radius-lg)] border border-[var(--border)] bg-white shadow-[var(--shadow-lg)]"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.07] shrink-0">
-          <h2 className="font-syne font-semibold text-[14px] text-white truncate max-w-[80%]">
+        <div className="flex shrink-0 items-center justify-between border-b border-[var(--border)] px-5 py-4">
+          <h2 className="max-w-[80%] truncate font-primary text-[14px] font-semibold text-[var(--text)]">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors"
+            className="text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
             aria-label="Close viewer"
           >
             <svg
@@ -192,7 +192,7 @@ export function PdfViewer({ contentItemId, title, onClose }: PdfViewerProps) {
         {/* PDF content area — scrollable, flex-1 fills remaining modal height */}
         <div
           ref={containerRef}
-          className="flex-1 min-h-0 overflow-y-auto rounded-b-2xl px-4"
+          className="min-h-0 flex-1 overflow-y-auto rounded-b-[var(--radius-lg)] bg-[var(--bg-subtle)] px-4"
         >
           {/* Fetch loading state */}
           {!blobUrl && !fetchError && <Spinner />}
@@ -200,10 +200,10 @@ export function PdfViewer({ contentItemId, title, onClose }: PdfViewerProps) {
           {/* Fetch / render error state */}
           {fetchError && (
             <div className="flex flex-col items-center justify-center h-full gap-2 text-center">
-              <p className="font-syne font-semibold text-white text-sm">
+              <p className="font-primary text-sm font-semibold text-[var(--text)]">
                 Failed to load document
               </p>
-              <p className="text-white/40 text-xs font-dm-sans">
+              <p className="text-xs font-primary text-[var(--text-muted)]">
                 Check your connection and try again.
               </p>
             </div>
@@ -238,21 +238,21 @@ export function PdfViewer({ contentItemId, title, onClose }: PdfViewerProps) {
 
         {/* Mobile-only prev/next navigation — hidden on desktop via min-[860px]:hidden */}
         {numPages > 1 && (
-          <div className="min-[860px]:hidden flex items-center justify-between px-5 py-3 border-t border-white/[0.07] shrink-0">
+          <div className="flex shrink-0 items-center justify-between border-t border-[var(--border)] px-5 py-3 min-[860px]:hidden">
             <button
               onClick={goToPrev}
               disabled={currentPage <= 1}
-              className="text-xs font-dm-sans text-white/60 hover:text-white disabled:text-white/20 disabled:cursor-not-allowed transition-colors"
+              className="text-xs font-primary text-[var(--text-mid)] transition-colors hover:text-[var(--text)] disabled:cursor-not-allowed disabled:text-[var(--text-muted)]"
             >
               ← Previous
             </button>
-            <span className="text-xs font-dm-sans text-white/40">
+            <span className="text-xs font-primary text-[var(--text-muted)]">
               {currentPage} / {numPages}
             </span>
             <button
               onClick={goToNext}
               disabled={currentPage >= numPages}
-              className="text-xs font-dm-sans text-white/60 hover:text-white disabled:text-white/20 disabled:cursor-not-allowed transition-colors"
+              className="text-xs font-primary text-[var(--text-mid)] transition-colors hover:text-[var(--text)] disabled:cursor-not-allowed disabled:text-[var(--text-muted)]"
             >
               Next →
             </button>

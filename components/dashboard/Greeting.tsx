@@ -1,20 +1,21 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
+import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 
-// Maps DB tier slugs to human-readable display names for the subheading.
 const TIER_NAMES: Record<string, string> = {
   lite: "Lite",
   pro: "Pro",
   premium: "Premium",
 };
 
-// Async Server Component — fetches session and membership tier server-side
-// so the greeting is fully rendered in the initial HTML with no client flash.
+const TIER_ACCENTS: Record<string, ProductAccent> = {
+  lite: "lite",
+  pro: "pro",
+  premium: "premium",
+};
+
 export async function Greeting() {
   const supabase = createClient();
-
-  // Get the authenticated user's ID to scope the user_access query.
-  // .eq("id", user.id) is required — without it the query returns null.
   const { data: { user } } = await supabase.auth.getUser();
 
   const { data: access } = await supabase
@@ -23,14 +24,10 @@ export async function Greeting() {
     .eq("id", user!.id)
     .maybeSingle();
 
-  // Supabase returns untyped data without a generated schema — cast to the
-  // shape we expect. No `any` used; the assertion is a known structure.
   const raw = access as { membership_tier: string | null; first_name: string | null } | null;
-
   const rawTier = raw?.membership_tier ?? null;
   const planName = rawTier ? (TIER_NAMES[rawTier] ?? rawTier) : null;
-
-  // Only use the stored first_name — no email-derived fallback.
+  const planAccent = rawTier ? (TIER_ACCENTS[rawTier] ?? "default") : null;
   const firstName = raw?.first_name ?? null;
 
   const hour = new Date().getHours();
@@ -45,21 +42,29 @@ export async function Greeting() {
 
   return (
     <div className="mb-10">
-      <h1 className="font-syne text-3xl font-bold tracking-tight text-white">
-        {timeOfDay}{firstName ? `, ${firstName}` : ""}{timeOfDay === "Working late" ? "?" : "."}
-      </h1>
-      <p className="font-dm-sans text-sm text-white/45 mt-1">
+      <div className="flex flex-wrap items-center gap-3">
+        <h1 className="font-primary text-3xl font-bold tracking-tight text-[var(--text)]">
+          {timeOfDay}{firstName ? `, ${firstName}` : ""}{timeOfDay === "Working late" ? "?" : "."}
+        </h1>
+        {planName && planAccent && (
+          <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${accentSurfaceClass(planAccent)}`}>
+            {planName} plan
+          </span>
+        )}
+      </div>
+
+      <p className="mt-1 font-primary text-sm text-[var(--text-muted)]">
         {planName
           ? `Here's your UStart portal. You're on the ${planName} plan.`
           : "Here's your UStart portal. Choose a plan to get started."}
       </p>
-      {/* Prompt unpaid users to pick a plan — hidden once they have an active membership */}
+
       {!planName && (
         <Link
           href="/pricing"
-          className="inline-block mt-3 bg-white text-[#05080F] text-sm font-medium px-4 py-2 rounded-lg"
+          className="mt-3 inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-4 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
         >
-          View Plans →
+          View Plans
         </Link>
       )}
     </div>

@@ -18,10 +18,10 @@ export default async function AdminUsersPage({ searchParams }: PageProps) {
 
   return (
     <div className="px-8 py-8 max-w-6xl">
-      <h1 className="font-syne font-extrabold text-2xl tracking-[-0.02em] text-white mb-1">
+      <h1 className="mb-1 font-primary text-2xl font-extrabold tracking-[-0.02em] text-[var(--text)]">
         Users
       </h1>
-      <p className="text-[13px] text-white/40 mb-6">
+      <p className="mb-6 text-[13px] text-[var(--text-muted)]">
         {total} total user{total !== 1 ? "s" : ""}
         {search ? ` matching "${search}"` : ""}
       </p>

@@ -9,25 +9,25 @@ export function AdminStatsSkeleton() {
         {Array.from({ length: 9 }).map((_, i) => (
           <div
             key={i}
-            className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-5 py-4"
+            className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-5 py-4"
           >
-            <div className="h-2.5 w-28 bg-[var(--bg-card-hover)] rounded animate-pulse mb-2" />
-            <div className="h-8 w-16 bg-[var(--bg-card-hover)] rounded animate-pulse" />
+            <div className="mb-2 h-2.5 w-28 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] animate-pulse" />
+            <div className="h-8 w-16 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] animate-pulse" />
           </div>
         ))}
       </div>
 
       {/* Members by tier — section label + 3 tier cards */}
       <div className="mb-10">
-        <div className="h-2.5 w-28 bg-[var(--bg-card-hover)] rounded animate-pulse mb-4" />
+        <div className="mb-4 h-2.5 w-28 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] animate-pulse" />
         <div className="flex gap-4">
           {Array.from({ length: 3 }).map((_, i) => (
             <div
               key={i}
-              className="bg-[var(--bg-card)] border border-[var(--border)] rounded-xl px-5 py-4 w-36"
+              className="w-36 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-5 py-4"
             >
-              <div className="h-2.5 w-12 bg-[var(--bg-card-hover)] rounded animate-pulse mb-2" />
-              <div className="h-7 w-10 bg-[var(--bg-card-hover)] rounded animate-pulse" />
+              <div className="mb-2 h-2.5 w-12 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] animate-pulse" />
+              <div className="h-7 w-10 rounded-[var(--radius-sm)] bg-[var(--bg-subtle)] animate-pulse" />
             </div>
           ))}
         </div>
