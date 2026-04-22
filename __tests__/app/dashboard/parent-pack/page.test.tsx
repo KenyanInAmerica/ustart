@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import ParentPackPage from "@/app/dashboard/parent-pack/page";
+import ParentPackPage from "@/app/dashboard/content/parent-pack/page";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({
   trackContentVisit: jest.fn().mockResolvedValue(undefined),

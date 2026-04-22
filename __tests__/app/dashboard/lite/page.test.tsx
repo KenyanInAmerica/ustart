@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import LitePage from "@/app/dashboard/lite/page";
+import LitePage from "@/app/dashboard/content/lite/page";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({
   trackContentVisit: jest.fn().mockResolvedValue(undefined),

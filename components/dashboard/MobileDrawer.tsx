@@ -19,12 +19,6 @@ type Props = {
 
 function navAccent(href: string): ProductAccent {
   switch (href) {
-    case "/dashboard/explore":
-      return "explore";
-    case "/dashboard/concierge":
-      return "concierge";
-    case "/dashboard/parent-pack":
-      return "parent_pack";
     case "/dashboard/community":
       return "community";
     default:
@@ -43,6 +37,11 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
     "flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[9px] text-sm transition-colors duration-150";
   const inactiveClassName =
     "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]";
+
+  function isActiveHref(href: string): boolean {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   if (!isOpen) return null;
 
@@ -85,7 +84,7 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
               </span>
 
               {section.items.map((item) => {
-                const isActive = pathname === item.href;
+                const isActive = isActiveHref(item.href);
                 const isLocked = isNavItemLocked(item, access);
 
                 if (isLocked) {
@@ -103,21 +102,6 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
                     </div>
                   );
                 }
-
-                if (item.href === "/dashboard") {
-                  return (
-                    <a
-                      key={item.href}
-                      href={item.href}
-                      onClick={onClose}
-                      className={`${itemClassName} ${isActive ? activeClassName(item.href) : inactiveClassName}`}
-                    >
-                      {item.icon}
-                      {item.label}
-                    </a>
-                  );
-                }
-
                 return (
                   <Link
                     key={item.href}

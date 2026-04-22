@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import ConciergePage from "@/app/dashboard/concierge/page";
+import ConciergePage from "@/app/dashboard/content/concierge/page";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({
   trackContentVisit: jest.fn().mockResolvedValue(undefined),

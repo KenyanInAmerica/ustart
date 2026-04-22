@@ -68,7 +68,7 @@ describe("Sidebar", () => {
   it("renders all nav section labels", () => {
     render(<Sidebar {...defaultProps} />);
     expect(screen.getByText("Main")).toBeInTheDocument();
-    expect(screen.getByText("My Content")).toBeInTheDocument();
+    expect(screen.getAllByText("My Content").length).toBeGreaterThan(0);
     expect(screen.getAllByText("Community").length).toBeGreaterThan(0);
     expect(screen.getByText("Account")).toBeInTheDocument();
   });
@@ -86,34 +86,12 @@ describe("Sidebar", () => {
     expect(link).toHaveAttribute("href", "/dashboard/account");
   });
 
-  it("unlocks Lite, Explore, Concierge when membershipRank is 3", () => {
-    render(<Sidebar {...defaultProps} access={{ ...fullAccess, membershipRank: 3 }} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/lite");
-    expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute("href", "/dashboard/explore");
-    expect(screen.getByRole("link", { name: /ustart concierge/i })).toHaveAttribute("href", "/dashboard/concierge");
-  });
-
-  it("locks Explore and Concierge when membershipRank is 1", () => {
-    render(<Sidebar {...defaultProps} access={{ ...noAccess, membershipRank: 1 }} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart explore/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart concierge/i })).not.toBeInTheDocument();
-  });
-
-  it("locks all content nav when membershipRank is 0", () => {
-    render(<Sidebar {...defaultProps} access={noAccess} />);
-    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
-    expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
-  });
-
-  it("locks Parent Pack when the seat is missing", () => {
-    render(<Sidebar {...defaultProps} access={noAccess} />);
-    expect(screen.queryByRole("link", { name: /parent pack/i })).not.toBeInTheDocument();
-  });
-
-  it("unlocks Parent Pack when hasParentSeat is true", () => {
-    render(<Sidebar {...defaultProps} access={{ ...noAccess, hasParentSeat: true }} />);
-    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute("href", "/dashboard/parent-pack");
+  it("renders My Content linking to /dashboard/content", () => {
+    render(<Sidebar {...defaultProps} />);
+    expect(screen.getByRole("link", { name: /my content/i })).toHaveAttribute(
+      "href",
+      "/dashboard/content"
+    );
   });
 
   it("locks Community when hasAgreedToCommunity is false", () => {
@@ -124,8 +102,7 @@ describe("Sidebar", () => {
   it("renders the user email and plan name", () => {
     render(<Sidebar {...defaultProps} />);
     expect(screen.getByText("student@example.com")).toBeInTheDocument();
-    // "UStart Lite" appears as both a nav item label and the footer plan name
-    expect(screen.getAllByText("UStart Lite").length).toBeGreaterThan(0);
+    expect(screen.getByText("UStart Lite")).toBeInTheDocument();
   });
 
   it("renders the user initials in the avatar", () => {

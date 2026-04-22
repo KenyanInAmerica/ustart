@@ -146,7 +146,7 @@ export async function sendParentInvitation(
       targetEmail: parentEmail,
     });
 
-    revalidatePath("/dashboard/parent-pack");
+    revalidatePath("/dashboard/content/parent-pack");
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };
@@ -230,7 +230,7 @@ export async function cancelParentInvitation(): Promise<
       action: AuditAction.PARENT_INVITATION_CANCELLED,
     });
 
-    revalidatePath("/dashboard/parent-pack");
+    revalidatePath("/dashboard/content/parent-pack");
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };
@@ -289,7 +289,7 @@ export async function unlinkParent(): Promise<
       action: AuditAction.PARENT_UNLINKED,
     });
 
-    revalidatePath("/dashboard/parent-pack");
+    revalidatePath("/dashboard/content/parent-pack");
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };

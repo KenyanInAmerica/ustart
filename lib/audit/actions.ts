@@ -41,6 +41,13 @@ export const AuditAction = {
   ADMIN_CONTENT_DELETED: "admin.content.deleted",
   ADMIN_CONTENT_ASSIGNED: "admin.content.assigned",
 
+  // Admin — Plan Templates
+  ADMIN_PLAN_TEMPLATE_CREATED: "admin.plan_template.created",
+  ADMIN_PLAN_TEMPLATE_UPDATED: "admin.plan_template.updated",
+  ADMIN_PLAN_TEMPLATE_DELETED: "admin.plan_template.deleted",
+  ADMIN_PLAN_TEMPLATE_REORDERED: "admin.plan_template.reordered",
+  ADMIN_PLAN_REINSTANTIATED: "admin.plan.reinstantiated",
+
   // Admin — Pricing
   ADMIN_PRICING_UPDATED: "admin.pricing.updated",
 

@@ -17,6 +17,7 @@ import type {
   AdminRecord,
   RecentSignup,
 } from "@/types/admin";
+import type { PlanTaskTemplate } from "@/lib/types/plan";
 
 const PAGE_SIZE = 25;
 
@@ -194,6 +195,29 @@ export const fetchAdminOverview = cache(async (): Promise<{
 
   return { stats, recentSignups };
 });
+
+export async function fetchPlanTemplates(): Promise<PlanTaskTemplate[]> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("plan_task_templates")
+    .select("*")
+    .order("phase")
+    .order("display_order")
+    .order("created_at");
+
+  return ((data ?? []) as PlanTaskTemplate[]).map((row) => ({
+    id: row.id,
+    title: row.title,
+    description: row.description,
+    phase: row.phase,
+    days_from_arrival: row.days_from_arrival,
+    content_url: row.content_url,
+    tier_required: row.tier_required,
+    display_order: row.display_order,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }));
+}
 
 // ── User Management ───────────────────────────────────────────────────────────
 

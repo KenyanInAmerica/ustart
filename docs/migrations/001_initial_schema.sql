@@ -187,14 +187,26 @@ CREATE TABLE public.plan_task_templates (
   phase TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
-  recommended_offset_days INTEGER NOT NULL DEFAULT 0,
-  is_active BOOLEAN NOT NULL DEFAULT true,
+  days_from_arrival INTEGER NOT NULL DEFAULT 0,
+  content_url TEXT,
+  tier_required TEXT NOT NULL DEFAULT 'lite',
+  display_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT plan_task_templates_phase_check CHECK (
     phase = ANY (ARRAY['before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'])
+  ),
+  CONSTRAINT plan_task_templates_tier_check CHECK (
+    tier_required = ANY (ARRAY['lite', 'explore', 'concierge'])
+  ),
+  CONSTRAINT plan_task_templates_display_order_check CHECK (
+    display_order >= 0
   )
 );
+
+-- Query convention for ordered template reads:
+-- ORDER BY phase, display_order, created_at
+-- created_at is the secondary tiebreaker when display_order values are equal.
 
 CREATE TABLE public.plan_tasks (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -205,16 +217,25 @@ CREATE TABLE public.plan_tasks (
   description TEXT,
   due_date DATE,
   completed_at TIMESTAMPTZ,
-  status TEXT NOT NULL DEFAULT 'todo',
+  status TEXT NOT NULL DEFAULT 'not_started',
+  content_url TEXT,
+  display_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT plan_tasks_phase_check CHECK (
     phase = ANY (ARRAY['before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'])
   ),
   CONSTRAINT plan_tasks_status_check CHECK (
-    status = ANY (ARRAY['todo', 'in_progress', 'completed'])
+    status = ANY (ARRAY['not_started', 'in_progress', 'completed'])
+  ),
+  CONSTRAINT plan_tasks_display_order_check CHECK (
+    display_order >= 0
   )
 );
+
+-- Query convention for ordered plan reads:
+-- ORDER BY phase, display_order, created_at
+-- created_at is the secondary tiebreaker when display_order values are equal.
 
 CREATE TABLE public.intake_responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -564,6 +585,9 @@ CREATE POLICY "Users can manage their own tasks"
   ON public.plan_tasks FOR ALL
   USING (auth.uid() = user_id)
   WITH CHECK (auth.uid() = user_id);
+
+-- Admin cross-user reads for plan tasks intentionally stay in service-client
+-- server code instead of widening RLS with an extra admin-read policy here.
 
 CREATE POLICY "Users can manage their own intake"
   ON public.intake_responses FOR ALL
