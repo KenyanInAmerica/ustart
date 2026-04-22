@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import ExplorePage from "@/app/dashboard/explore/page";
+import ExplorePage from "@/app/dashboard/content/explore/page";
 import type { DashboardAccess } from "@/types";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({

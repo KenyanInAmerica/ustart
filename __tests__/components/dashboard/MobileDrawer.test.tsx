@@ -73,10 +73,7 @@ describe("MobileDrawer", () => {
   it("renders all nav items with full access", () => {
     render(<MobileDrawer {...defaultProps} />);
     expect(screen.getByText("Dashboard")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /ustart explore/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /ustart concierge/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /parent pack/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /my content/i })).toBeInTheDocument();
     expect(screen.getByText("Account & Billing")).toBeInTheDocument();
   });
 
@@ -85,16 +82,12 @@ describe("MobileDrawer", () => {
     expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
   });
 
-  it("locks all content items when membershipRank is 0", () => {
+  it("renders My Content as a direct link", () => {
     render(<MobileDrawer {...defaultProps} access={noAccess} />);
-    expect(screen.queryByRole("link", { name: /ustart lite/i })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart explore/i })).not.toBeInTheDocument();
-  });
-
-  it("unlocks Lite only when membershipRank is 1", () => {
-    render(<MobileDrawer {...defaultProps} access={{ ...noAccess, membershipRank: 1 }} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /ustart explore/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /my content/i })).toHaveAttribute(
+      "href",
+      "/dashboard/content"
+    );
   });
 
   it("calls onClose when the overlay backdrop is clicked", () => {

@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/Button";
 import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 import type { AdminUser } from "@/types/admin";
 import { setUserAddon, setUserMembershipTier } from "@/lib/actions/admin/users";
+import { reinstantiatePlan } from "@/lib/actions/plan";
 
 type Tier = "lite" | "explore" | "concierge" | null;
 type Addon = "parent_pack";
@@ -81,6 +82,9 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
   const [saveError, setSaveError] = useState<string | null>(null);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [isSaving, startSaveTransition] = useTransition();
+  const [planError, setPlanError] = useState<string | null>(null);
+  const [planSuccess, setPlanSuccess] = useState<string | null>(null);
+  const [isReinstantiating, startPlanTransition] = useTransition();
 
   useEffect(() => {
     if (!user) return;
@@ -92,6 +96,8 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
     setCommittedParentPack(parentPack);
     setSaveError(null);
     setSaveSuccess(false);
+    setPlanError(null);
+    setPlanSuccess(null);
   }, [user]);
 
   useEffect(() => {
@@ -100,6 +106,13 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
       return () => clearTimeout(timer);
     }
   }, [saveSuccess]);
+
+  useEffect(() => {
+    if (planSuccess) {
+      const timer = setTimeout(() => setPlanSuccess(null), 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [planSuccess]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -111,20 +124,18 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
 
   if (!user) return null;
 
+  const userId = user.id;
+
   const isDirty =
     stagedTier !== committedTier || stagedParentPack !== committedParentPack;
 
   function handleCancel() {
-    setStagedTier(committedTier);
-    setStagedParentPack(committedParentPack);
-    setSaveError(null);
-    setSaveSuccess(false);
+    onClose();
   }
 
   function handleSave() {
     setSaveError(null);
     setSaveSuccess(false);
-    const userId = user!.id;
     const savedTier = committedTier;
     const savedParentPack = committedParentPack;
 
@@ -148,6 +159,25 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
         setCommittedTier(stagedTier);
         setCommittedParentPack(stagedParentPack);
       }
+    });
+  }
+
+  function handleReinstantiatePlan() {
+    setPlanError(null);
+    setPlanSuccess(null);
+
+    startPlanTransition(async () => {
+      const result = await reinstantiatePlan(userId);
+      if (!result.success) {
+        setPlanError(result.error);
+        return;
+      }
+
+      setPlanSuccess(
+        result.taskCount === 0
+          ? "Plan reinstantiated. No tasks were created."
+          : `Plan reinstantiated. ${result.taskCount} tasks created.`
+      );
     });
   }
 
@@ -263,6 +293,31 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
 
           <section>
             <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              Plan
+            </h3>
+            <div className="rounded-[var(--radius-sm)] border border-[var(--border)] bg-white px-3 py-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleReinstantiatePlan}
+                disabled={isReinstantiating}
+              >
+                {isReinstantiating ? "Reinstantiating…" : "Reinstantiate plan"}
+              </Button>
+              <p className="mt-2 text-xs text-[var(--text-muted)]">
+                Rebuilds this user&apos;s plan tasks from current templates. Existing tasks will be replaced.
+              </p>
+              {planError && (
+                <p className="mt-2 text-[12px] text-[var(--destructive)]">{planError}</p>
+              )}
+              {planSuccess && (
+                <p className="mt-2 text-[12px] text-emerald-600">{planSuccess}</p>
+              )}
+            </div>
+          </section>
+
+          <section>
+            <h3 className="mb-3 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
               Intake
             </h3>
             {user.intake_response ? (
@@ -311,7 +366,7 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
             <Button onClick={handleSave} disabled={isSaving || !isDirty} className="flex-1">
               {isSaving ? "Saving…" : "Save changes"}
             </Button>
-            <Button onClick={handleCancel} disabled={isSaving || !isDirty} variant="secondary">
+            <Button onClick={handleCancel} variant="secondary">
               Cancel
             </Button>
           </div>

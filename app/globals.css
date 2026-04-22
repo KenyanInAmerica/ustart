@@ -80,3 +80,53 @@
 .hero-glow {
   background: radial-gradient(ellipse at center, rgba(48, 131, 220, 0.16) 0%, transparent 70%);
 }
+
+.react-calendar {
+  width: 100%;
+  border: none;
+  font-family: var(--font-primary);
+}
+
+.react-calendar__tile {
+  padding: 8px 4px;
+  position: relative;
+  border-radius: 8px;
+}
+
+.react-calendar__tile:enabled:hover {
+  background-color: var(--bg-subtle);
+}
+
+.react-calendar__tile--active {
+  background-color: var(--accent) !important;
+  color: white !important;
+  border-radius: 50%;
+}
+
+.react-calendar__tile--now {
+  background-color: transparent;
+  font-weight: bold;
+  color: var(--accent);
+}
+
+.react-calendar__navigation button {
+  font-family: var(--font-primary);
+  font-size: 14px;
+  color: var(--text);
+  background: none;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+}
+
+.react-calendar__navigation button:enabled:hover {
+  background-color: var(--bg-subtle);
+  border-radius: 8px;
+}
+
+.react-calendar__month-view__weekdays {
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+}

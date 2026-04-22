@@ -1,68 +1,52 @@
 import { Suspense } from "react";
-import { Greeting } from "@/components/dashboard/Greeting";
-import { StartHereSection } from "@/components/dashboard/StartHereSection";
-import { ContentCardsSection } from "@/components/dashboard/ContentCardsSection";
-import { CommunitySectionWrapper } from "@/components/dashboard/CommunitySectionWrapper";
-import { AccountStripSection } from "@/components/dashboard/AccountStripSection";
+import { createClient } from "@/lib/supabase/server";
+import { PlanView } from "@/components/dashboard/PlanView";
 import { ParentInvitationWrapper } from "@/components/dashboard/ParentInvitationWrapper";
-import { SectionErrorBoundary } from "@/components/ui/SectionErrorBoundary";
-import { StartHereSkeleton } from "@/components/dashboard/skeletons/StartHereSkeleton";
-import { ContentCardsSkeleton } from "@/components/dashboard/skeletons/ContentCardsSkeleton";
-import { CommunitySectionSkeleton } from "@/components/dashboard/skeletons/CommunitySectionSkeleton";
-import { AccountStripSkeleton } from "@/components/dashboard/skeletons/AccountStripSkeleton";
+import { fetchUserPlan } from "@/lib/dashboard/plan";
 import { ParentInvitationSkeleton } from "@/components/dashboard/skeletons/ParentInvitationSkeleton";
+import { SectionErrorBoundary } from "@/components/ui/SectionErrorBoundary";
 
-// Main dashboard page — each section is wrapped in Suspense so it streams in
-// independently. fetchDashboardAccess() is memoised with React.cache, so all
-// section wrappers share a single Supabase round-trip per request.
-// The layout shell (sidebar, mobile nav) renders before this page content begins.
-export default function DashboardPage() {
+function getTimeOfDay(): "morning" | "afternoon" | "evening" {
+  const hour = new Date().getHours();
+  if (hour < 12) return "morning";
+  if (hour < 17) return "afternoon";
+  return "evening";
+}
+
+export default async function DashboardPage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  const [{ data: profileData }, planGroups] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("first_name, intake_completed_at")
+      .eq("id", user!.id)
+      .maybeSingle(),
+    fetchUserPlan(user!.id),
+  ]);
+
+  const profile = profileData as {
+    first_name: string | null;
+    intake_completed_at: string | null;
+  } | null;
+  const firstName = profile?.first_name ?? null;
+  const timeOfDay = getTimeOfDay();
+
   return (
-    <>
-      {/* Greeting fetches its own data and renders as part of the initial shell */}
-      <Greeting />
-
-      {/* Start Here — no error boundary: if it fails it silently disappears (null return) */}
-      <Suspense fallback={<StartHereSkeleton />}>
-        <StartHereSection />
-      </Suspense>
-
-      {/* Content Cards */}
-      <p className="mb-[14px] mt-9 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
-        Your Content
-      </p>
-      <SectionErrorBoundary label="Content cards">
-        <Suspense fallback={<ContentCardsSkeleton />}>
-          <ContentCardsSection />
-        </Suspense>
-      </SectionErrorBoundary>
-
-      {/* Community */}
-      <p className="mb-[14px] mt-9 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
-        Community
-      </p>
-      <SectionErrorBoundary label="Community section">
-        <Suspense fallback={<CommunitySectionSkeleton />}>
-          <CommunitySectionWrapper />
-        </Suspense>
-      </SectionErrorBoundary>
-
-      {/* Account */}
-      <p className="mb-[14px] mt-9 font-primary text-xs font-semibold uppercase tracking-widest text-[var(--text)]">
-        Account
-      </p>
-      <SectionErrorBoundary label="Account strip">
-        <Suspense fallback={<AccountStripSkeleton />}>
-          <AccountStripSection />
-        </Suspense>
-      </SectionErrorBoundary>
-
-      {/* Parent invitation — only rendered for student accounts */}
+    <PlanView
+      greeting={`Good ${timeOfDay}${firstName ? `, ${firstName}` : ""}.`}
+      subtitle="Here's your UStart plan."
+      initialPhaseGroups={planGroups}
+      intakeCompletedAt={profile?.intake_completed_at ?? null}
+    >
       <SectionErrorBoundary label="Parent invitation">
         <Suspense fallback={<ParentInvitationSkeleton />}>
           <ParentInvitationWrapper />
         </Suspense>
       </SectionErrorBoundary>
-    </>
+    </PlanView>
   );
 }
