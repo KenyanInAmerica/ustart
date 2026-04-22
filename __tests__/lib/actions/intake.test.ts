@@ -45,7 +45,12 @@ jest.mock("../../../lib/supabase/service", () => ({
   })),
 }));
 
+jest.mock("../../../lib/actions/plan", () => ({
+  instantiatePlan: jest.fn(),
+}));
+
 import { revalidatePath } from "next/cache";
+import { instantiatePlan } from "../../../lib/actions/plan";
 import { submitIntake } from "../../../lib/actions/intake";
 
 const validPayload = {
@@ -69,6 +74,7 @@ describe("submitIntake", () => {
     });
     mockIntakeInsert.mockResolvedValue({ error: null });
     mockServiceUpdateEq.mockResolvedValue({ error: null });
+    (instantiatePlan as jest.Mock).mockResolvedValue({ success: true, taskCount: 2 });
   });
 
   it("returns an error when the user is not authenticated", async () => {
@@ -135,6 +141,7 @@ describe("submitIntake", () => {
       })
     );
     expect(mockServiceUpdateEq).toHaveBeenCalledWith("id", "user-1");
+    expect(instantiatePlan).toHaveBeenCalledWith("user-1");
     expect(revalidatePath).toHaveBeenCalledWith("/intake");
     expect(revalidatePath).toHaveBeenCalledWith("/dashboard");
   });

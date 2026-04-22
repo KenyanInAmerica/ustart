@@ -95,7 +95,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "UStart Lite",
       badge: "Lite",
       description: "Core resources to get started — banking, SSN, credit cards, and student essentials.",
-      href: "/dashboard/lite",
+      href: "/dashboard/content/lite",
       unlocked: access.membershipRank >= 1,
       accent: "lite",
       icon: (
@@ -110,7 +110,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "UStart Explore",
       badge: "Explore",
       description: "Everything in Lite plus deeper guides to help you settle in and thrive.",
-      href: "/dashboard/explore",
+      href: "/dashboard/content/explore",
       unlocked: access.membershipRank >= 2,
       accent: "explore",
       icon: (
@@ -124,7 +124,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "UStart Concierge",
       badge: "Concierge",
       description: "Everything in Explore plus our most advanced resources for long-term success in the US.",
-      href: "/dashboard/concierge",
+      href: "/dashboard/content/concierge",
       unlocked: access.membershipRank >= 3,
       accent: "concierge",
       icon: (
@@ -138,7 +138,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "Parent Pack",
       badge: "Add-on",
       description: "Dedicated resources for parents supporting their student's journey in the US.",
-      href: "/dashboard/parent-pack",
+      href: "/dashboard/content/parent-pack",
       unlocked: access.hasParentSeat,
       accent: "parent_pack",
       icon: (

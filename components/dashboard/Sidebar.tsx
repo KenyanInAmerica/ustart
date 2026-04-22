@@ -17,12 +17,6 @@ type Props = {
 
 function navAccent(href: string): ProductAccent {
   switch (href) {
-    case "/dashboard/explore":
-      return "explore";
-    case "/dashboard/concierge":
-      return "concierge";
-    case "/dashboard/parent-pack":
-      return "parent_pack";
     case "/dashboard/community":
       return "community";
     default:
@@ -41,6 +35,11 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
     "flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[9px] text-sm transition-colors duration-150";
   const inactiveClassName =
     "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]";
+
+  function isActiveHref(href: string): boolean {
+    if (href === "/dashboard") return pathname === "/dashboard";
+    return pathname === href || pathname.startsWith(`${href}/`);
+  }
 
   return (
     <aside className="fixed bottom-0 left-0 top-0 z-50 hidden w-[240px] flex-col overflow-y-auto border-r border-[var(--border)] bg-white py-7 min-[860px]:flex">
@@ -61,7 +60,7 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
             </span>
 
             {section.items.map((item) => {
-              const isActive = pathname === item.href;
+              const isActive = isActiveHref(item.href);
               const isLocked = isNavItemLocked(item, access);
 
               if (isLocked) {
@@ -79,20 +78,6 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
                   </div>
                 );
               }
-
-              if (item.href === "/dashboard") {
-                return (
-                  <a
-                    key={item.href}
-                    href={item.href}
-                    className={`${itemClassName} ${isActive ? activeClassName(item.href) : inactiveClassName}`}
-                  >
-                    {item.icon}
-                    {item.label}
-                  </a>
-                );
-              }
-
               return (
                 <Link
                   key={item.href}

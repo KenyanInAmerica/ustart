@@ -125,7 +125,7 @@ describe("ContentCards", () => {
     render(<ContentCards access={{ ...noAccess, membershipRank: 1 }} upsellPricing={{}} />);
     expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute(
       "href",
-      "/dashboard/lite"
+      "/dashboard/content/lite"
     );
   });
 
@@ -133,30 +133,30 @@ describe("ContentCards", () => {
     render(<ContentCards access={{ ...noAccess, membershipRank: 2 }} upsellPricing={{}} />);
     expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute(
       "href",
-      "/dashboard/explore"
+      "/dashboard/content/explore"
     );
   });
 
   it("renders all tier cards as dashboard links when membershipRank is 3", () => {
     render(<ContentCards access={{ ...noAccess, membershipRank: 3 }} upsellPricing={{}} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/lite");
-    expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute("href", "/dashboard/explore");
-    expect(screen.getByRole("link", { name: /ustart concierge/i })).toHaveAttribute("href", "/dashboard/concierge");
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/content/lite");
+    expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute("href", "/dashboard/content/explore");
+    expect(screen.getByRole("link", { name: /ustart concierge/i })).toHaveAttribute("href", "/dashboard/content/concierge");
   });
 
   it("renders Parent Pack as a link when hasParentSeat is true", () => {
     render(<ContentCards access={{ ...noAccess, hasParentSeat: true }} upsellPricing={{}} />);
     expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute(
       "href",
-      "/dashboard/parent-pack"
+      "/dashboard/content/parent-pack"
     );
   });
 
   it("renders all cards as links with full access", () => {
     render(<ContentCards access={fullAccess} upsellPricing={{}} />);
-    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/lite");
-    expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute("href", "/dashboard/explore");
-    expect(screen.getByRole("link", { name: /ustart concierge/i })).toHaveAttribute("href", "/dashboard/concierge");
-    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute("href", "/dashboard/parent-pack");
+    expect(screen.getByRole("link", { name: /ustart lite/i })).toHaveAttribute("href", "/dashboard/content/lite");
+    expect(screen.getByRole("link", { name: /ustart explore/i })).toHaveAttribute("href", "/dashboard/content/explore");
+    expect(screen.getByRole("link", { name: /ustart concierge/i })).toHaveAttribute("href", "/dashboard/content/concierge");
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute("href", "/dashboard/content/parent-pack");
   });
 });

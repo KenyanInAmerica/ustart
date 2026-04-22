@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 21, 2026
+**Date:** April 22, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -56,6 +56,11 @@ Stripe is the source of truth for entitlements once integrated. Supabase reflect
 | Porkbun               | Domain                                        |
 | Google Workspace      | Professional email                            |
 | Stripe Atlas          | Incorporation                                 |
+
+**Additional dependencies**
+
+- `react-calendar` — calendar widget on the dashboard plan view
+- `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` — drag-to-reorder for admin plan templates
 
 **Fonts**
 
@@ -146,6 +151,7 @@ Defined in `lib/config/productAccents.ts`.
 - `ParentInvitationSection` is hidden behind `PARENT_INVITATION_ENABLED = false` — code intact, not rendered
 - Signed-in users without `profiles.intake_completed_at` are redirected to `/intake` before the dashboard shell loads
 - `components/layout/Nav.tsx` and `components/layout/Footer.tsx` were deleted as unused stubs during the design system overhaul
+- Plan task status uses three states: `not_started`, `in_progress`, `completed`. UI uses circle indicators: empty for not started, dash for in progress, and checkmark for completed. Phase accent color is applied to `in_progress` and `completed`, and the shared legend is rendered once above the task list in `PlanView.tsx`.
 
 ---
 
@@ -166,6 +172,8 @@ Defined in `lib/config/productAccents.ts`.
     /community           # Community members view
     /invitations         # Parent invitations + manual linking tool (route kept, hidden from sidebar)
     /content             # PDF upload and content management
+    /plan-templates
+      page.tsx           # Admin plan template manager
     /admins              # Admin access management
     /settings            # WhatsApp link, config, and pricing management
     /audit-log           # Admin audit log — paginated, filterable event history
@@ -182,11 +190,14 @@ Defined in `lib/config/productAccents.ts`.
   /content               # Authenticated content index page
   /dashboard             # Authenticated student/parent portal
     /layout.tsx          # Dashboard shell layout (includes Footer)
-    /page.tsx            # Dashboard main page
-    /lite                # UStart Lite content
-    /explore             # UStart Explore content
-    /concierge           # UStart Concierge content
-    /parent-pack         # Parent Pack content + invitation flow
+    /page.tsx            # Dashboard plan home page
+    /community           # Community page
+    /content             # Content card hub page
+      /page.tsx          # My Content — content card grid
+      /lite/page.tsx     # UStart Lite content
+      /explore/page.tsx  # UStart Explore content
+      /concierge/page.tsx # UStart Concierge content
+      /parent-pack/page.tsx # Parent Pack content
     /account             # Account & billing page
     /my-documents        # Individually assigned PDFs
   /pricing               # Public pricing page (includes Footer)
@@ -206,6 +217,10 @@ Defined in `lib/config/productAccents.ts`.
   /dashboard
     Sidebar.tsx, MobileTopBar.tsx, MobileDrawer.tsx, MobileDashboardNav.tsx, navItems.tsx
     Greeting.tsx, StartHere.tsx, StartHereSection.tsx
+    TaskCard.tsx            # "use client" controlled task card, single-click status toggle, circle indicators with phase colors
+    PlanCalendar.tsx        # "use client" react-calendar with phase-colored task markers
+    ProgressRing.tsx        # "use client" SVG circular progress ring
+    PlanView.tsx            # "use client" plan state container, status legend, phase progress bars, optimistic task state
     ContentCards.tsx, ContentCardsSection.tsx, ContentGrid.tsx
     CommunitySection.tsx, CommunitySectionWrapper.tsx
     AccountStrip.tsx, AccountStripSection.tsx
@@ -219,6 +234,8 @@ Defined in `lib/config/productAccents.ts`.
              InvitationLinkForm.tsx, ContentUploadForm.tsx, ContentDeleteButton.tsx
              UserPdfAssignment.tsx, PricingSection.tsx, SettingsForm.tsx
              CommunityExportButton.tsx
+             PlanTemplatesClient.tsx # "use client" template list with drag-to-reorder per phase, @dnd-kit integration
+             PlanTemplateModal.tsx   # Create/edit plan template modal, display_order auto-assigned
              skeletons/
   /pricing   BuyNowButton.tsx
 /lib
@@ -228,6 +245,7 @@ Defined in `lib/config/productAccents.ts`.
                contactNotification.ts  # Admin notification email template for contact form submissions
                parentInvitation.ts     # Parent invitation email template — CTA links to /invite confirmation page
   /dashboard access.ts (fetchDashboardAccess, fetchWhatsappLink)
+             plan.ts (fetchUserPlan, PlanPhaseGroup, PlanTask types)
   /admin     data.ts (fetchAdminOverview includes inactiveAccounts count, fetchUserIntake)
              auditLog.ts (fetchAuditLog, AuditLogFilters, ACTION_GROUPS, PAGE_SIZE)
   /audit     actions.ts (AuditAction const enum + AuditActionType)
@@ -237,13 +255,15 @@ Defined in `lib/config/productAccents.ts`.
   /config    brand.ts (centralised brand config — name, tagline, logo, font, colors, phase accents)
              productAccents.ts (per-product accent color mapping)
              pricing.ts (types only), getPricing.ts (fetch utils)
+  /types     plan.ts (PlanPhase, PlanTask, PlanTaskTemplate, CreatePlanTemplateData, TaskStatus)
   /actions
     signOut.ts                  # signOut() — logs AUTH_SIGN_OUT then signs out
     updateProfile.ts            # updateProfile() — diff-based, logs changes
     acceptCommunityRules.ts     # acceptCommunityRules() — inserts agreement row
     trackContentVisit.ts        # trackContentVisit() — idempotent first-visit stamp
     contactForm.ts              # submitContactForm() — inserts submission, sends Resend notification
-    intake.ts                   # submitIntake() — validates intake, stores column-based intake response, marks profiles.intake_completed_at
+    intake.ts                   # submitIntake() — validates intake, stores column-based intake response, marks profiles.intake_completed_at, triggers fire-and-forget plan instantiation
+    plan.ts                     # instantiatePlan(), reinstantiatePlan(), updateTaskStatus()
     parentInvitation.ts         # sendParentInvitation(), resendParentInvitation(),
                                 #   cancelParentInvitation(), unlinkParent(), acceptInvitation()
                                 #   Updated Feature 13: invite token flow (UUID + 72h expiry),
@@ -251,6 +271,7 @@ Defined in `lib/config/productAccents.ts`.
     admin/admins.ts             # grantAdminAccess(), revokeAdminAccess()
     admin/content.ts            # uploadContentItem(), deleteContentItem(), etc.
     admin/invitations.ts        # adminLinkParent() — updated Feature 13: creates invite token row
+    admin/planTemplates.ts      # CRUD + savePlanTemplateOrder() + ADMIN_PLAN_TEMPLATE_REORDERED logging
     admin/settings.ts           # saveWhatsappLink()
     admin/updatePricing.ts      # updatePricing() — diff-based, logs changes
     admin/users.ts              # setUserMembershipTier(), setUserAddon(), assignContentToUser(),
@@ -317,7 +338,7 @@ npm run typecheck    # TypeScript type check
 npm run test         # Jest test suite
 ```
 
-Always run `typecheck` and `lint` after changes before committing. All tests must pass with zero failures before any commit.
+Always run `typecheck`, `lint`, and `test` after changes before committing. All three must pass with zero failures before any commit.
 
 **Current test count**: 505 tests across 69 suites (as of April 16, 2026). If the suite drops below this without a deliberate deletion, investigate before committing.
 
@@ -343,8 +364,8 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 | `pricing`              | Single source of truth for all product pricing. Columns: id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at |
 | `contact_submissions`  | Stores contact form submissions until Resend is integrated. Columns: id, name, email, message, user_id, created_at. Added Feature 14.                                                      |
 | `audit_logs`           | Immutable event log of all auditable actions. Columns: id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated). Added Audit Log feature. |
-| `plan_task_templates`  | Plan builder template rows. Phase-based default tasks with title, description, active flag, and display offsets.                                                                            |
-| `plan_tasks`           | Per-user task rows derived from plan templates. Tracks phase, due date, completion, and status.                                                                                             |
+| `plan_task_templates`  | Plan builder template rows. Phase-based default tasks with title, description, days_from_arrival, content_url, tier_required, and display_order.                                             |
+| `plan_tasks`           | Per-user task rows derived from plan templates. Tracks phase, due date, completion, status, content_url, and display_order.                                                                  |
 | `intake_responses`     | Stores submitted intake form data. `main_concerns` is a comma-separated string of concern keys, and the most recent row is used for admin visibility and future planning flows.              |
 
 ### Column Notes
@@ -359,6 +380,8 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 - `pricing.name` and `pricing.billing` — read-only in admin UI. Changes require codebase and schema updates.
 - `profiles.is_active` — boolean NOT NULL DEFAULT true. Added Feature 14. Inactive users are blocked at the auth callback (immediate sign-out + redirect to `/auth/error?error=account_deactivated`) and by middleware.
 - `audit_logs.payload_text` — stored generated column (`payload::text`). Added to allow ILIKE substring search on JSONB payload via PostgREST `.or()`, which does not support type cast syntax (`::text`) inside filter strings. Never set manually — Postgres keeps it in sync automatically.
+- `plan_task_templates.display_order` — auto-assigned on create using the count of existing templates in the same phase. It is managed by the drag-to-reorder UI after creation and is never set manually by admins.
+- Queries against `plan_task_templates` and `plan_tasks` use `ORDER BY phase, display_order, created_at` so `created_at` acts as the stable tiebreaker when `display_order` values are equal.
 
 ### Constraints
 
@@ -379,6 +402,18 @@ Always run `typecheck` and `lint` after changes before committing. All tests mus
 | `content_items.tier`                 | CHECK (tier = ANY ('lite','explore','concierge','parent_pack'))                                             |
 | `content_items.is_individual_only`   | boolean NOT NULL DEFAULT false                                                                               |
 | `pricing.billing`                    | CHECK (billing = ANY ('one-time', 'monthly', 'yearly'))                                                      |
+| `plan_tasks.status`                  | CHECK (status = ANY ('not_started', 'in_progress', 'completed'))                                             |
+| `plan_tasks.phase`                   | CHECK (phase = ANY ('before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'))                    |
+| `plan_task_templates.phase`          | CHECK (phase = ANY ('before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'))                    |
+| `plan_task_templates.tier_required`  | CHECK (tier_required = ANY ('lite', 'explore', 'concierge'))                                                 |
+
+### Dashboard Route Notes
+
+- Old routes now 404:
+- `/dashboard/lite` → `/dashboard/content/lite`
+- `/dashboard/explore` → `/dashboard/content/explore`
+- `/dashboard/concierge` → `/dashboard/content/concierge`
+- `/dashboard/parent-pack` → `/dashboard/content/parent-pack`
 
 ### audit_logs Migration (applied manually via Supabase SQL editor)
 
@@ -596,6 +631,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Feature 1  | Shell & Layout                               | ✅ Built                        |
 | Feature 2  | Greeting & User State                        | ✅ Built                        |
 | Phase 3    | Intake Form                                  | ✅ Built                        |
+| Phase 4    | UStart Plan System + Calendar                | ✅ Built                        |
 | Feature 3  | Start Here / Onboarding Progress             | ✅ Built                        |
 | Feature 4  | Content Cards with Access Gating             | ✅ Built                        |
 | Feature 5  | Community Section                            | ✅ Built                        |
@@ -697,7 +733,13 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Reactivate `csr@u-start.co.uk` in Google Workspace (currently archived), then set as `RESEND_NOTIFICATION_EMAIL` in Vercel production
 - Notify parent via Resend when unlinked (see `TODO` in `lib/actions/parentInvitation.ts → unlinkParent`) — deferred post-launch
 - Confirm Resend API keys are scoped to correct sending domains — staging key: staging.u-start.co.uk, production key: u-start.co.uk
-- Add school column to profiles table before Phase 4 (currently stored in intake_responses only)
+- Add school column to profiles table before or during Phase 9 (currently stored in intake_responses only)
+- Booking flow for `arrival_call` and `additional_support_call` built in Phase 8
+- Plan system — add admin per-user task editing so admins can adjust titles, due dates, and create one-off tasks without changing the master template set
+- Plan system — when arrival date changes in account settings, recalculate `plan_tasks.due_date` from `template.days_from_arrival` while preserving task completion state; add a confirmation step before applying the update
+- Account page — allow students to edit intake fields (`school`, `city`, `arrival_date`, `graduation_date`, `main_concerns`) from `/dashboard/account`, with arrival date changes using the due-date recalculation flow instead of re-instantiating the plan
+- Plan system — support multiple template sets instead of a single global `plan_task_templates` set so cohorts or regional variants can be assigned per user
+- Plan system — keep notes and comments in Notion rather than building a separate collaboration layer inside UStart
 - Consider moving main_concerns to JSONB array in a future migration for easier querying
 
 **Business Owner Decisions Pending**

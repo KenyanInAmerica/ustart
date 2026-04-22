@@ -12,12 +12,14 @@
   /auth/error/page.tsx            # Error page — expired link, account_deactivated
   /dashboard
     layout.tsx                    # Dashboard shell (Sidebar + MobileTopBar + Footer)
-    page.tsx                      # Main dashboard — Greeting, StartHere, ContentCards, Community
+    page.tsx                      # Main dashboard — plan home with phase sections and task cards
     account/page.tsx              # Account & billing
-    lite/page.tsx                 # Lite tier content
-    explore/page.tsx              # Explore tier content
-    concierge/page.tsx            # Concierge tier content
-    parent-pack/page.tsx          # Parent Pack + invitation flow
+    community/page.tsx            # Community page
+    content/page.tsx              # Content card hub page
+    content/lite/page.tsx         # Lite tier content
+    content/explore/page.tsx      # Explore tier content
+    content/concierge/page.tsx    # Concierge tier content
+    content/parent-pack/page.tsx  # Parent Pack + invitation flow
     my-documents/page.tsx         # Individually assigned PDFs
   /admin
     layout.tsx                    # Admin shell (AdminSidebar)
@@ -25,6 +27,7 @@
     users/page.tsx                # User management — entitlements, delete, reactivate
     invitations/page.tsx          # Parent invitations + manual admin linking
     content/page.tsx              # PDF upload, tier assignments, per-user assignments
+    plan-templates/page.tsx       # Plan template management page
     admins/page.tsx               # Grant/revoke admin access
     community/page.tsx            # Community members list + CSV export
     settings/page.tsx             # WhatsApp link, pricing management
@@ -76,6 +79,10 @@
     Greeting.tsx                  # User greeting with name
     StartHere.tsx                 # Onboarding progress component
     StartHereSection.tsx          # Suspense wrapper for StartHere
+    TaskCard.tsx                  # "use client" controlled task card, single-click status toggle, phase-colored status circles
+    PlanCalendar.tsx              # "use client" react-calendar widget with phase-colored task markers
+    ProgressRing.tsx              # "use client" SVG circular progress ring
+    PlanView.tsx                  # "use client" plan state container, status legend, per-phase progress bars
     ContentCards.tsx              # Content tile grid
     ContentCardsSection.tsx       # Suspense wrapper for ContentCards
     ContentGrid.tsx               # Full content grid for tier pages
@@ -103,6 +110,8 @@
     ContentUploadForm.tsx         # PDF upload form
     ContentDeleteButton.tsx       # Individual content delete action
     UserPdfAssignment.tsx         # Per-user PDF assignment UI
+    PlanTemplatesClient.tsx       # "use client" template list with per-phase drag reorder via @dnd-kit
+    PlanTemplateModal.tsx         # Create/edit plan template modal, display_order auto-assigned
     AdminGrantForm.tsx            # Grant admin access form
     AdminRevokeButton.tsx         # Revoke admin button
     DeleteUserModal.tsx           # Two-step soft/hard delete modal
@@ -131,12 +140,14 @@
     trackContentVisit.ts          # trackContentVisit() — idempotent first-visit stamp
     contactForm.ts                # submitContactForm() — inserts + sends Resend notification
     intake.ts                     # submitIntake() — validates, stores intake payload, marks profile complete
+    plan.ts                       # instantiatePlan(), reinstantiatePlan(), updateTaskStatus()
     parentInvitation.ts           # sendParentInvitation(), resendParentInvitation(),
                                   # cancelParentInvitation(), unlinkParent(), acceptInvitation()
     /admin
       admins.ts                   # grantAdminAccess(), revokeAdminAccess()
       content.ts                  # uploadContentItem(), deleteContentItem(), etc.
       invitations.ts              # adminLinkParent()
+      planTemplates.ts            # create/update/delete + savePlanTemplateOrder()
       settings.ts                 # saveWhatsappLink()
       updatePricing.ts            # updatePricing() — diff-based, logs changes
       users.ts                    # setUserMembershipTier(), setUserAddon(),
@@ -154,8 +165,11 @@
     pricing.ts                    # PricingItem, TierId, AddonId, ProductId types only
     getPricing.ts                 # getPricing(), getPublicPricing(), getPricingById() (React.cache)
     productAccents.ts             # Per-product accent mapping for dashboard/admin UI
+  /types
+    plan.ts                       # PlanPhase, PlanTask, PlanTaskTemplate, TaskStatus, CRUD payload types
   /dashboard
     access.ts                     # fetchDashboardAccess() — cached entitlements from user_access view
+    plan.ts                       # fetchUserPlan() — grouped plan tasks by phase
     content.ts                    # fetchTierContent(), fetchUserDocuments() — cached
   /env
     guard.ts                      # assertNotProduction() — throws if NEXT_PUBLIC_ENVIRONMENT=production
@@ -195,6 +209,14 @@ jest.config.js                    # Jest config (nextJest, jsdom default environ
 jest.setup.ts                     # @testing-library/jest-dom setup
 /.github/workflows/ci.yml         # CI — typecheck + lint + test on PRs to develop and main
 ```
+
+## Dashboard Navigation
+
+- `MAIN` — Dashboard (`/dashboard`) plan home
+- `MY CONTENT` — My Content (`/dashboard/content`)
+- `MY FILES` — My Documents (`/dashboard/my-documents`)
+- `COMMUNITY` — Community (`/dashboard/community`)
+- `ACCOUNT` — Account & Billing (`/dashboard/account`)
 
 ## Design Tokens
 
@@ -258,14 +280,17 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 | `pricing` | id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at | Single source of truth for all product pricing |
 | `contact_submissions` | id, name, email, message, user_id, created_at | Contact form submissions |
 | `audit_logs` | id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated) | Immutable event log. payload_text is a stored generated column for ILIKE search |
-| `plan_task_templates` | id, phase, title, description, recommended_offset_days, is_active, created_at, updated_at | Phase-based planning templates |
-| `plan_tasks` | id, user_id, template_id, phase, title, description, due_date, completed_at, status, created_at, updated_at | Per-user tasks derived from plan templates |
+| `plan_task_templates` | id, phase, title, description, days_from_arrival, content_url, tier_required, display_order, created_at, updated_at | Phase-based planning templates. `display_order` is auto-assigned on create, then managed by drag reorder. |
+| `plan_tasks` | id, user_id, template_id, phase, title, description, due_date, completed_at, status, content_url, display_order, created_at, updated_at | Per-user tasks derived from plan templates. Ordered reads use `ORDER BY phase, display_order, created_at`. |
 | `intake_responses` | id, user_id, school, city, arrival_date, graduation_date, main_concerns, completed_at | Per-user intake submission data stored in concrete columns |
 | `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, active_addons, etc. `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not addon rows. |
 
 **Critical column names:**
 - `addons.type` and `one_time_purchases.type` — the column is `type`, NOT `product`
 - `audit_logs.payload_text` — never set manually, Postgres keeps it in sync with `payload::text`
+- `plan_task_templates.phase` and `plan_tasks.phase` — CHECK constrained to `before_arrival`, `first_7_days`, `settling_in`, `ongoing_support`
+- `plan_task_templates.tier_required` — CHECK constrained to `lite`, `explore`, `concierge`
+- `plan_tasks.status` — CHECK constrained to `not_started`, `in_progress`, `completed`
 
 ---
 

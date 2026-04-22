@@ -7,10 +7,15 @@ jest.mock("../../../lib/actions/admin/users", () => ({
   setUserAddon: jest.fn(),
 }));
 
+jest.mock("../../../lib/actions/plan", () => ({
+  reinstantiatePlan: jest.fn(),
+}));
+
 import {
   setUserMembershipTier,
   setUserAddon,
 } from "../../../lib/actions/admin/users";
+import { reinstantiatePlan } from "../../../lib/actions/plan";
 
 const mockUser: AdminUser = {
   id: "user-1",
@@ -39,6 +44,7 @@ beforeEach(() => {
   jest.clearAllMocks();
   (setUserMembershipTier as jest.Mock).mockResolvedValue({ success: true });
   (setUserAddon as jest.Mock).mockResolvedValue({ success: true });
+  (reinstantiatePlan as jest.Mock).mockResolvedValue({ success: true, taskCount: 3 });
 });
 
 describe("UserPanel", () => {
@@ -99,6 +105,11 @@ describe("UserPanel", () => {
     expect(screen.getByRole("button", { name: /save changes/i })).toBeDisabled();
   });
 
+  it("Cancel button stays enabled even when no changes are staged", () => {
+    render(<UserPanel user={mockUser} onClose={jest.fn()} />);
+    expect(screen.getByRole("button", { name: /^cancel$/i })).not.toBeDisabled();
+  });
+
   it("Save button enables after staging a tier change", () => {
     render(<UserPanel user={mockUser} onClose={jest.fn()} />);
     fireEvent.click(screen.getByRole("button", { name: /explore/i }));
@@ -138,5 +149,34 @@ describe("UserPanel", () => {
     render(<UserPanel user={mockUser} onClose={onClose} />);
     fireEvent.click(screen.getByRole("button", { name: /close panel/i }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("calls onClose when Cancel is clicked", () => {
+    const onClose = jest.fn();
+    render(<UserPanel user={mockUser} onClose={onClose} />);
+    fireEvent.click(screen.getByRole("button", { name: /^cancel$/i }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("shows the reinstantiate plan control and helper text", () => {
+    render(<UserPanel user={mockUser} onClose={jest.fn()} />);
+    expect(
+      screen.getByRole("button", { name: /reinstantiate plan/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/rebuilds this user's plan tasks from current templates/i)
+    ).toBeInTheDocument();
+  });
+
+  it("calls reinstantiatePlan and shows success feedback", async () => {
+    render(<UserPanel user={mockUser} onClose={jest.fn()} />);
+    fireEvent.click(screen.getByRole("button", { name: /reinstantiate plan/i }));
+
+    await waitFor(() =>
+      expect(reinstantiatePlan).toHaveBeenCalledWith("user-1")
+    );
+    expect(
+      await screen.findByText(/plan reinstantiated\. 3 tasks created\./i)
+    ).toBeInTheDocument();
   });
 });

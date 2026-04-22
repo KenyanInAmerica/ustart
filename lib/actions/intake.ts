@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
+import { instantiatePlan } from "@/lib/actions/plan";
 import type { IntakeFormData } from "@/lib/types/intake";
 
 type IntakeResult =
@@ -157,6 +158,8 @@ export async function submitIntake(formData: IntakeFormData): Promise<IntakeResu
     if (updateError) {
       return { success: false, error: updateError.message };
     }
+
+    void instantiatePlan(user.id);
 
     revalidatePath("/intake");
     revalidatePath("/dashboard");
