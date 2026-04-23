@@ -48,6 +48,9 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
       invitedParentEmail: null,
       parentInvitationStatus: null,
       parentInvitationAcceptedAt: null,
+      parentShareTasks: true,
+      parentShareCalendar: true,
+      parentShareContent: true,
       role: "student",
     };
   }
@@ -66,7 +69,7 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     supabase
       .from("user_access")
       .select(
-        "membership_rank, membership_tier, membership_purchased_at, has_membership, has_parent_seat, has_agreed_to_community, first_content_visit_at, phone_number"
+        "membership_rank, membership_tier, membership_purchased_at, has_membership, has_parent_seat, has_agreed_to_community, first_content_visit_at, phone_number, parent_share_tasks, parent_share_calendar, parent_share_content"
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -92,6 +95,9 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     has_agreed_to_community: boolean | null;
     first_content_visit_at: string | null;
     phone_number: string | null;
+    parent_share_tasks: boolean | null;
+    parent_share_calendar: boolean | null;
+    parent_share_content: boolean | null;
   } | null;
 
   const profile = profileData as {
@@ -163,6 +169,9 @@ export const fetchDashboardAccess = cache(async (): Promise<DashboardAccess> => 
     invitedParentEmail: invitation?.parent_email ?? null,
     parentInvitationStatus: (invitation?.status ?? null) as "pending" | "accepted" | null,
     parentInvitationAcceptedAt: invitation?.accepted_at ?? null,
+    parentShareTasks: raw?.parent_share_tasks ?? true,
+    parentShareCalendar: raw?.parent_share_calendar ?? true,
+    parentShareContent: raw?.parent_share_content ?? true,
     role,
   };
 });

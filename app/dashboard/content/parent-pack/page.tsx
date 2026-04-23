@@ -1,17 +1,23 @@
 import { redirect } from "next/navigation";
-import { trackContentVisit } from "@/lib/actions/trackContentVisit";
+import { createClient } from "@/lib/supabase/server";
 import { fetchDashboardAccess } from "@/lib/dashboard/access";
-import { fetchTierContent } from "@/lib/dashboard/content";
-import { ContentGrid } from "@/components/dashboard/ContentGrid";
-import { ParentInvitationSection } from "@/components/dashboard/ParentInvitationSection";
+import { fetchParentPackLinks } from "@/lib/dashboard/parentPack";
+import { ParentPackManager } from "@/components/dashboard/ParentPackManager";
 
 export default async function ParentPackPage() {
-  const [access, items] = await Promise.all([
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) redirect("/sign-in");
+
+  const [access, links] = await Promise.all([
     fetchDashboardAccess(),
-    fetchTierContent("parent_pack"),
-    trackContentVisit(),
+    fetchParentPackLinks(),
   ]);
 
+  if (access.role === "parent") redirect("/dashboard/parent/hub");
   if (!access.hasParentSeat) redirect("/dashboard");
 
   return (
@@ -20,19 +26,19 @@ export default async function ParentPackPage() {
         Parent Pack
       </h1>
       <p className="mb-8 font-primary text-sm text-[var(--text-muted)]">
-        Resources for supporting your student&apos;s US journey.
+        Manage how a parent supports your UStart journey.
       </p>
 
-      <ContentGrid items={items} />
-
-      {access.role !== "parent" && (
-        <div className="mt-10">
-          <ParentInvitationSection
-            initialStatus={access.parentInvitationStatus}
-            initialParentEmail={access.invitedParentEmail}
-          />
-        </div>
-      )}
+      <ParentPackManager
+        initialStatus={access.parentInvitationStatus}
+        initialParentEmail={access.invitedParentEmail}
+        initialPreferences={{
+          share_tasks: access.parentShareTasks,
+          share_calendar: access.parentShareCalendar,
+          share_content: access.parentShareContent,
+        }}
+        parentPackNotionUrl={links.parentPackNotionUrl}
+      />
     </div>
   );
 }

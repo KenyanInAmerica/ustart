@@ -1,13 +1,21 @@
 import { render, screen } from "@testing-library/react";
 import MyDocumentsPage from "@/app/dashboard/my-documents/page";
 
+const mockGetUser = jest.fn();
+const mockMaybeSingle = jest.fn();
+
 jest.mock("../../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
     auth: {
-      getUser: jest.fn().mockResolvedValue({
-        data: { user: { id: "user-1", email: "test@example.com" } },
-      }),
+      getUser: mockGetUser,
     },
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          maybeSingle: mockMaybeSingle,
+        })),
+      })),
+    })),
   })),
 }));
 
@@ -23,7 +31,19 @@ jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
 }));
 
+import { redirect } from "next/navigation";
+
 describe("MyDocumentsPage", () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "test@example.com" } },
+    });
+    mockMaybeSingle.mockResolvedValue({
+      data: { role: "student" },
+    });
+  });
+
   it("renders without error", async () => {
     const { container } = render(await MyDocumentsPage());
     expect(container).toBeTruthy();
@@ -37,5 +57,13 @@ describe("MyDocumentsPage", () => {
   it("renders the content grid", async () => {
     render(await MyDocumentsPage());
     expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
+  });
+
+  it("redirects parents to the parent dashboard", async () => {
+    mockMaybeSingle.mockResolvedValue({ data: { role: "parent" } });
+
+    await MyDocumentsPage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/parent/plan");
   });
 });

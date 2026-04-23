@@ -11,6 +11,7 @@ export default async function LitePage() {
     trackContentVisit(),
   ]);
 
+  if (access.role === "parent") redirect("/dashboard/parent/content");
   if (access.membershipRank < 1) redirect("/dashboard");
 
   return (

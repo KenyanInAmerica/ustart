@@ -131,6 +131,9 @@ const noAccessState: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
 function setupUnauthenticated() {

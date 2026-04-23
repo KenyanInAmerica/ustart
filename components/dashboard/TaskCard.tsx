@@ -8,6 +8,7 @@ interface TaskCardProps {
   phaseColor: string;
   status: PlanTaskStatus;
   onToggle: (taskId: string, newStatus: PlanTaskStatus) => void;
+  readOnly?: boolean;
 }
 
 function nextStatus(status: PlanTaskStatus): PlanTaskStatus {
@@ -45,7 +46,13 @@ function isOverdueTask(task: PlanTask): boolean {
   return dueUtc < todayUtc;
 }
 
-export function TaskCard({ task, phaseColor, status, onToggle }: TaskCardProps) {
+export function TaskCard({
+  task,
+  phaseColor,
+  status,
+  onToggle,
+  readOnly = false,
+}: TaskCardProps) {
   const isOverdue = isOverdueTask({ ...task, status });
   const dueDateLabel = formatDueDate(task.due_date, isOverdue);
 
@@ -53,13 +60,21 @@ export function TaskCard({ task, phaseColor, status, onToggle }: TaskCardProps) 
     onToggle(task.id, nextStatus(status));
   }
 
+  const CardContainer = readOnly ? "div" : "button";
+
   return (
     <div className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-1 shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--bg-card-hover)]">
-      <button
-        type="button"
-        onClick={handleToggleStatus}
-        className="flex min-w-0 flex-1 items-center gap-4 rounded-[calc(var(--radius-md)-4px)] px-3 py-3 text-left"
-        aria-label={`${task.title} status ${status}`}
+      <CardContainer
+        {...(readOnly
+          ? {}
+          : {
+              type: "button" as const,
+              onClick: handleToggleStatus,
+              "aria-label": `${task.title} status ${status}`,
+            })}
+        className={`flex min-w-0 flex-1 items-center gap-4 rounded-[calc(var(--radius-md)-4px)] px-3 py-3 text-left ${
+          readOnly ? "cursor-default" : ""
+        }`}
       >
         <span className="shrink-0">
           {renderStatusIndicator(status, phaseColor)}
@@ -89,7 +104,7 @@ export function TaskCard({ task, phaseColor, status, onToggle }: TaskCardProps) 
           aria-hidden="true"
           data-testid={`task-phase-dot-${task.id}`}
         />
-      </button>
+      </CardContainer>
 
       <div className="flex shrink-0 items-center pr-3">
         {task.content_url && (

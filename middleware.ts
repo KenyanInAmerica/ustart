@@ -2,7 +2,13 @@ import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 // Routes that require an active session. Any sub-path also matches (startsWith check below).
-const PROTECTED_PATHS = ["/dashboard", "/content", "/account", "/intake"];
+const PROTECTED_PATHS = [
+  "/dashboard",
+  "/dashboard/parent",
+  "/content",
+  "/account",
+  "/intake",
+];
 
 // /invite is intentionally public — unauthenticated parents must be able to reach
 // the invitation confirmation page without being redirected to /sign-in.

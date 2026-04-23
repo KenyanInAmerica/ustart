@@ -11,6 +11,7 @@ export default async function ConciergePage() {
     trackContentVisit(),
   ]);
 
+  if (access.role === "parent") redirect("/dashboard/parent/content");
   if (access.membershipRank < 3) redirect("/dashboard");
 
   return (
