@@ -1,29 +1,41 @@
 import { render, screen } from "@testing-library/react";
 import ParentPackPage from "@/app/dashboard/content/parent-pack/page";
 
-jest.mock("../../../../lib/actions/trackContentVisit", () => ({
-  trackContentVisit: jest.fn().mockResolvedValue(undefined),
+const mockGetUser = jest.fn();
+
+jest.mock("../../../../lib/supabase/server", () => ({
+  createClient: jest.fn(() => ({
+    auth: { getUser: mockGetUser },
+  })),
 }));
 
 jest.mock("../../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
 }));
 
+jest.mock("../../../../lib/dashboard/parentPack", () => ({
+  fetchParentPackLinks: jest.fn().mockResolvedValue({
+    parentPackNotionUrl: "https://notion.so/parent-pack",
+    parentContentNotionUrl: "https://notion.so/parent-content",
+  }),
+}));
+
 jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
 }));
 
-// ParentInvitationSection is a client component tested in its own file.
-jest.mock("../../../../components/dashboard/ParentInvitationSection", () => ({
-  ParentInvitationSection: () => <div data-testid="invitation-section-stub" />,
-}));
-
-jest.mock("../../../../lib/dashboard/content", () => ({
-  fetchTierContent: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock("../../../../components/dashboard/ContentGrid", () => ({
-  ContentGrid: () => <div data-testid="content-grid-stub" />,
+jest.mock("../../../../components/dashboard/ParentPackManager", () => ({
+  ParentPackManager: ({
+    initialParentEmail,
+    initialStatus,
+  }: {
+    initialParentEmail: string | null;
+    initialStatus: string | null;
+  }) => (
+    <div data-testid="invitation-section-stub">
+      {initialStatus}:{initialParentEmail ?? "none"}
+    </div>
+  ),
 }));
 
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
@@ -45,15 +57,23 @@ const studentAccess: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
-const parentAccess: DashboardAccess = {
+const acceptedAccess: DashboardAccess = {
   ...studentAccess,
-  role: "parent",
+  invitedParentEmail: "parent@example.com",
+  parentInvitationStatus: "accepted",
+  parentInvitationAcceptedAt: "2026-04-22T00:00:00.000Z",
 };
 
 describe("ParentPackPage", () => {
   beforeEach(() => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "student-1", email: "student@example.com" } },
+    });
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(studentAccess);
     (redirect as unknown as jest.Mock).mockReset();
   });
@@ -68,20 +88,17 @@ describe("ParentPackPage", () => {
     expect(screen.getByText("Parent Pack")).toBeInTheDocument();
   });
 
-  it("renders the content grid", async () => {
-    render(await ParentPackPage());
-    expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
-  });
-
-  it("renders the invitation section for a student", async () => {
+  it("renders the invitation manager for a signed-in student", async () => {
     render(await ParentPackPage());
     expect(screen.getByTestId("invitation-section-stub")).toBeInTheDocument();
   });
 
-  it("hides the invitation section for a parent account", async () => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue(parentAccess);
-    render(await ParentPackPage());
-    expect(screen.queryByTestId("invitation-section-stub")).not.toBeInTheDocument();
+  it("redirects signed-out users to /sign-in", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+
+    await ParentPackPage();
+
+    expect(redirect).toHaveBeenCalledWith("/sign-in");
   });
 
   it("redirects to /dashboard when hasParentSeat is false", async () => {
@@ -91,5 +108,26 @@ describe("ParentPackPage", () => {
     });
     await ParentPackPage();
     expect(redirect).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("redirects parent users to the parent hub", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({
+      ...studentAccess,
+      role: "parent",
+    });
+
+    await ParentPackPage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/parent/hub");
+  });
+
+  it("passes the existing invitation state into the client manager", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue(acceptedAccess);
+
+    render(await ParentPackPage());
+
+    expect(screen.getByTestId("invitation-section-stub")).toHaveTextContent(
+      "accepted:parent@example.com"
+    );
   });
 });

@@ -1,15 +1,13 @@
-// Admin settings page — WhatsApp invite link and pricing management.
-// Pre-fills the WhatsApp form with the current stored value from the config table.
+// Admin settings page — global links and pricing management.
 
-import { fetchAdminWhatsappLink } from "@/lib/admin/data";
+import { fetchAdminSettingsValues } from "@/lib/admin/data";
 import { SettingsForm } from "@/components/admin/SettingsForm";
 import { PricingSection } from "@/components/admin/PricingSection";
 import { getPricing } from "@/lib/config/getPricing";
 
 export default async function AdminSettingsPage() {
-  // Fetch whatsapp link and all pricing rows in parallel.
-  const [currentLink, pricingItems] = await Promise.all([
-    fetchAdminWhatsappLink(),
+  const [settings, pricingItems] = await Promise.all([
+    fetchAdminSettingsValues(),
     getPricing(),
   ]);
 
@@ -23,12 +21,11 @@ export default async function AdminSettingsPage() {
       </p>
 
       <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
-        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">WhatsApp invite link</h2>
+        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">Platform links</h2>
         <p className="mb-5 max-w-md text-[13px] text-[var(--text-muted)]">
-          This link is shown to students on the community page after they agree to the rules.
-          Paste the full invite URL from WhatsApp group settings.
+          Manage the external links used across the dashboard and Parent Pack flows.
         </p>
-        <SettingsForm initialLink={currentLink} />
+        <SettingsForm initialValues={settings} />
       </div>
 
       <PricingSection items={pricingItems} />

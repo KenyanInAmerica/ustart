@@ -33,6 +33,18 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Invitations",
+    href: "/admin/invitations",
+    exact: false,
+    icon: (
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <path d="M22 7v10a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V7" />
+        <path d="m22 7-10 7L2 7" />
+        <path d="M2 7a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2" />
+      </svg>
+    ),
+  },
+  {
     label: "Community",
     href: "/admin/community",
     exact: false,
@@ -42,7 +54,6 @@ const NAV_ITEMS = [
       </svg>
     ),
   },
-  // Hidden — parent invitation system parked pending Parent Pack simplification
   {
     label: "Content",
     href: "/admin/content",

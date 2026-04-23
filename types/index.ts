@@ -38,6 +38,9 @@ export interface DashboardAccess {
   invitedParentEmail: string | null;
   parentInvitationStatus: "pending" | "accepted" | null;
   parentInvitationAcceptedAt: string | null;
+  parentShareTasks: boolean;
+  parentShareCalendar: boolean;
+  parentShareContent: boolean;
   // parents see content driven by their linked student's entitlements
   role: "student" | "parent";
 }

@@ -185,4 +185,27 @@ describe("ProfileSection", () => {
     );
     expect(screen.getAllByText("Not set").length).toBeGreaterThan(0);
   });
+
+  it("hides student-only fields for parent accounts", () => {
+    render(<ProfileSection {...baseProps} role="parent" />);
+
+    expect(screen.queryByText("University / School")).not.toBeInTheDocument();
+    expect(screen.queryByText("University of Michigan")).not.toBeInTheDocument();
+    expect(screen.getByText("Kenya")).toBeInTheDocument();
+  });
+
+  it("does not submit university_name updates for parent accounts", async () => {
+    (updateProfile as jest.Mock).mockResolvedValue({ success: true });
+
+    render(<ProfileSection {...baseProps} role="parent" />);
+    fireEvent.click(screen.getAllByRole("button", { name: /^edit$/i })[1]);
+    fireEvent.click(screen.getByRole("button", { name: /^save$/i }));
+
+    await waitFor(() =>
+      expect(updateProfile).toHaveBeenCalledWith({
+        phone_number: "+12025551234",
+        country_of_origin: "Kenya",
+      })
+    );
+  });
 });

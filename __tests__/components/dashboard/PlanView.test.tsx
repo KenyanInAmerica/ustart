@@ -101,4 +101,23 @@ describe("PlanView", () => {
       expect(updateTaskStatus).toHaveBeenCalledWith("task-2", "completed")
     );
   });
+
+  it("hides editing controls in read-only mode", () => {
+    render(
+      <PlanView
+        greeting="Alice's Plan"
+        subtitle="Read-only view."
+        initialPhaseGroups={phaseGroups}
+        intakeCompletedAt="2026-04-21T00:00:00.000Z"
+        readOnly
+      />
+    );
+
+    expect(screen.queryByText("50%")).not.toBeInTheDocument();
+    expect(screen.queryByText("Not started")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("Click a task to update its status")
+    ).not.toBeInTheDocument();
+    expect(screen.getByTestId("plan-calendar-stub")).toBeInTheDocument();
+  });
 });

@@ -2,9 +2,11 @@ import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
+import { ParentShell } from "@/components/dashboard/ParentShell";
 import { fetchDashboardAccess } from "@/lib/dashboard/access";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
 import { Footer } from "@/components/ui/Footer";
+import { createServiceClient } from "@/lib/supabase/service";
 
 // Maps DB tier slugs to sidebar footer display names.
 const TIER_NAMES: Record<string, string> = {
@@ -28,6 +30,7 @@ type ProfileRedirectRow = {
   id: string;
   intake_completed_at: string | null;
   role: "student" | "parent" | null;
+  student_id: string | null;
 };
 
 // Persistent dashboard shell — wraps all /dashboard/* routes.
@@ -50,14 +53,37 @@ export default async function DashboardLayout({
 
   const { data: profileData } = await supabase
     .from("profiles")
-    .select("id, intake_completed_at, role")
+    .select("id, intake_completed_at, role, student_id")
     .eq("id", user.id)
     .maybeSingle();
 
   const profile = profileData as ProfileRedirectRow | null;
 
-  if (profile?.role !== "parent" && profile?.intake_completed_at == null) {
+  if (profile?.role === "student" && profile?.intake_completed_at == null) {
     return redirect("/intake");
+  }
+
+  if (profile?.role === "parent") {
+    const service = createServiceClient();
+    const { data: studentProfileData } = await service
+      .from("profiles")
+      .select("first_name, last_name")
+      .eq("id", profile.student_id ?? "")
+      .maybeSingle();
+
+    const studentProfile = studentProfileData as {
+      first_name: string | null;
+      last_name: string | null;
+    } | null;
+
+    return (
+      <ParentShell
+        studentFirstName={studentProfile?.first_name ?? "Your student"}
+        studentLastName={studentProfile?.last_name ?? null}
+      >
+        {children}
+      </ParentShell>
+    );
   }
 
   // fetchDashboardAccess is memoised with React.cache — calling it here and

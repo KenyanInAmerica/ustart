@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import type { DashboardAccess } from "@/types";
 
+const mockUsePathname = jest.fn(() => "/dashboard");
+
 const fullAccess: DashboardAccess = {
   membershipRank: 3,
   membershipTier: "concierge",
@@ -17,6 +19,9 @@ const fullAccess: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
 const noAccess: DashboardAccess = {
@@ -34,6 +39,9 @@ const noAccess: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
 const defaultProps = {
@@ -44,7 +52,7 @@ const defaultProps = {
 };
 
 jest.mock("next/navigation", () => ({
-  usePathname: jest.fn(() => "/dashboard"),
+  usePathname: () => mockUsePathname(),
   useRouter: jest.fn(() => ({ push: jest.fn() })),
 }));
 
@@ -94,9 +102,45 @@ describe("Sidebar", () => {
     );
   });
 
-  it("locks Community when hasAgreedToCommunity is false", () => {
+  it("renders Parent Pack in the navigation when the add-on is active", () => {
+    render(<Sidebar {...defaultProps} />);
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute(
+      "href",
+      "/dashboard/content/parent-pack"
+    );
+  });
+
+  it("routes locked Parent Pack nav to /pricing when the add-on is missing", () => {
+    render(<Sidebar {...defaultProps} access={noAccess} />);
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute(
+      "href",
+      "/pricing"
+    );
+  });
+
+  it("uses the Parent Pack accent when that nav item is active", () => {
+    mockUsePathname.mockReturnValue("/dashboard/content/parent-pack");
+    render(<Sidebar {...defaultProps} />);
+    expect(screen.getByRole("link", { name: /parent pack/i }).className).toMatch(
+      /text-\[#F5C842\]/
+    );
+    mockUsePathname.mockReturnValue("/dashboard");
+  });
+
+  it("does not highlight My Content when Parent Pack is active", () => {
+    mockUsePathname.mockReturnValue("/dashboard/content/parent-pack");
+    render(<Sidebar {...defaultProps} />);
+    expect(screen.getByRole("link", { name: /^my content$/i }).className).not.toMatch(
+      /text-\[#3083DC\]/
+    );
+    mockUsePathname.mockReturnValue("/dashboard");
+  });
+
+  it("routes Community through its locked nav state when rules are not accepted", () => {
     render(<Sidebar {...defaultProps} access={{ ...fullAccess, hasAgreedToCommunity: false }} />);
-    expect(screen.queryByRole("link", { name: /^community$/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^community$/i })).toHaveClass(
+      "text-[var(--text-muted)]"
+    );
   });
 
   it("renders the user email and plan name", () => {

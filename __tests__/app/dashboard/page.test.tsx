@@ -47,13 +47,22 @@ jest.mock("../../../lib/supabase/server", () => ({
 }));
 
 import { fetchUserPlan } from "../../../lib/dashboard/plan";
+import { redirect } from "next/navigation";
+
+jest.mock("next/navigation", () => ({
+  redirect: jest.fn(),
+}));
 
 describe("DashboardPage", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
     mockProfileMaybeSingle.mockResolvedValue({
-      data: { first_name: "Alice", intake_completed_at: "2026-04-21T00:00:00.000Z" },
+      data: {
+        first_name: "Alice",
+        intake_completed_at: "2026-04-21T00:00:00.000Z",
+        role: "student",
+      },
     });
     (fetchUserPlan as jest.Mock).mockResolvedValue([
       {
@@ -102,5 +111,19 @@ describe("DashboardPage", () => {
   it("renders the ParentInvitation component inside PlanView", async () => {
     render(await DashboardPage());
     expect(screen.getByTestId("parent-invitation-stub")).toBeInTheDocument();
+  });
+
+  it("redirects parent users to the parent plan", async () => {
+    mockProfileMaybeSingle.mockResolvedValue({
+      data: {
+        first_name: "Alice",
+        intake_completed_at: "2026-04-21T00:00:00.000Z",
+        role: "parent",
+      },
+    });
+
+    await DashboardPage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/parent/plan");
   });
 });

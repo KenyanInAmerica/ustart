@@ -22,6 +22,7 @@ export const AuditAction = {
   PARENT_INVITATION_RESENT: "parent.invitation_resent",
   PARENT_INVITATION_CANCELLED: "parent.invitation_cancelled",
   PARENT_INVITATION_ACCEPTED: "parent.invitation_accepted",
+  PARENT_SHARING_UPDATED: "parent.sharing_updated",
   PARENT_UNLINKED: "parent.unlinked",
 
   // Community

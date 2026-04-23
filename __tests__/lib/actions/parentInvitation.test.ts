@@ -7,6 +7,7 @@ const mockServiceFrom = jest.fn();
 const mockAdminDeleteUser = jest.fn();
 const mockCreateUser = jest.fn();
 const mockUpdateUserById = jest.fn();
+const mockLogAction = jest.fn();
 
 jest.mock("../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
@@ -34,6 +35,10 @@ jest.mock("next/cache", () => ({
   revalidatePath: jest.fn(),
 }));
 
+jest.mock("../../../lib/audit/log", () => ({
+  logAction: (...args: unknown[]) => mockLogAction(...args),
+}));
+
 // Resend client — jest.fn() must live inside the factory to avoid the hoisting
 // TDZ error. Access the mock via the imported module reference after jest.mock().
 jest.mock("../../../lib/resend/client", () => ({
@@ -46,6 +51,7 @@ import {
   resendParentInvitation,
   cancelParentInvitation,
   unlinkParent,
+  updateParentSharing,
   acceptInvitation,
 } from "../../../lib/actions/parentInvitation";
 
@@ -93,6 +99,7 @@ describe("sendParentInvitation", () => {
     mockFrom.mockReset();
     mockServiceFrom.mockReset();
     mockResendEmailsSend.mockReset();
+    mockLogAction.mockReset();
     // Default: invited email doesn't belong to any existing account.
     mockServiceFrom.mockReturnValue(makeServiceReadChain({ data: null }));
     mockResendEmailsSend.mockResolvedValue({ error: null });
@@ -134,6 +141,17 @@ describe("sendParentInvitation", () => {
     const result = await sendParentInvitation("parent@example.com");
     expect(result).toEqual({ success: true });
     expect(mockResendEmailsSend).toHaveBeenCalledTimes(1);
+    expect(mockFrom).toHaveBeenNthCalledWith(
+      2,
+      "parent_invitations"
+    );
+    expect((mockFrom.mock.results[1]?.value as { insert: jest.Mock }).insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        share_tasks: true,
+        share_calendar: true,
+        share_content: true,
+      })
+    );
   });
 
   it("returns error when Resend fails to send the invitation email", async () => {
@@ -322,6 +340,62 @@ describe("unlinkParent", () => {
 
     const result = await unlinkParent();
     expect(result).toEqual({ success: false, error: "Failed to update invitation status." });
+  });
+});
+
+describe("updateParentSharing", () => {
+  const preferences = {
+    share_tasks: false,
+    share_calendar: true,
+    share_content: false,
+  };
+
+  beforeEach(() => {
+    mockGetUser.mockReset();
+    mockFrom.mockReset();
+    mockLogAction.mockReset();
+  });
+
+  it("returns error when not authenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+
+    const result = await updateParentSharing(preferences);
+
+    expect(result).toEqual({ success: false, error: "Not authenticated." });
+  });
+
+  it("returns error when no accepted invitation exists", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    mockFrom.mockReturnValueOnce(makeChain({ data: null, error: null }));
+
+    const result = await updateParentSharing(preferences);
+
+    expect(result).toEqual({
+      success: false,
+      error: "No accepted parent invitation found.",
+    });
+  });
+
+  it("updates the accepted invitation sharing preferences", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { ...AUTHENTICATED_USER, email: "student@example.com" } },
+    });
+    const acceptedChain = makeChain({ data: { id: "inv-1" }, error: null });
+    const updateChain = makeChain({ error: null });
+    mockFrom.mockReturnValueOnce(acceptedChain).mockReturnValueOnce(updateChain);
+
+    const result = await updateParentSharing(preferences);
+
+    expect(result).toEqual({ success: true });
+    expect((mockFrom.mock.results[1]?.value as { update: jest.Mock }).update).toHaveBeenCalledWith(
+      preferences
+    );
+    expect(mockLogAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: "parent.sharing_updated",
+        payload: preferences,
+      })
+    );
   });
 });
 

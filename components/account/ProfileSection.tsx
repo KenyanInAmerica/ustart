@@ -104,6 +104,7 @@ interface Props {
   phoneNumber: string | null;
   universityName: string | null;
   countryOfOrigin: string | null;
+  role?: "student" | "parent";
 }
 
 export function ProfileSection({
@@ -113,6 +114,7 @@ export function ProfileSection({
   phoneNumber,
   universityName,
   countryOfOrigin,
+  role = "student",
 }: Props) {
   const router = useRouter();
   const [savedFirstName, setSavedFirstName] = useState(firstName ?? "");
@@ -222,11 +224,18 @@ export function ProfileSection({
 
     setContactLoading(true);
     setContactError("");
-    const result = await updateProfile({
-      phone_number: draftPhone,
-      university_name: draftUniversity,
-      country_of_origin: draftCountry,
-    });
+    const result = await updateProfile(
+      role === "parent"
+        ? {
+            phone_number: draftPhone,
+            country_of_origin: draftCountry,
+          }
+        : {
+            phone_number: draftPhone,
+            university_name: draftUniversity,
+            country_of_origin: draftCountry,
+          }
+    );
     setContactLoading(false);
     if (!result.success) {
       setContactError(result.error);
@@ -331,22 +340,24 @@ export function ProfileSection({
               </p>
             )}
           </div>
-          <div>
-            <label className={labelClassName}>University / School</label>
-            {editingContact ? (
-              <input
-                type="text"
-                value={draftUniversity}
-                onChange={(event) => setDraftUniversity(event.target.value)}
-                placeholder="e.g. University of Michigan"
-                className={inputClassName}
-              />
-            ) : (
-              <p className={valueClassName}>
-                {savedUniversity || <span className={emptyClassName}>Not set</span>}
-              </p>
-            )}
-          </div>
+          {role === "student" && (
+            <div>
+              <label className={labelClassName}>University / School</label>
+              {editingContact ? (
+                <input
+                  type="text"
+                  value={draftUniversity}
+                  onChange={(event) => setDraftUniversity(event.target.value)}
+                  placeholder="e.g. University of Michigan"
+                  className={inputClassName}
+                />
+              ) : (
+                <p className={valueClassName}>
+                  {savedUniversity || <span className={emptyClassName}>Not set</span>}
+                </p>
+              )}
+            </div>
+          )}
           <div className="relative">
             <label className={labelClassName}>Country of origin</label>
             {editingContact ? (

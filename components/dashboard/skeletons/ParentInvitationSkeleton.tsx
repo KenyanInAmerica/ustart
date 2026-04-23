@@ -1,4 +1,4 @@
-// Skeleton for ParentInvitationSection — mirrors the card with title, body, and input row.
+// Skeleton for the Parent Pack summary card on the dashboard home.
 
 export function ParentInvitationSkeleton() {
   return (

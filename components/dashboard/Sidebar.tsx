@@ -19,6 +19,8 @@ function navAccent(href: string): ProductAccent {
   switch (href) {
     case "/dashboard/community":
       return "community";
+    case "/dashboard/content/parent-pack":
+      return "parent_pack";
     default:
       return "default";
   }
@@ -38,6 +40,10 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
 
   function isActiveHref(href: string): boolean {
     if (href === "/dashboard") return pathname === "/dashboard";
+    if (href === "/dashboard/content") return pathname === href;
+    if (href === "/dashboard/content/parent-pack") {
+      return pathname === href;
+    }
     return pathname === href || pathname.startsWith(`${href}/`);
   }
 
@@ -65,17 +71,17 @@ export function Sidebar({ userEmail, userInitials, planName, access }: Props) {
 
               if (isLocked) {
                 return (
-                  <div
+                  <Link
                     key={item.href}
-                    className={`${itemClassName} pointer-events-none bg-[var(--bg-subtle)] text-[var(--text-muted)]`}
-                    aria-disabled="true"
+                    href={item.href === "/dashboard/content/parent-pack" ? "/pricing" : item.href}
+                    className={`${itemClassName} text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]`}
                   >
-                    {item.icon}
+                    <svg className="h-4 w-4 flex-shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+                      <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                      <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                    </svg>
                     {item.label}
-                    <span className="ml-auto rounded-full border border-[var(--border)] bg-white px-[7px] py-[2px] text-[10px] text-[var(--text-muted)]">
-                      Locked
-                    </span>
-                  </div>
+                  </Link>
                 );
               }
               return (

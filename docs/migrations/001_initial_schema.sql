@@ -95,6 +95,9 @@ CREATE TABLE public.parent_invitations (
   student_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
   parent_email TEXT NOT NULL,
   status TEXT NOT NULL DEFAULT 'pending',
+  share_tasks BOOLEAN NOT NULL DEFAULT true,
+  share_calendar BOOLEAN NOT NULL DEFAULT true,
+  share_content BOOLEAN NOT NULL DEFAULT true,
   invite_token UUID DEFAULT gen_random_uuid() NOT NULL,
   invite_token_expires_at TIMESTAMPTZ,
   invited_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -401,7 +404,10 @@ SELECT
   )) AS has_agreed_to_community,
   pi.parent_email AS invited_parent_email,
   pi.status AS parent_invitation_status,
-  pi.accepted_at AS parent_invitation_accepted_at
+  pi.accepted_at AS parent_invitation_accepted_at,
+  pi.share_tasks AS parent_share_tasks,
+  pi.share_calendar AS parent_share_calendar,
+  pi.share_content AS parent_share_content
 FROM profiles p
 LEFT JOIN memberships m ON m.user_id = p.id AND m.status = 'active'
 LEFT JOIN addons a ON a.user_id = p.id
@@ -410,7 +416,8 @@ GROUP BY
   p.id, p.email, p.first_name, p.last_name, p.role, p.student_id,
   p.first_content_visit_at, p.phone_number, p.university_name, p.country_of_origin,
   m.id, m.tier, m.status, m.purchased_at,
-  pi.parent_email, pi.status, pi.accepted_at;
+  pi.parent_email, pi.status, pi.accepted_at,
+  pi.share_tasks, pi.share_calendar, pi.share_content;
 
 -- -----------------------------------------------
 -- Indexes
@@ -608,4 +615,7 @@ VALUES
   ('additional_support_call', 'Additional Support Call', 'placeholder', 0.00, 'one-time', '[]', false, 8, 'prod_placeholder', 'price_placeholder');
 
 INSERT INTO public.config (key, value)
-VALUES ('whatsapp_invite_link', 'https://chat.whatsapp.com/placeholder');
+VALUES
+  ('whatsapp_invite_link', 'https://chat.whatsapp.com/placeholder'),
+  ('parent_pack_notion_url', 'https://notion.so/placeholder'),
+  ('parent_content_notion_url', 'https://notion.so/placeholder');

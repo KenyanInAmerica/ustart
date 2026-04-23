@@ -2,6 +2,8 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { MobileDrawer } from "@/components/dashboard/MobileDrawer";
 import type { DashboardAccess } from "@/types";
 
+const mockUsePathname = jest.fn(() => "/dashboard");
+
 const fullAccess: DashboardAccess = {
   membershipRank: 3,
   membershipTier: "concierge",
@@ -17,6 +19,9 @@ const fullAccess: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
 const noAccess: DashboardAccess = {
@@ -34,6 +39,9 @@ const noAccess: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
 const defaultProps = {
@@ -46,7 +54,7 @@ const defaultProps = {
 };
 
 jest.mock("next/navigation", () => ({
-  usePathname: jest.fn(() => "/dashboard"),
+  usePathname: () => mockUsePathname(),
   useRouter: jest.fn(() => ({ push: jest.fn() })),
 }));
 
@@ -77,9 +85,16 @@ describe("MobileDrawer", () => {
     expect(screen.getByText("Account & Billing")).toBeInTheDocument();
   });
 
-  it("renders Locked badges when access is restricted", () => {
+  it("renders locked links when access is restricted", () => {
     render(<MobileDrawer {...defaultProps} access={noAccess} />);
-    expect(screen.getAllByText("Locked").length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /^community$/i })).toHaveAttribute(
+      "href",
+      "/dashboard/community"
+    );
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute(
+      "href",
+      "/pricing"
+    );
   });
 
   it("renders My Content as a direct link", () => {
@@ -88,6 +103,31 @@ describe("MobileDrawer", () => {
       "href",
       "/dashboard/content"
     );
+  });
+
+  it("shows Parent Pack in the drawer when unlocked", () => {
+    render(<MobileDrawer {...defaultProps} />);
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute(
+      "href",
+      "/dashboard/content/parent-pack"
+    );
+  });
+
+  it("routes locked Parent Pack to /pricing", () => {
+    render(<MobileDrawer {...defaultProps} access={noAccess} />);
+    expect(screen.getByRole("link", { name: /parent pack/i })).toHaveAttribute(
+      "href",
+      "/pricing"
+    );
+  });
+
+  it("does not highlight My Content when Parent Pack is active", () => {
+    mockUsePathname.mockReturnValue("/dashboard/content/parent-pack");
+    render(<MobileDrawer {...defaultProps} />);
+    expect(screen.getByRole("link", { name: /^my content$/i }).className).not.toMatch(
+      /text-\[#3083DC\]/
+    );
+    mockUsePathname.mockReturnValue("/dashboard");
   });
 
   it("calls onClose when the overlay backdrop is clicked", () => {

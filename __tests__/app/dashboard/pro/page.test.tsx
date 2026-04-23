@@ -41,6 +41,9 @@ const exploreAccess: DashboardAccess = {
   invitedParentEmail: null,
   parentInvitationStatus: null,
   parentInvitationAcceptedAt: null,
+  parentShareTasks: true,
+  parentShareCalendar: true,
+  parentShareContent: true,
 };
 
 describe("ExplorePage", () => {

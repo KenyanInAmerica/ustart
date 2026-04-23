@@ -24,6 +24,8 @@ export function isNavItemLocked(item: NavItem, access: DashboardAccess): boolean
     case "/dashboard/community":    return !access.hasAgreedToCommunity;
     case "/dashboard/my-documents": return false;
     case "/dashboard/content":      return false;
+    case "/dashboard/content/parent-pack":
+      return !access.hasParentSeat;
     default:                        return item.locked ?? false;
   }
 }
@@ -56,6 +58,18 @@ export const navSections: NavSection[] = [
           <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+          </svg>
+        ),
+      },
+      {
+        label: "Parent Pack",
+        href: "/dashboard/content/parent-pack",
+        icon: (
+          <svg className="w-4 h-4 opacity-70 flex-shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         ),
       },

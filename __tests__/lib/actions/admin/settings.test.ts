@@ -22,6 +22,7 @@ jest.mock("next/cache", () => ({
 }));
 
 import { saveWhatsappLink } from "../../../../lib/actions/admin/settings";
+import { saveAdminSettings } from "../../../../lib/actions/admin/settings";
 
 function makeChain(returnValue: unknown): Record<string, unknown> {
   const p = Promise.resolve(returnValue);
@@ -64,7 +65,15 @@ describe("saveWhatsappLink", () => {
     mockGetUser.mockResolvedValue({ data: { user: ADMIN_USER } });
     mockServiceFrom.mockReturnValue(makeChain({ data: { is_admin: true }, error: null }));
     const result = await saveWhatsappLink("   ");
-    expect(result).toEqual({ success: false, error: "Link cannot be empty." });
+    expect(result).toEqual({ success: false, error: "All settings fields are required." });
+  });
+});
+
+describe("saveAdminSettings", () => {
+  beforeEach(() => {
+    mockGetUser.mockReset();
+    mockFrom.mockReset();
+    mockServiceFrom.mockReset();
   });
 
   it("returns success when link is saved", async () => {
@@ -75,7 +84,11 @@ describe("saveWhatsappLink", () => {
       // Second call: upsert to config
       .mockReturnValueOnce(makeChain({ error: null }));
 
-    const result = await saveWhatsappLink("https://chat.whatsapp.com/abc123");
+    const result = await saveAdminSettings({
+      whatsappInviteLink: "https://chat.whatsapp.com/abc123",
+      parentPackNotionUrl: "https://notion.so/student",
+      parentContentNotionUrl: "https://notion.so/parent",
+    });
     expect(result).toEqual({ success: true });
   });
 
@@ -85,7 +98,11 @@ describe("saveWhatsappLink", () => {
       .mockReturnValueOnce(makeChain({ data: { is_admin: true }, error: null }))
       .mockReturnValueOnce(makeChain({ error: { message: "DB constraint violation" } }));
 
-    const result = await saveWhatsappLink("https://chat.whatsapp.com/abc123");
+    const result = await saveAdminSettings({
+      whatsappInviteLink: "https://chat.whatsapp.com/abc123",
+      parentPackNotionUrl: "https://notion.so/student",
+      parentContentNotionUrl: "https://notion.so/parent",
+    });
     expect(result).toEqual({ success: false, error: "DB constraint violation" });
   });
 });

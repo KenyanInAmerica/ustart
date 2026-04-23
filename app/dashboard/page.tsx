@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { PlanView } from "@/components/dashboard/PlanView";
 import { ParentInvitationWrapper } from "@/components/dashboard/ParentInvitationWrapper";
@@ -22,7 +23,7 @@ export default async function DashboardPage() {
   const [{ data: profileData }, planGroups] = await Promise.all([
     supabase
       .from("profiles")
-      .select("first_name, intake_completed_at")
+      .select("first_name, intake_completed_at, role")
       .eq("id", user!.id)
       .maybeSingle(),
     fetchUserPlan(user!.id),
@@ -31,7 +32,13 @@ export default async function DashboardPage() {
   const profile = profileData as {
     first_name: string | null;
     intake_completed_at: string | null;
+    role: "student" | "parent" | null;
   } | null;
+
+  if (profile?.role === "parent") {
+    redirect("/dashboard/parent/plan");
+  }
+
   const firstName = profile?.first_name ?? null;
   const timeOfDay = getTimeOfDay();
 
