@@ -11,6 +11,7 @@ export default async function ExplorePage() {
     trackContentVisit(),
   ]);
 
+  if (access.role === "parent") redirect("/dashboard/parent/content");
   if (access.membershipRank < 2) redirect("/dashboard");
 
   return (

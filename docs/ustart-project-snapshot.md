@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 22, 2026
+**Date:** April 23, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -148,8 +148,8 @@ Defined in `lib/config/productAccents.ts`.
 
 - Tagline: `"Your Move, Made Simple"` (from `brand.ts`, easily configurable)
 - Design system is now fully light mode — dark theme removed entirely
-- `ParentInvitationSection` is hidden behind `PARENT_INVITATION_ENABLED = false` — code intact, not rendered
 - Signed-in users without `profiles.intake_completed_at` are redirected to `/intake` before the dashboard shell loads
+- Parent accounts bypass the intake redirect and land in `/dashboard/parent/plan`
 - `components/layout/Nav.tsx` and `components/layout/Footer.tsx` were deleted as unused stubs during the design system overhaul
 - Plan task status uses three states: `not_started`, `in_progress`, `completed`. UI uses circle indicators: empty for not started, dash for in progress, and checkmark for completed. Phase accent color is applied to `in_progress` and `completed`, and the shared legend is rendered once above the task list in `PlanView.tsx`.
 
@@ -200,6 +200,14 @@ Defined in `lib/config/productAccents.ts`.
       /parent-pack/page.tsx # Parent Pack content
     /account             # Account & billing page
     /my-documents        # Individually assigned PDFs
+    /parent
+      /page.tsx          # Redirects to /dashboard/parent/plan
+      /plan/page.tsx     # Parent view of student's plan, read-only, respects share_tasks/share_calendar
+      /content/page.tsx  # Parent view of student's content, respects share_content
+      /content/lite/page.tsx
+      /content/explore/page.tsx
+      /content/concierge/page.tsx
+      /hub/page.tsx      # Parent Hub — parent-only Notion content
   /pricing               # Public pricing page (includes Footer)
   /privacy               # Privacy Policy page — added Feature 14
   /terms                 # Terms of Service page — added Feature 14
@@ -224,7 +232,8 @@ Defined in `lib/config/productAccents.ts`.
     ContentCards.tsx, ContentCardsSection.tsx, ContentGrid.tsx
     CommunitySection.tsx, CommunitySectionWrapper.tsx
     AccountStrip.tsx, AccountStripSection.tsx
-    ParentInvitationSection.tsx, ParentInvitationWrapper.tsx  # Present but render-gated by PARENT_INVITATION_ENABLED = false
+    ParentPackManager.tsx, ParentInvitationWrapper.tsx
+    ParentShell.tsx, ParentSidebar.tsx, ParentMobileNav.tsx
     AddonModal.tsx, PdfViewer.tsx (react-pdf backed), SignOutButton.tsx
     skeletons/  # Loading skeletons for each Suspense section
   /account   ProfileSection.tsx, BillingSection.tsx
@@ -344,6 +353,22 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 
 ---
 
+## Parent Accounts
+
+- Parent accounts have `role = 'parent'` in `profiles`
+- One parent per student for now via `profiles.student_id`
+- Students invite a parent after purchasing Parent Pack
+- Parents complete the invite flow and then sign in through the existing magic-link auth flow
+- Parents land on `/dashboard/parent/plan`, not the student dashboard
+- Parents see the `ParentShell` layout with a student context banner
+- Sharing permissions are independent and default ON when the invitation is sent:
+  `share_tasks` controls read-only plan/tasks, `share_calendar` controls read-only calendar, and `share_content` controls read-only student content pages
+- Parent Hub is parent-only Notion content and is available regardless of the student tier
+- Parent account page shows profile fields only; no billing section
+- Students can unlink a parent at any time from `/dashboard/content/parent-pack`
+
+---
+
 ## Database Schema
 
 ### Tables
@@ -355,10 +380,10 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 | `one_time_purchases`   | One-time purchases (`parent_seat`) only. Unique constraint on (user_id, type).                                                                                                            |
 | `call_bookings`        | Tracks purchasable call bookings. Users can purchase multiple. Columns: id, user_id, type (`arrival_call` \| `additional_support_call`), status (`purchased` \| `booked` \| `completed` \| `cancelled`), stripe_payment_intent_id, calendly_event_id, booked_at, completed_at |
 | `addons`               | Subscription rows for support-call products only: `arrival_call`, `additional_support_call`. Explore and Concierge are tiers, not addons.                                               |
-| `parent_invitations`   | Tracks parent invitation state. Partial unique index on student_id for pending/accepted rows only. invite_token (UUID) and invite_token_expires_at added for pre-fetch-safe invitation flow. Token valid 72 hours. |
+| `parent_invitations`   | Tracks parent invitation state. Partial unique index on student_id for pending/accepted rows only. invite_token (UUID) and invite_token_expires_at added for pre-fetch-safe invitation flow. Token valid 72 hours. share_tasks/share_calendar/share_content default to true and are managed by the student from /dashboard/content/parent-pack. |
 | `parent_content`       | Curated content for parent accounts. Placeholder.                                                                                                                                          |
 | `community_agreements` | Tracks community rule acceptance per user.                                                                                                                                                 |
-| `config`               | Key-value config store. Currently holds whatsapp_invite_link.                                                                                                                              |
+| `config`               | Key-value config store. Holds whatsapp_invite_link, parent_pack_notion_url, and parent_content_notion_url.                                                                                |
 | `content_items`        | PDF content library. Columns: id, title, description, tier, file_path, file_name, is_individual_only, uploaded_by, created_at, updated_at                                                  |
 | `user_content_items`   | Individual user PDF assignments. Unique on (user_id, content_item_id).                                                                                                                     |
 | `pricing`              | Single source of truth for all product pricing. Columns: id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at |
@@ -372,6 +397,12 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 
 - `addons.type` — column is named `type`, NOT `product`. Do not use `product` in queries.
 - `one_time_purchases.type` — column is named `type`, NOT `product`.
+- `parent_invitations.share_tasks` — BOOLEAN DEFAULT true, controls parent read-only plan/task visibility
+- `parent_invitations.share_calendar` — BOOLEAN DEFAULT true, controls parent read-only calendar visibility
+- `parent_invitations.share_content` — BOOLEAN DEFAULT true, controls parent read-only student content visibility
+- `user_access.parent_share_tasks` — derived from `parent_invitations.share_tasks`
+- `user_access.parent_share_calendar` — derived from `parent_invitations.share_calendar`
+- `user_access.parent_share_content` — derived from `parent_invitations.share_content`
 - `memberships.billing` — TEXT NOT NULL DEFAULT `'one-time'`. The live schema now carries billing cadence on the membership row itself.
 - `profiles.arrival_date`, `profiles.graduation_date`, `profiles.city`, `profiles.intake_completed_at` — added for the plan/intake schema expansion.
 - `addons` Stripe columns (`stripe_customer_id`, `stripe_subscription_id`, `stripe_product_id`, `current_period_end`) — not-null constraints dropped. Placeholders: `cus_placeholder`, `sub_placeholder`, `prod_placeholder`. TODO: replace in Feature 12.
@@ -382,6 +413,8 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 - `audit_logs.payload_text` — stored generated column (`payload::text`). Added to allow ILIKE substring search on JSONB payload via PostgREST `.or()`, which does not support type cast syntax (`::text`) inside filter strings. Never set manually — Postgres keeps it in sync automatically.
 - `plan_task_templates.display_order` — auto-assigned on create using the count of existing templates in the same phase. It is managed by the drag-to-reorder UI after creation and is never set manually by admins.
 - Queries against `plan_task_templates` and `plan_tasks` use `ORDER BY phase, display_order, created_at` so `created_at` acts as the stable tiebreaker when `display_order` values are equal.
+- `config.parent_pack_notion_url` — Notion link shown on the student Parent Pack page, editable in `/admin/settings`
+- `config.parent_content_notion_url` — Notion link shown in the parent Parent Hub, editable in `/admin/settings`
 
 ### Constraints
 
@@ -649,6 +682,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Pre-launch | Schema Cleanup & Production Config           | 🔄 In Progress (Steps 1–2 done) |
 | Feature 12 | Stripe Integration                           | ⏸ Deferred — tier structure now locked to Lite / Explore / Concierge |
 | Feature 13 | Resend Integration                           | ✅ Built                         |
+| Phase 5    | Parent Pack + Parent Dashboard               | ✅ Built                        |
 
 ---
 
@@ -719,6 +753,10 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - **`payload_text` migration must be applied before deploying any code that references it.** If the column doesn't exist, the `.or()` filter silently returns zero results (`fetchAuditLog` catches the error and returns `{ rows: [], total: 0 }`). Apply the migration first, then deploy.
 - **Audit log date range is enforced in the UI only.** `fetchAuditLog` will run a full-table query if called without `from`/`to`. Any future entry point to the audit log (new admin page, API route, etc.) must enforce the date range independently.
 - **`logAction` errors are silent** — caught and written to `console.error` / Vercel function logs only. If audit completeness becomes a compliance requirement, a dead-letter queue or retry mechanism is needed. The current fire-and-forget design is intentionally lossy.
+- Parent visiting `/dashboard` is redirected to `/dashboard/parent/plan`
+- Student visiting `/dashboard/parent/*` is redirected to `/dashboard`
+- Parent visiting `/dashboard/community` or `/dashboard/my-documents` is redirected to `/dashboard/parent/plan`
+- Sharing preferences default to all ON when a parent invitation is sent
 
 ---
 
@@ -733,6 +771,10 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Reactivate `csr@u-start.co.uk` in Google Workspace (currently archived), then set as `RESEND_NOTIFICATION_EMAIL` in Vercel production
 - Notify parent via Resend when unlinked (see `TODO` in `lib/actions/parentInvitation.ts → unlinkParent`) — deferred post-launch
 - Confirm Resend API keys are scoped to correct sending domains — staging key: staging.u-start.co.uk, production key: u-start.co.uk
+- Parent Pack Notion URL needs to be set in admin settings before launch (currently placeholder: https://notion.so/placeholder)
+- Parent Content Notion URL needs to be set in admin settings before launch (currently placeholder: https://notion.so/placeholder)
+- Two-parent model confirmed parked at one-to-one for now. Future: junction table for multiple students per parent and multiple parents per student.
+- Parent content pages currently show student content as read-only. Future enhancement: parents could have dedicated parent-specific content per tier.
 - Add school column to profiles table before or during Phase 9 (currently stored in intake_responses only)
 - Booking flow for `arrival_call` and `additional_support_call` built in Phase 8
 - Plan system — add admin per-user task editing so admins can adjust titles, due dates, and create one-off tasks without changing the master template set
@@ -776,12 +818,13 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 
 - ✅ Project created
 - ✅ Schema applied (all tables including content_items, user_content_items, pricing, contact_submissions, audit_logs, plan_task_templates, plan_tasks, intake_responses)
-- ✅ Parent invitation UI hidden in dashboard (`PARENT_INVITATION_ENABLED = false`) and admin sidebar link hidden pending Parent Pack simplification
 - ✅ RLS enabled on all tables
 - ✅ handle_new_user trigger active
 - ✅ is_parent_of security definer function active
 - ✅ Storage bucket `pdfs` created (private)
 - ✅ pricing table seeded with all six products
+- ⏸ parent_pack_notion_url — set in admin settings before launch
+- ⏸ parent_content_notion_url — set in admin settings before launch
 - ✅ URL Configuration → Site URL: http://localhost:3000 (update before launch)
 - ✅ URL Configuration → Redirect URLs: http://localhost:3000/auth/callback
 - ✅ Email Templates → Magic Link updated with branded template

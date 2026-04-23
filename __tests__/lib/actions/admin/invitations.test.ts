@@ -185,6 +185,14 @@ describe("adminLinkParent", () => {
       })
     );
 
+    expect((mockServiceFrom.mock.results[4]?.value as { insert: jest.Mock }).insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        share_tasks: true,
+        share_calendar: true,
+        share_content: true,
+      })
+    );
+
     // Email must point to the /invite confirmation page, not a raw magic link
     expect(mockResendSend).toHaveBeenCalledTimes(1);
     expect(mockResendSend).toHaveBeenCalledWith(

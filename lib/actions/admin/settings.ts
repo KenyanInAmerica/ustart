@@ -10,6 +10,11 @@ import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
 
 type ActionResult = { success: true } | { success: false; error: string };
+type SettingsInput = {
+  whatsappInviteLink: string;
+  parentPackNotionUrl: string;
+  parentContentNotionUrl: string;
+};
 
 async function requireAdmin(): Promise<
   { ok: true; adminId: string; adminEmail: string } | { ok: false; error: string }
@@ -33,23 +38,36 @@ async function requireAdmin(): Promise<
   return { ok: true, adminId: user.id, adminEmail: user.email ?? "" };
 }
 
-// Saves the WhatsApp invite link to the config table.
-// Uses upsert so it works whether or not the row already exists.
-export async function saveWhatsappLink(link: string): Promise<ActionResult> {
+// Saves admin-managed config values to the config table.
+// Uses upsert so it works whether or not the rows already exist.
+export async function saveAdminSettings(settings: SettingsInput): Promise<ActionResult> {
   try {
     const auth = await requireAdmin();
     if (!auth.ok) return { success: false, error: auth.error };
 
-    const trimmed = link.trim();
-    if (!trimmed) {
-      return { success: false, error: "Link cannot be empty." };
+    const trimmed = {
+      whatsappInviteLink: settings.whatsappInviteLink.trim(),
+      parentPackNotionUrl: settings.parentPackNotionUrl.trim(),
+      parentContentNotionUrl: settings.parentContentNotionUrl.trim(),
+    };
+
+    if (
+      !trimmed.whatsappInviteLink ||
+      !trimmed.parentPackNotionUrl ||
+      !trimmed.parentContentNotionUrl
+    ) {
+      return { success: false, error: "All settings fields are required." };
     }
 
     const service = createServiceClient();
     const { error } = await service
       .from("config")
       .upsert(
-        { key: "whatsapp_invite_link", value: trimmed },
+        [
+          { key: "whatsapp_invite_link", value: trimmed.whatsappInviteLink },
+          { key: "parent_pack_notion_url", value: trimmed.parentPackNotionUrl },
+          { key: "parent_content_notion_url", value: trimmed.parentContentNotionUrl },
+        ],
         { onConflict: "key" }
       );
 
@@ -59,7 +77,13 @@ export async function saveWhatsappLink(link: string): Promise<ActionResult> {
       actorId: auth.adminId,
       actorEmail: auth.adminEmail,
       action: AuditAction.ADMIN_SETTINGS_UPDATED,
-      payload: { key: "whatsapp_invite_link" },
+      payload: {
+        keys: [
+          "whatsapp_invite_link",
+          "parent_pack_notion_url",
+          "parent_content_notion_url",
+        ],
+      },
     });
 
     // Revalidate both admin settings and the user-facing dashboard
@@ -70,4 +94,12 @@ export async function saveWhatsappLink(link: string): Promise<ActionResult> {
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };
   }
+}
+
+export async function saveWhatsappLink(link: string): Promise<ActionResult> {
+  return saveAdminSettings({
+    whatsappInviteLink: link,
+    parentPackNotionUrl: "https://notion.so/placeholder",
+    parentContentNotionUrl: "https://notion.so/placeholder",
+  });
 }

@@ -11,9 +11,9 @@
     auth/callback/route.ts        # PKCE exchange, is_active check, parent linking
   /auth/error/page.tsx            # Error page — expired link, account_deactivated
   /dashboard
-    layout.tsx                    # Dashboard shell (Sidebar + MobileTopBar + Footer)
-    page.tsx                      # Main dashboard — plan home with phase sections and task cards
-    account/page.tsx              # Account & billing
+    layout.tsx                    # Dashboard shell; parent accounts render ParentShell instead
+    page.tsx                      # Main dashboard — student plan home with phase sections and task cards
+    account/page.tsx              # Account page; parents see profile only, no billing
     community/page.tsx            # Community page
     content/page.tsx              # Content card hub page
     content/lite/page.tsx         # Lite tier content
@@ -21,6 +21,14 @@
     content/concierge/page.tsx    # Concierge tier content
     content/parent-pack/page.tsx  # Parent Pack + invitation flow
     my-documents/page.tsx         # Individually assigned PDFs
+    parent
+      page.tsx                    # Redirects parents to /dashboard/parent/plan
+      plan/page.tsx               # Parent view of student's plan/calendar (read-only)
+      content/page.tsx            # Parent view of student's unlocked content cards
+      content/lite/page.tsx       # Lite tier content in parent read-only view
+      content/explore/page.tsx    # Explore tier content in parent read-only view
+      content/concierge/page.tsx  # Concierge tier content in parent read-only view
+      hub/page.tsx                # Parent Hub — parent-only Notion resources
   /admin
     layout.tsx                    # Admin shell (AdminSidebar)
     page.tsx                      # Overview — stats, recent signups
@@ -30,7 +38,7 @@
     plan-templates/page.tsx       # Plan template management page
     admins/page.tsx               # Grant/revoke admin access
     community/page.tsx            # Community members list + CSV export
-    settings/page.tsx             # WhatsApp link, pricing management
+    settings/page.tsx             # WhatsApp + Parent Pack/Parent Hub Notion URLs, pricing management
     audit-log/page.tsx            # Audit log — filterable, paginated event history
   /api
     pdf/route.ts                  # PDF download — access check, fetch, watermark, serve
@@ -90,8 +98,11 @@
     CommunitySectionWrapper.tsx   # Suspense wrapper for CommunitySection
     AccountStrip.tsx              # Account info strip
     AccountStripSection.tsx       # Suspense wrapper for AccountStrip
-    ParentInvitationSection.tsx   # Invite/manage parent flow UI
-    ParentInvitationWrapper.tsx   # Suspense wrapper for ParentInvitationSection
+    ParentPackManager.tsx         # Client UI for Parent Pack invitation + sharing management
+    ParentInvitationWrapper.tsx   # Dashboard-home summary card linking into Parent Pack
+    ParentShell.tsx               # Parent dashboard shell with student context banner
+    ParentSidebar.tsx             # Parent-specific desktop nav
+    ParentMobileNav.tsx           # Parent-specific mobile nav
     AddonModal.tsx                # Add-on upsell modal
     PdfViewer.tsx                 # react-pdf backed full-screen PDF modal
     SignOutButton.tsx              # Sign-out button (dashboard context)
@@ -142,13 +153,14 @@
     intake.ts                     # submitIntake() — validates, stores intake payload, marks profile complete
     plan.ts                       # instantiatePlan(), reinstantiatePlan(), updateTaskStatus()
     parentInvitation.ts           # sendParentInvitation(), resendParentInvitation(),
-                                  # cancelParentInvitation(), unlinkParent(), acceptInvitation()
+                                  # cancelParentInvitation(), unlinkParent(), updateParentSharing(),
+                                  # acceptInvitation()
     /admin
       admins.ts                   # grantAdminAccess(), revokeAdminAccess()
       content.ts                  # uploadContentItem(), deleteContentItem(), etc.
       invitations.ts              # adminLinkParent()
       planTemplates.ts            # create/update/delete + savePlanTemplateOrder()
-      settings.ts                 # saveWhatsappLink()
+      settings.ts                 # saveAdminSettings() — WhatsApp + parent Notion config
       updatePricing.ts            # updatePricing() — diff-based, logs changes
       users.ts                    # setUserMembershipTier(), setUserAddon(),
                                   # softDeleteUser(), hardDeleteUser(), reactivateUser(),
@@ -171,6 +183,9 @@
     access.ts                     # fetchDashboardAccess() — cached entitlements from user_access view
     plan.ts                       # fetchUserPlan() — grouped plan tasks by phase
     content.ts                    # fetchTierContent(), fetchUserDocuments() — cached
+    contentCatalog.ts             # Shared content card definitions for student/parent content views
+    parent.ts                     # Parent route helper; service-client cross-user student context reads
+    parentPack.ts                 # Config-backed Parent Pack / Parent Hub links
   /env
     guard.ts                      # assertNotProduction() — throws if NEXT_PUBLIC_ENVIRONMENT=production
   /pdf
@@ -271,10 +286,10 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 | `one_time_purchases` | user_id, type, status, purchased_at, stripe_payment_intent_id | type: parent_seat only. Unique on (user_id, type) |
 | `call_bookings` | id, user_id, type, status, stripe_payment_intent_id, calendly_event_id, booked_at, completed_at, created_at, updated_at | Multi-purchase support calls. type: arrival_call/additional_support_call |
 | `addons` | user_id, type, status, stripe_customer_id, stripe_subscription_id, stripe_product_id, current_period_end | type: arrival_call/additional_support_call only. Explore and Concierge are tiers, not addons. |
-| `parent_invitations` | id, student_id, parent_email, status, invite_token, invite_token_expires_at, invited_at, accepted_at, cancelled_at | Partial unique index: one pending/accepted per student |
+| `parent_invitations` | id, student_id, parent_email, status, share_tasks, share_calendar, share_content, invite_token, invite_token_expires_at, invited_at, accepted_at, cancelled_at | Partial unique index: one pending/accepted per student. Sharing flags default true |
 | `parent_content` | — | Placeholder — no content yet |
 | `community_agreements` | user_id, agreed_at | One row per user when rules accepted |
-| `config` | key, value | Key-value store. Currently holds whatsapp_invite_link |
+| `config` | key, value | Key-value store. Holds whatsapp_invite_link, parent_pack_notion_url, parent_content_notion_url |
 | `content_items` | id, title, description, tier, file_path, file_name, is_individual_only, uploaded_by, created_at, updated_at | tier: lite/explore/concierge/parent_pack |
 | `user_content_items` | id, user_id, content_item_id, assigned_by, created_at | Individual PDF assignments. Unique on (user_id, content_item_id) |
 | `pricing` | id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at | Single source of truth for all product pricing |
@@ -283,7 +298,7 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 | `plan_task_templates` | id, phase, title, description, days_from_arrival, content_url, tier_required, display_order, created_at, updated_at | Phase-based planning templates. `display_order` is auto-assigned on create, then managed by drag reorder. |
 | `plan_tasks` | id, user_id, template_id, phase, title, description, due_date, completed_at, status, content_url, display_order, created_at, updated_at | Per-user tasks derived from plan templates. Ordered reads use `ORDER BY phase, display_order, created_at`. |
 | `intake_responses` | id, user_id, school, city, arrival_date, graduation_date, main_concerns, completed_at | Per-user intake submission data stored in concrete columns |
-| `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, active_addons, etc. `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not addon rows. |
+| `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, parent_share_tasks, parent_share_calendar, parent_share_content, active_addons, etc. `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not addon rows. |
 
 **Critical column names:**
 - `addons.type` and `one_time_purchases.type` — the column is `type`, NOT `product`
@@ -300,6 +315,7 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 - `tier_rank(tier)` — returns numeric rank (lite=1, explore=2, concierge=3)
 - `is_parent_of(student_id)` — security definer function used in RLS policies
 - `user_access` view — use this for all entitlement checks; never query memberships/addons directly for access decisions
+- Parent dashboard pages use the service client for cross-user reads (student profile, invitations, content access) because parent accounts need to read linked student data outside normal RLS scope
 
 ---
 
@@ -307,7 +323,7 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 
 Runs on all requests except static files. Matcher: `/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)`.
 
-- `/dashboard`, `/content`, `/admin` — protected; unauthenticated → `/sign-in`
+- `/dashboard`, `/dashboard/parent`, `/content`, `/admin` — protected; unauthenticated → `/sign-in`
 - `/admin` — also requires `profiles.is_admin = true`; non-admin authenticated users → `/dashboard`
 - `/invite` — intentionally public (parent confirmation page, no auth)
 - `/sign-in` — redirects already-authenticated users to `/dashboard`
@@ -343,6 +359,8 @@ Never commit `.env` or `.env.local`. All secrets live in Vercel environment vari
 - New user → `handle_new_user` trigger → profiles row auto-created.
 - Callback (`app/(auth)/auth/callback/route.ts`) exchanges PKCE code, checks `profiles.is_active`, handles parent linking via `user_metadata`.
 - Parent invitation: email contains a `/invite?token=UUID` URL (not a magic link). `acceptInvitation()` calls `admin.createUser()` + `signInWithOtp()` — PKCE compatible. This prevents Gmail pre-fetch bots consuming the one-time token.
+- Parent accounts have `profiles.role = 'parent'` and `profiles.student_id` pointing at the linked student. Dashboard layout routes parents into `/dashboard/parent/*` and bypasses student intake gating.
+- Parent sharing permissions are independent flags on `parent_invitations`: `share_tasks`, `share_calendar`, and `share_content`. Students manage them from `/dashboard/content/parent-pack`.
 
 ---
 

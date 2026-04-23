@@ -32,6 +32,7 @@ describe("AdminSidebar", () => {
     render(<AdminSidebar />);
     expect(screen.getByText("Overview")).toBeInTheDocument();
     expect(screen.getByText("Users")).toBeInTheDocument();
+    expect(screen.getByText("Invitations")).toBeInTheDocument();
     expect(screen.getByText("Community")).toBeInTheDocument();
     expect(screen.getByText("Content")).toBeInTheDocument();
     expect(screen.getByText("Plan Templates")).toBeInTheDocument();
@@ -49,6 +50,7 @@ describe("AdminSidebar", () => {
   it("all nav links point to the correct hrefs", () => {
     render(<AdminSidebar />);
     expect(screen.getByRole("link", { name: /users/i })).toHaveAttribute("href", "/admin/users");
+    expect(screen.getByRole("link", { name: /invitations/i })).toHaveAttribute("href", "/admin/invitations");
     expect(screen.getByRole("link", { name: /community/i })).toHaveAttribute("href", "/admin/community");
     expect(screen.getByRole("link", { name: /content/i })).toHaveAttribute("href", "/admin/content");
     expect(screen.getByRole("link", { name: /plan templates/i })).toHaveAttribute("href", "/admin/plan-templates");

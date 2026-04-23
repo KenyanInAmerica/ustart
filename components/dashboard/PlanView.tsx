@@ -20,6 +20,8 @@ interface PlanViewProps {
   initialPhaseGroups: PlanPhaseGroup[];
   intakeCompletedAt: string | null;
   children?: ReactNode;
+  readOnly?: boolean;
+  calendarContent?: ReactNode;
 }
 
 function getCompletedCount(tasks: PlanPhaseGroup["tasks"]): number {
@@ -42,6 +44,8 @@ export function PlanView({
   initialPhaseGroups,
   intakeCompletedAt,
   children,
+  readOnly = false,
+  calendarContent,
 }: PlanViewProps) {
   const [phaseGroups, setPhaseGroups] = useState(initialPhaseGroups);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -73,6 +77,7 @@ export function PlanView({
     () => derivedPhaseGroups.flatMap((group) => group.tasks),
     [derivedPhaseGroups]
   );
+  const canOpenSchedule = allTasks.length > 0 && calendarContent === undefined;
   const overallPercentage = useMemo(
     () => getOverallPercentage(derivedPhaseGroups),
     [derivedPhaseGroups]
@@ -133,7 +138,9 @@ export function PlanView({
           </h1>
           <p className="mt-1 text-sm text-[var(--text-muted)]">{subtitle}</p>
         </div>
-        <ProgressRing percentage={overallPercentage} size={80} label="Complete" color="#3083DC" />
+        {!readOnly && (
+          <ProgressRing percentage={overallPercentage} size={80} label="Complete" color="#3083DC" />
+        )}
       </div>
 
       {errorMessage && (
@@ -163,38 +170,40 @@ export function PlanView({
             </div>
           ) : (
             <>
-              <div className="mb-6 flex flex-wrap items-center gap-4 px-1">
-                <div className="flex items-center gap-1.5">
-                  <span className="h-3.5 w-3.5 rounded-full border border-[var(--border-hi)] bg-white" />
-                  <span className="text-xs text-[var(--text-muted)]">Not started</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--text-muted)] bg-[rgba(28,43,58,0.15)] text-[var(--text-muted)]">
-                    <svg width="6" height="2" viewBox="0 0 6 2" aria-hidden="true">
-                      <rect width="6" height="2" rx="1" fill="currentColor" />
-                    </svg>
+              {!readOnly && (
+                <div className="mb-6 flex flex-wrap items-center gap-4 px-1">
+                  <div className="flex items-center gap-1.5">
+                    <span className="h-3.5 w-3.5 rounded-full border border-[var(--border-hi)] bg-white" />
+                    <span className="text-xs text-[var(--text-muted)]">Not started</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--text-muted)] bg-[rgba(28,43,58,0.15)] text-[var(--text-muted)]">
+                      <svg width="6" height="2" viewBox="0 0 6 2" aria-hidden="true">
+                        <rect width="6" height="2" rx="1" fill="currentColor" />
+                      </svg>
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">In progress</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#4ECBA5]">
+                      <svg width="6" height="5" viewBox="0 0 10 8" aria-hidden="true">
+                        <path
+                          d="M1 4L3.5 6.5L9 1"
+                          stroke="white"
+                          strokeWidth="1.5"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          fill="none"
+                        />
+                      </svg>
+                    </span>
+                    <span className="text-xs text-[var(--text-muted)]">Done</span>
+                  </div>
+                  <span className="ml-auto text-xs italic text-[var(--text-muted)]">
+                    Click a task to update its status
                   </span>
-                  <span className="text-xs text-[var(--text-muted)]">In progress</span>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#4ECBA5]">
-                    <svg width="6" height="5" viewBox="0 0 10 8" aria-hidden="true">
-                      <path
-                        d="M1 4L3.5 6.5L9 1"
-                        stroke="white"
-                        strokeWidth="1.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        fill="none"
-                      />
-                    </svg>
-                  </span>
-                  <span className="text-xs text-[var(--text-muted)]">Done</span>
-                </div>
-                <span className="ml-auto text-xs italic text-[var(--text-muted)]">
-                  Click a task to update its status
-                </span>
-              </div>
+              )}
 
               {derivedPhaseGroups.map((group) => {
                 const phasePercentage =
@@ -240,6 +249,7 @@ export function PlanView({
                           phaseColor={group.color}
                           status={task.status}
                           onToggle={handleToggle}
+                          readOnly={readOnly}
                         />
                       ))}
                     </div>
@@ -251,7 +261,7 @@ export function PlanView({
 
           {children}
 
-          {allTasks.length > 0 && (
+          {canOpenSchedule && (
             <div className="md-900:hidden">
               <Button
                 variant="ghost"
@@ -266,11 +276,11 @@ export function PlanView({
         </div>
 
         <aside className="hidden md-900:block">
-          <PlanCalendar tasks={allTasks} />
+          {calendarContent ?? <PlanCalendar tasks={allTasks} />}
         </aside>
       </div>
 
-      {isScheduleOpen && (
+      {isScheduleOpen && canOpenSchedule && (
         <div className="fixed inset-0 z-[260] md-900:hidden">
           <button
             type="button"
@@ -300,7 +310,7 @@ export function PlanView({
                 </svg>
               </button>
             </div>
-            <PlanCalendar tasks={allTasks} />
+            {calendarContent ?? <PlanCalendar tasks={allTasks} />}
           </div>
         </div>
       )}

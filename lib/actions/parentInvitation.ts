@@ -55,7 +55,12 @@ async function sendInvitationEmail(
 }
 
 export async function sendParentInvitation(
-  parentEmail: string
+  parentEmail: string,
+  preferences?: {
+    share_tasks: boolean;
+    share_calendar: boolean;
+    share_content: boolean;
+  }
 ): Promise<{ success: true } | { success: false; error: string }> {
   try {
     const supabase = createClient();
@@ -117,6 +122,11 @@ export async function sendParentInvitation(
     // Generate a token and expiry for the confirmation page URL.
     // The magic link is NOT generated here — it is generated on-demand in
     // acceptInvitation() when the parent actually clicks Accept.
+    const sharingPreferences = preferences ?? {
+      share_tasks: true,
+      share_calendar: true,
+      share_content: true,
+    };
     const inviteToken = crypto.randomUUID();
     const inviteTokenExpiresAt = new Date(Date.now() + 72 * 60 * 60 * 1000).toISOString();
     const inviteUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/invite?token=${inviteToken}`;
@@ -133,6 +143,9 @@ export async function sendParentInvitation(
         student_id: user.id,
         parent_email: parentEmail,
         status: "pending",
+        share_tasks: sharingPreferences.share_tasks,
+        share_calendar: sharingPreferences.share_calendar,
+        share_content: sharingPreferences.share_content,
         invite_token: inviteToken,
         invite_token_expires_at: inviteTokenExpiresAt,
       });
@@ -287,6 +300,57 @@ export async function unlinkParent(): Promise<
       actorId: user.id,
       actorEmail: user.email ?? undefined,
       action: AuditAction.PARENT_UNLINKED,
+    });
+
+    revalidatePath("/dashboard/content/parent-pack");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+export async function updateParentSharing(preferences: {
+  share_tasks: boolean;
+  share_calendar: boolean;
+  share_content: boolean;
+}): Promise<{ success: true } | { success: false; error: string }> {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return { success: false, error: "Not authenticated." };
+
+    const { data: acceptedInvitation } = await supabase
+      .from("parent_invitations")
+      .select("id")
+      .eq("student_id", user.id)
+      .eq("status", "accepted")
+      .maybeSingle();
+
+    if (!acceptedInvitation) {
+      return { success: false, error: "No accepted parent invitation found." };
+    }
+
+    const { error: updateError } = await supabase
+      .from("parent_invitations")
+      .update({
+        share_tasks: preferences.share_tasks,
+        share_calendar: preferences.share_calendar,
+        share_content: preferences.share_content,
+      })
+      .eq("student_id", user.id)
+      .eq("status", "accepted");
+
+    if (updateError) {
+      return { success: false, error: updateError.message };
+    }
+
+    void logAction({
+      actorId: user.id,
+      actorEmail: user.email ?? undefined,
+      action: AuditAction.PARENT_SHARING_UPDATED,
+      payload: preferences,
     });
 
     revalidatePath("/dashboard/content/parent-pack");

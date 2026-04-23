@@ -22,24 +22,30 @@ const ADDON_IDS: ProductId[] = [
 export default async function AccountPage() {
   const supabase = createClient();
 
-  // Run user data and pricing fetches in parallel — they are independent.
-  const [{ data: { user } }, allPricing] = await Promise.all([
-    supabase.auth.getUser(),
-    getPricing(),
-  ]);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  const { data } = await supabase
-    .from("user_access")
-    .select(
-      "first_name, last_name, email, phone_number, university_name, country_of_origin, membership_tier, membership_purchased_at, active_addons, has_parent_seat"
-    )
-    .eq("id", user!.id)  // scope to the authenticated user
-    .maybeSingle();
+  // Run the remaining account data fetches in parallel once we know the user id.
+  const [allPricing, { data: profileData }, { data }] = await Promise.all([
+    getPricing(),
+    supabase.from("profiles").select("role").eq("id", user!.id).maybeSingle(),
+    supabase
+      .from("user_access")
+      .select(
+        "first_name, last_name, email, phone_number, university_name, country_of_origin, membership_tier, membership_purchased_at, active_addons, has_parent_seat"
+      )
+      .eq("id", user!.id)
+      .maybeSingle(),
+  ]);
 
   // Filter pricing down to just the three add-ons to pass to BillingSection.
   const addonPricing: PricingItem[] = allPricing.filter((p) =>
     (ADDON_IDS as string[]).includes(p.id)
   );
+
+  const profile = profileData as { role: "student" | "parent" | null } | null;
+  const isParent = profile?.role === "parent";
 
   const raw = data as {
     first_name: string | null;
@@ -66,14 +72,17 @@ export default async function AccountPage() {
         phoneNumber={raw?.phone_number ?? null}
         universityName={raw?.university_name ?? null}
         countryOfOrigin={raw?.country_of_origin ?? null}
+        role={isParent ? "parent" : "student"}
       />
-      <BillingSection
-        membershipTier={raw?.membership_tier ?? null}
-        membershipPurchasedAt={raw?.membership_purchased_at ?? null}
-        activeAddons={raw?.active_addons ?? []}
-        hasParentSeat={raw?.has_parent_seat ?? false}
-        addonPricing={addonPricing}
-      />
+      {!isParent && (
+        <BillingSection
+          membershipTier={raw?.membership_tier ?? null}
+          membershipPurchasedAt={raw?.membership_purchased_at ?? null}
+          activeAddons={raw?.active_addons ?? []}
+          hasParentSeat={raw?.has_parent_seat ?? false}
+          addonPricing={addonPricing}
+        />
+      )}
     </div>
   );
 }

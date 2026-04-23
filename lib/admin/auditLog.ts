@@ -64,6 +64,7 @@ export const ACTION_GROUPS: { label: string; actions: ActionEntry[] }[] = [
       { value: AuditAction.PARENT_INVITATION_RESENT, label: "Invitation Resent" },
       { value: AuditAction.PARENT_INVITATION_CANCELLED, label: "Invitation Cancelled" },
       { value: AuditAction.PARENT_INVITATION_ACCEPTED, label: "Invitation Accepted" },
+      { value: AuditAction.PARENT_SHARING_UPDATED, label: "Sharing Updated" },
       { value: AuditAction.PARENT_UNLINKED, label: "Parent Unlinked" },
     ],
   },

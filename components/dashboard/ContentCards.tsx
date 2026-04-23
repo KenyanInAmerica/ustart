@@ -1,20 +1,18 @@
 // Content section cards for the dashboard — one card per product the user may access.
-// Locked tier cards link to /pricing; locked add-on cards open a purchase modal.
-// Client Component: needed for the add-on modal open/close state.
+// Used by both student and parent dashboards; locked behavior is configurable.
 
-"use client";
-
-import { useState } from "react";
+import type { ReactNode } from "react";
 import Link from "next/link";
-import { AddonModal } from "@/components/dashboard/AddonModal";
 import { Card } from "@/components/ui/Card";
 import { accentIconClass, accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 import type { DashboardAccess } from "@/types";
-import type { PricingItem, ProductId } from "@/lib/config/pricing";
+import type { ContentCatalogId } from "@/lib/dashboard/contentCatalog";
 
 type Props = {
   access: DashboardAccess;
-  upsellPricing: Partial<Record<ProductId, PricingItem>>;
+  hrefOverrides?: Partial<Record<ContentCatalogId, string>>;
+  includeParentPack?: boolean;
+  lockedHref?: string | null;
 };
 
 type CardDef = {
@@ -25,12 +23,8 @@ type CardDef = {
   href: string;
   unlocked: boolean;
   accent: ProductAccent;
-  icon: React.ReactNode;
+  icon: ReactNode;
 };
-
-function opensModal(id: string): id is "parent_pack" {
-  return id === "parent_pack";
-}
 
 function LockIcon() {
   return (
@@ -86,16 +80,19 @@ function CardBody({ card }: { card: CardDef }) {
   );
 }
 
-export function ContentCards({ access, upsellPricing }: Props) {
-  const [openAddon, setOpenAddon] = useState<"parent_pack" | null>(null);
-
-  const cards: CardDef[] = [
+export function ContentCards({
+  access,
+  hrefOverrides,
+  includeParentPack = true,
+  lockedHref = "/pricing",
+}: Props) {
+  const cards = [
     {
       id: "lite",
       label: "UStart Lite",
       badge: "Lite",
       description: "Core resources to get started — banking, SSN, credit cards, and student essentials.",
-      href: "/dashboard/content/lite",
+      href: hrefOverrides?.lite ?? "/dashboard/content/lite",
       unlocked: access.membershipRank >= 1,
       accent: "lite",
       icon: (
@@ -110,7 +107,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "UStart Explore",
       badge: "Explore",
       description: "Everything in Lite plus deeper guides to help you settle in and thrive.",
-      href: "/dashboard/content/explore",
+      href: hrefOverrides?.explore ?? "/dashboard/content/explore",
       unlocked: access.membershipRank >= 2,
       accent: "explore",
       icon: (
@@ -124,7 +121,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "UStart Concierge",
       badge: "Concierge",
       description: "Everything in Explore plus our most advanced resources for long-term success in the US.",
-      href: "/dashboard/content/concierge",
+      href: hrefOverrides?.concierge ?? "/dashboard/content/concierge",
       unlocked: access.membershipRank >= 3,
       accent: "concierge",
       icon: (
@@ -138,7 +135,7 @@ export function ContentCards({ access, upsellPricing }: Props) {
       label: "Parent Pack",
       badge: "Add-on",
       description: "Dedicated resources for parents supporting their student's journey in the US.",
-      href: "/dashboard/content/parent-pack",
+      href: hrefOverrides?.parent_pack ?? "/dashboard/content/parent-pack",
       unlocked: access.hasParentSeat,
       accent: "parent_pack",
       icon: (
@@ -150,63 +147,41 @@ export function ContentCards({ access, upsellPricing }: Props) {
         </svg>
       ),
     },
-  ];
+  ] satisfies CardDef[];
 
   return (
-    <>
-      <div className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2 min-[860px]:grid-cols-3">
-        {cards.map((card) => {
-          if (card.unlocked) {
-            return (
-              <Link
-                key={card.id}
-                href={card.href}
-                className="block transition-transform duration-150 hover:-translate-y-px"
-              >
-                <Card
-                  className="h-full border border-[var(--border-md)] shadow-[var(--shadow-md)] transition-all duration-200 hover:border-[var(--border-hi)] hover:shadow-[var(--shadow-lg)]"
-                  padding="md"
-                >
-                  <CardBody card={card} />
-                </Card>
-              </Link>
-            );
-          }
-
-          if (opensModal(card.id)) {
-            return (
-              <button
-                key={card.id}
-                onClick={() => setOpenAddon("parent_pack")}
-                className="w-full text-left transition-transform duration-150 hover:-translate-y-px"
-              >
-                <Card className="h-full border border-[var(--border)] bg-[var(--bg-subtle)] shadow-none" padding="md">
-                  <CardBody card={card} />
-                </Card>
-              </button>
-            );
-          }
-
-          return (
-            <Link
-              key={card.id}
-              href="/pricing"
-              className="block transition-transform duration-150 hover:-translate-y-px"
+    <div className="grid grid-cols-1 gap-3 min-[560px]:grid-cols-2 min-[860px]:grid-cols-3">
+      {cards
+        .filter((card) => includeParentPack || card.id !== "parent_pack")
+        .map((card) => (
+        card.unlocked || lockedHref ? (
+          <Link
+            key={card.id}
+            href={card.unlocked ? card.href : lockedHref ?? card.href}
+            className="block cursor-pointer transition-transform duration-150 hover:-translate-y-px"
+          >
+            <Card
+              className={
+                card.unlocked
+                  ? "h-full border border-[var(--border-md)] shadow-[var(--shadow-md)] transition-all duration-200 hover:border-[var(--border-hi)] hover:shadow-[var(--shadow-lg)]"
+                  : "h-full border border-[var(--border)] bg-[var(--bg-subtle)] shadow-none"
+              }
+              padding="md"
             >
-              <Card className="h-full border border-[var(--border)] bg-[var(--bg-subtle)] shadow-none" padding="md">
-                <CardBody card={card} />
-              </Card>
-            </Link>
-          );
-        })}
-      </div>
-
-      {openAddon && upsellPricing[openAddon] && (
-        <AddonModal
-          item={upsellPricing[openAddon]!}
-          onClose={() => setOpenAddon(null)}
-        />
-      )}
-    </>
+              <CardBody card={card} />
+            </Card>
+          </Link>
+        ) : (
+          <div key={card.id}>
+            <Card
+              className="h-full border border-[var(--border)] bg-[var(--bg-subtle)] shadow-none"
+              padding="md"
+            >
+              <CardBody card={card} />
+            </Card>
+          </div>
+        )
+      ))}
+    </div>
   );
 }

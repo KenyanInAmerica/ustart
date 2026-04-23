@@ -1,15 +1,18 @@
 import { render, screen } from "@testing-library/react";
 
 const mockGetUser = jest.fn();
-const mockMaybySingle = jest.fn();
+const mockProfileMaybeSingle = jest.fn();
+const mockAccessMaybeSingle = jest.fn();
 
 jest.mock("../../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
     auth: { getUser: mockGetUser },
-    from: jest.fn(() => ({
+    from: jest.fn((table: string) => ({
       select: jest.fn(() => ({
-        eq: jest.fn(() => ({ maybeSingle: mockMaybySingle })),
-        maybeSingle: mockMaybySingle,
+        eq: jest.fn(() => ({
+          maybeSingle: table === "profiles" ? mockProfileMaybeSingle : mockAccessMaybeSingle,
+        })),
+        maybeSingle: table === "profiles" ? mockProfileMaybeSingle : mockAccessMaybeSingle,
       })),
     })),
   })),
@@ -53,7 +56,8 @@ describe("AccountPage (dashboard/account)", () => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: "user-1", email: "randy@example.com" } },
     });
-    mockMaybySingle.mockResolvedValue({ data: mockUserData });
+    mockProfileMaybeSingle.mockResolvedValue({ data: { role: "student" } });
+    mockAccessMaybeSingle.mockResolvedValue({ data: mockUserData });
   });
 
   it("renders without error when authenticated", async () => {
@@ -76,5 +80,14 @@ describe("AccountPage (dashboard/account)", () => {
   it("renders the BillingSection component", async () => {
     render(await AccountPage());
     expect(screen.getByTestId("billing-section-stub")).toBeInTheDocument();
+  });
+
+  it("hides billing for parent accounts", async () => {
+    mockProfileMaybeSingle.mockResolvedValue({ data: { role: "parent" } });
+
+    render(await AccountPage());
+
+    expect(screen.getByTestId("profile-section-stub")).toBeInTheDocument();
+    expect(screen.queryByTestId("billing-section-stub")).not.toBeInTheDocument();
   });
 });

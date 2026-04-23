@@ -1,7 +1,9 @@
+import type { ReactNode } from "react";
 import { render, screen } from "@testing-library/react";
 
 const mockGetUser = jest.fn();
 const mockMaybeSingle = jest.fn();
+const mockServiceMaybeSingle = jest.fn();
 
 jest.mock("../../../lib/supabase/server", () => ({
   createClient: jest.fn(() => ({
@@ -10,6 +12,18 @@ jest.mock("../../../lib/supabase/server", () => ({
       select: jest.fn(() => ({
         eq: jest.fn(() => ({
           maybeSingle: mockMaybeSingle,
+        })),
+      })),
+    })),
+  })),
+}));
+
+jest.mock("../../../lib/supabase/service", () => ({
+  createServiceClient: jest.fn(() => ({
+    from: jest.fn(() => ({
+      select: jest.fn(() => ({
+        eq: jest.fn(() => ({
+          maybeSingle: mockServiceMaybeSingle,
         })),
       })),
     })),
@@ -32,6 +46,9 @@ jest.mock("../../../lib/dashboard/access", () => ({
     invitedParentEmail: null,
     parentInvitationStatus: null,
     parentInvitationAcceptedAt: null,
+    parentShareTasks: true,
+    parentShareCalendar: true,
+    parentShareContent: true,
   }),
 }));
 
@@ -45,6 +62,21 @@ jest.mock("../../../components/dashboard/Sidebar", () => ({
 
 jest.mock("../../../components/dashboard/MobileDashboardNav", () => ({
   MobileDashboardNav: () => <div data-testid="mobile-nav-stub" />,
+}));
+
+jest.mock("../../../components/dashboard/ParentShell", () => ({
+  ParentShell: ({
+    studentFirstName,
+    children,
+  }: {
+    studentFirstName: string;
+    children: ReactNode;
+  }) => (
+    <div data-testid="parent-shell-stub">
+      <span>{studentFirstName}&apos;s UStart</span>
+      {children}
+    </div>
+  ),
 }));
 
 jest.mock("../../../components/dashboard/SignOutButton", () => ({
@@ -69,7 +101,11 @@ describe("DashboardLayout", () => {
         id: "user-1",
         intake_completed_at: "2026-04-21T00:00:00.000Z",
         role: "student",
+        student_id: null,
       },
+    });
+    mockServiceMaybeSingle.mockResolvedValue({
+      data: { first_name: "Alice", last_name: "Student" },
     });
   });
 
@@ -102,17 +138,20 @@ describe("DashboardLayout", () => {
     expect(redirect).toHaveBeenCalledWith("/intake");
   });
 
-  it("allows parent accounts through even without intake completion", async () => {
+  it("renders the parent shell for parent accounts", async () => {
     mockMaybeSingle.mockResolvedValue({
       data: {
         id: "user-1",
         intake_completed_at: null,
         role: "parent",
+        student_id: "student-1",
       },
     });
 
     render(await DashboardLayout({ children: <div>Parent page</div> }));
 
+    expect(screen.getByTestId("parent-shell-stub")).toBeInTheDocument();
+    expect(screen.getByText("Alice's UStart")).toBeInTheDocument();
     expect(screen.getByText("Parent page")).toBeInTheDocument();
     expect(redirect).not.toHaveBeenCalledWith("/intake");
   });

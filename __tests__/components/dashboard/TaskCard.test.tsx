@@ -150,4 +150,21 @@ describe("TaskCard", () => {
       expect(onToggle).toHaveBeenCalledWith("task-1", "in_progress")
     );
   });
+
+  it("renders as read only when requested", () => {
+    const { container } = render(
+      <TaskCard
+        task={task}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+        readOnly
+      />
+    );
+
+    expect(
+      screen.queryByRole("button", { name: /open a bank account status not_started/i })
+    ).not.toBeInTheDocument();
+    expect(container.querySelector(".cursor-default")).toBeInTheDocument();
+  });
 });

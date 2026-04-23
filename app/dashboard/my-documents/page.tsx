@@ -14,6 +14,16 @@ export default async function MyDocumentsPage() {
 
   if (!user) redirect("/sign-in");
 
+  const { data: profileData } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const profile = profileData as { role: "student" | "parent" | null } | null;
+
+  if (profile?.role === "parent") redirect("/dashboard/parent/plan");
+
   const documents = await fetchUserDocuments(user.id);
 
   return (
