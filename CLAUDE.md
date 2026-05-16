@@ -36,20 +36,19 @@ Before starting any task, read the sub-files relevant to your work:
 - **PDF watermarking**: embed customer email before serving — PDFs are never served as raw files
 - **Stripe webhook** (`app/api/webhooks/stripe/route.ts`) is a stub pending Feature 12 — not yet implemented
 - **Desktop/mobile parity**: any change to navigation, access gating, or UI state must be applied to both `Sidebar.tsx` and `MobileDrawer.tsx` in the same PR
+- **Notion client**: `lib/notion/client.ts` and `lib/notion/fetcher.ts` are server-side only — never import from client components. Use `NOTION_PAGE_IDS` from `lib/notion/config.ts` to look up page IDs by tier.
 
 ---
 
 ## Product & Pricing
 
-Three lifetime purchase tiers:
+| Plan      | Price      | Notes |
+| --------- | ---------- | ----- |
+| Lite      | $49        | One-time. Core content library. |
+| Explore   | $9.99/mo   | Subscription. Deeper guides and ongoing support. |
+| Concierge | $19.99/mo  | Subscription. Full library + priority support, 1-on-1. |
 
-| Plan    | Price | Notes |
-| ------- | ----- | ----- |
-| Lite    | $49   | Core content library |
-| Pro     | $99   | + full library, community |
-| Premium | $149  | + priority support, 1-on-1, Parent Pack |
-
-Subscriptions (Explore, Concierge) are add-ons for existing members only, not sold standalone. Parent Pack is a one-time add-on giving a parent their own Supabase account linked to the student. Stripe is the source of truth for all entitlements.
+Parent Pack ($29 one-time) gives a parent their own Supabase account linked to the student. Stripe is the source of truth for all entitlements. Live prices are stored in the `pricing` table and managed via `/admin/settings`.
 
 ---
 

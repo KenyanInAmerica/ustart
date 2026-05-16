@@ -108,6 +108,13 @@ Rules:
 - Keep data-fetching functions in `lib/dashboard/` or `lib/admin/` — not inside page files
 - Route handlers and page components stay thin; business logic goes in `/lib`
 
+## Notion Data Fetching
+
+- **Server-side only** — `lib/notion/client.ts` and `lib/notion/fetcher.ts` must never be imported from client components. Notion API keys must not reach the browser.
+- All fetchers (`getNotionBlocks`, `getNotionChildPages`, `getNotionPage`, `getNotionPageTitle`) are wrapped in `React.cache()` — one API call per unique page ID per request, regardless of how many components read from them.
+- `fetchToggleChildren()` is **not** cached — it accepts a `BlockObjectResponse[]` array which is a new reference each call. The individual `getNotionBlocks()` calls it makes are cached, so Notion round-trips are still deduplicated.
+- Use `NOTION_PAGE_IDS` from `lib/notion/config.ts` to look up page IDs — never read `process.env.NOTION_*` directly in page or component files.
+
 ---
 
 ## UI Behaviour Rules

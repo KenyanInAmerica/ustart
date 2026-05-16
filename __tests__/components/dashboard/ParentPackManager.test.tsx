@@ -26,6 +26,11 @@ const defaultProps = {
   parentPackNotionUrl: "https://notion.so/parent-pack",
 };
 
+function openSettings() {
+  const toggle = screen.getByRole("button", { name: /set up parent access|manage settings/i });
+  fireEvent.click(toggle);
+}
+
 describe("ParentPackManager", () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -36,10 +41,20 @@ describe("ParentPackManager", () => {
     mockUpdateParentSharing.mockResolvedValue({ success: true });
   });
 
-  it("renders the invitation state with all sharing toggles on by default", () => {
+  it("renders the header and toggle button, toggles hidden by default", () => {
     render(<ParentPackManager {...defaultProps} />);
 
     expect(screen.getByText("Invite a Parent")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /set up parent access/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("switch", { name: "My Plan & Tasks" })).not.toBeInTheDocument();
+  });
+
+  it("renders sharing toggles on by default after expanding settings", () => {
+    render(<ParentPackManager {...defaultProps} />);
+    openSettings();
+
     expect(screen.getByRole("switch", { name: "My Plan & Tasks" })).toHaveAttribute(
       "aria-checked",
       "true"
@@ -56,6 +71,7 @@ describe("ParentPackManager", () => {
 
   it("passes the current sharing preferences when sending an invitation", async () => {
     render(<ParentPackManager {...defaultProps} />);
+    openSettings();
 
     fireEvent.click(screen.getByRole("switch", { name: "My Calendar" }));
     fireEvent.change(screen.getByLabelText("Parent's email address"), {
@@ -81,7 +97,12 @@ describe("ParentPackManager", () => {
       />
     );
 
-    expect(screen.getByText("Invitation sent to parent@example.com")).toBeInTheDocument();
+    expect(
+      screen.getByText(/invitation pending.*waiting for parent@example\.com/i)
+    ).toBeInTheDocument();
+
+    openSettings();
+
     expect(screen.getByRole("switch", { name: "My Plan & Tasks" })).toBeDisabled();
   });
 
@@ -93,6 +114,7 @@ describe("ParentPackManager", () => {
         initialParentEmail="parent@example.com"
       />
     );
+    openSettings();
 
     fireEvent.click(screen.getByRole("switch", { name: "My Content" }));
 
@@ -120,6 +142,7 @@ describe("ParentPackManager", () => {
         initialParentEmail="parent@example.com"
       />
     );
+    openSettings();
 
     fireEvent.click(screen.getByRole("switch", { name: "My Calendar" }));
     expect(screen.getByRole("switch", { name: "My Calendar" })).toHaveAttribute(
@@ -136,7 +159,7 @@ describe("ParentPackManager", () => {
     expect(mockUpdateParentSharing).not.toHaveBeenCalled();
   });
 
-  it("shows the Parent Pack resource link for accepted invitations", () => {
+  it("shows the Parent Pack resource link", () => {
     render(
       <ParentPackManager
         {...defaultProps}
@@ -151,7 +174,7 @@ describe("ParentPackManager", () => {
     );
   });
 
-  it("shows the remove parent access action in the connected card", () => {
+  it("shows the remove parent access action after expanding settings", () => {
     render(
       <ParentPackManager
         {...defaultProps}
@@ -159,6 +182,7 @@ describe("ParentPackManager", () => {
         initialParentEmail="parent@example.com"
       />
     );
+    openSettings();
 
     expect(screen.getByRole("button", { name: /remove parent access/i })).toBeInTheDocument();
   });

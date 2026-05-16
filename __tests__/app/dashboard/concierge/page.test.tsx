@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import ConciergePage from "@/app/dashboard/content/concierge/page";
+import type { DashboardAccess } from "@/types";
 
 jest.mock("../../../../lib/actions/trackContentVisit", () => ({
   trackContentVisit: jest.fn().mockResolvedValue(undefined),
@@ -9,12 +10,8 @@ jest.mock("../../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
 }));
 
-jest.mock("../../../../lib/dashboard/content", () => ({
-  fetchTierContent: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock("../../../../components/dashboard/ContentGrid", () => ({
-  ContentGrid: () => <div data-testid="content-grid-stub" />,
+jest.mock("../../../../lib/notion/fetcher", () => ({
+  getNotionChildPages: jest.fn(),
 }));
 
 jest.mock("next/navigation", () => ({
@@ -22,8 +19,8 @@ jest.mock("next/navigation", () => ({
 }));
 
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
+import { getNotionChildPages } from "../../../../lib/notion/fetcher";
 import { redirect } from "next/navigation";
-import type { DashboardAccess } from "@/types";
 
 const conciergeAccess: DashboardAccess = {
   membershipRank: 3,
@@ -45,33 +42,46 @@ const conciergeAccess: DashboardAccess = {
   parentShareContent: true,
 };
 
-describe("ConciergePage", () => {
+describe("ConciergePage (index)", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(conciergeAccess);
     (redirect as unknown as jest.Mock).mockReset();
   });
 
-  it("renders without error", async () => {
-    const { container } = render(await ConciergePage());
-    expect(container).toBeTruthy();
-  });
+  it("redirects to the first module slug when modules are available", async () => {
+    (getNotionChildPages as jest.Mock).mockResolvedValue([
+      { id: "m1", title: "Visa Extensions", slug: "visa-extensions", notionUrl: "" },
+    ]);
 
-  it("renders the Concierge heading", async () => {
-    render(await ConciergePage());
-    expect(screen.getByRole("heading", { name: /ustart concierge/i })).toBeInTheDocument();
-  });
-
-  it("renders the content grid", async () => {
-    render(await ConciergePage());
-    expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
-  });
-
-  it("redirects to /dashboard when membership_rank is below 3", async () => {
-    (fetchDashboardAccess as jest.Mock).mockResolvedValue({
-      ...conciergeAccess,
-      membershipRank: 2,
-    });
     await ConciergePage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/content/concierge/visa-extensions");
+  });
+
+  it("shows placeholder when Notion returns no modules", async () => {
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
+
+    render(await ConciergePage());
+
+    expect(screen.getByText(/content coming soon/i)).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
+  });
+
+  it("redirects to /dashboard when membershipRank is below 3", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...conciergeAccess, membershipRank: 2 });
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
+
+    await ConciergePage();
+
     expect(redirect).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("redirects parent users to parent content", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...conciergeAccess, role: "parent" });
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
+
+    await ConciergePage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/parent/content");
   });
 });

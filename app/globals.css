@@ -130,3 +130,16 @@
   text-transform: uppercase;
   font-weight: 600;
 }
+
+
+@keyframes highlight-flash {
+  0%   { background-color: rgba(48, 131, 220, 0.15); }
+  100% { background-color: transparent; }
+}
+
+#parent-settings:target {
+  animation: highlight-flash 1.5s ease-out;
+  border-radius: var(--radius-md);
+  padding: 0.75rem;
+  margin: -0.75rem;
+}

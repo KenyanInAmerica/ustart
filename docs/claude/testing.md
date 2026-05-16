@@ -53,10 +53,24 @@ Every test file must cover at minimum:
 ## Running Tests
 
 ```bash
-npm run test          # Run full suite
-npm run test -- --watch          # Watch mode
-npm run test -- path/to/file     # Single file
+npm run test                          # Run full suite (no coverage)
+npm run test -- --watch              # Watch mode
+npm run test -- path/to/file         # Single file
+npm run test -- --coverage           # Full suite + coverage report
 ```
+
+`npm run test` does **not** report coverage by default — the `--coverage` flag must be passed explicitly. Coverage is not enforced in CI; it is used for manual auditing only.
+
+**Coverage baseline** (as of May 15, 2026):
+
+| Metric     | Overall |
+|------------|---------|
+| Statements | 86.37%  |
+| Branches   | 76.66%  |
+| Functions  | 83.77%  |
+| Lines      | 89.05%  |
+
+Notable gaps: `lib/actions/admin/users.ts` (~44% — complex hard-delete and soft-delete paths), `lib/dashboard/access.ts` (~63% — parent cross-user branch).
 
 ---
 

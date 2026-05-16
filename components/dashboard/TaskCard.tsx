@@ -60,66 +60,70 @@ export function TaskCard({
     onToggle(task.id, nextStatus(status));
   }
 
-  const CardContainer = readOnly ? "div" : "button";
+  const isInternalUrl = !!task.content_url?.startsWith("/");
+  const contentHref = task.content_url
+    ? isInternalUrl
+      ? `${task.content_url}?from=plan`
+      : task.content_url
+    : null;
 
   return (
-    <div className="flex w-full items-center gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-1 shadow-[var(--shadow-sm)] transition-colors hover:bg-[var(--bg-card-hover)]">
-      <CardContainer
-        {...(readOnly
-          ? {}
-          : {
-              type: "button" as const,
-              onClick: handleToggleStatus,
-              "aria-label": `${task.title} status ${status}`,
-            })}
-        className={`flex min-w-0 flex-1 items-center gap-4 rounded-[calc(var(--radius-md)-4px)] px-3 py-3 text-left ${
-          readOnly ? "cursor-default" : ""
-        }`}
-      >
-        <span className="shrink-0">
+    <div className="flex w-full items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
+      {/* Status toggle — only this element is interactive for toggling */}
+      {readOnly ? (
+        <span className="mt-0.5 shrink-0">
           {renderStatusIndicator(status, phaseColor)}
         </span>
+      ) : (
+        <button
+          type="button"
+          onClick={handleToggleStatus}
+          aria-label={`${task.title} status ${status}`}
+          className="mt-0.5 shrink-0"
+        >
+          {renderStatusIndicator(status, phaseColor)}
+        </button>
+      )}
 
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-[var(--text)]">{task.title}</p>
-          {dueDateLabel && (
-            <p
-              className={`mt-1 text-xs ${
-                isOverdue ? "text-[var(--destructive)]" : "text-[var(--text-muted)]"
-              }`}
-            >
-              {dueDateLabel}
-            </p>
-          )}
-          {task.description && (
-            <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-              {task.description}
-            </p>
-          )}
+      {/* Task content */}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-medium leading-snug text-[var(--text)]">{task.title}</p>
+            {dueDateLabel && (
+              <p
+                className={`mt-0.5 text-xs ${
+                  isOverdue ? "text-[var(--destructive)]" : "text-[var(--text-muted)]"
+                }`}
+              >
+                {dueDateLabel}
+              </p>
+            )}
+            {task.description && (
+              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                {task.description}
+              </p>
+            )}
+          </div>
+          <span
+            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+            style={{ backgroundColor: phaseColor }}
+            aria-hidden="true"
+            data-testid={`task-phase-dot-${task.id}`}
+          />
         </div>
 
-        <span
-          className="h-2.5 w-2.5 shrink-0 rounded-full"
-          style={{ backgroundColor: phaseColor }}
-          aria-hidden="true"
-          data-testid={`task-phase-dot-${task.id}`}
-        />
-      </CardContainer>
-
-      <div className="flex shrink-0 items-center pr-3">
-        {task.content_url && (
-          <Link
-            href={task.content_url}
-            target="_blank"
-            rel="noreferrer"
-            className="text-[var(--accent)] transition-colors hover:text-[var(--accent-hover)]"
-            aria-label={`Open ${task.title} resource`}
-          >
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-              <path d="M5 12h14" />
-              <path d="m12 5 7 7-7 7" />
-            </svg>
-          </Link>
+        {contentHref && (
+          <div className="mt-2">
+            <Link
+              href={contentHref}
+              {...(!isInternalUrl ? { target: "_blank", rel: "noreferrer" } : {})}
+              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              View Content →
+            </Link>
+          </div>
         )}
       </div>
     </div>

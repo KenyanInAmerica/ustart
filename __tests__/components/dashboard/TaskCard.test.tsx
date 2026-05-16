@@ -14,6 +14,16 @@ const task: PlanTask = {
   completed_at: null,
 };
 
+const internalTask: PlanTask = {
+  ...task,
+  content_url: "/dashboard/content/lite/banking-basics",
+};
+
+const noContentTask: PlanTask = {
+  ...task,
+  content_url: null,
+};
+
 describe("TaskCard", () => {
   const onToggle = jest.fn();
   const phaseColor = "#4ECBA5";
@@ -36,7 +46,7 @@ describe("TaskCard", () => {
     expect(screen.getByText("Bring your passport and I-20.")).toBeInTheDocument();
   });
 
-  it("calls onToggle with the next status when clicked", async () => {
+  it("calls onToggle with the next status when the status button is clicked", async () => {
     render(
       <TaskCard
         task={task}
@@ -103,7 +113,9 @@ describe("TaskCard", () => {
     expect(container.querySelector(".border-\\[var\\(--border-hi\\)\\]")).toBeInTheDocument();
   });
 
-  it("renders a content link when content_url is present", () => {
+  // --- Content link ---
+
+  it("renders a View Content link for external content_url", () => {
     render(
       <TaskCard
         task={task}
@@ -112,12 +124,40 @@ describe("TaskCard", () => {
         onToggle={onToggle}
       />
     );
-    expect(
-      screen.getByRole("link", { name: /open open a bank account resource/i })
-    ).toHaveAttribute("href", "https://notion.so/task");
+    const link = screen.getByRole("link", { name: /view content/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "https://notion.so/task");
+    expect(link).toHaveAttribute("target", "_blank");
   });
 
-  it("does not toggle status when the content link is clicked", () => {
+  it("appends ?from=plan for internal content_url", () => {
+    render(
+      <TaskCard
+        task={internalTask}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+      />
+    );
+    expect(screen.getByRole("link", { name: /view content/i })).toHaveAttribute(
+      "href",
+      "/dashboard/content/lite/banking-basics?from=plan"
+    );
+  });
+
+  it("does not render a View Content link when content_url is null", () => {
+    render(
+      <TaskCard
+        task={noContentTask}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+      />
+    );
+    expect(screen.queryByRole("link", { name: /view content/i })).not.toBeInTheDocument();
+  });
+
+  it("does not call onToggle when the View Content link is clicked", () => {
     render(
       <TaskCard
         task={task}
@@ -127,32 +167,13 @@ describe("TaskCard", () => {
       />
     );
 
-    fireEvent.click(
-      screen.getByRole("link", { name: /open open a bank account resource/i })
-    );
+    fireEvent.click(screen.getByRole("link", { name: /view content/i }));
 
     expect(onToggle).not.toHaveBeenCalled();
   });
 
-  it("toggles when the phase dot area is clicked", async () => {
+  it("renders as read only — no toggle button, content link still shows", () => {
     render(
-      <TaskCard
-        task={task}
-        phaseColor={phaseColor}
-        status={task.status}
-        onToggle={onToggle}
-      />
-    );
-
-    fireEvent.click(screen.getByTestId("task-phase-dot-task-1"));
-
-    await waitFor(() =>
-      expect(onToggle).toHaveBeenCalledWith("task-1", "in_progress")
-    );
-  });
-
-  it("renders as read only when requested", () => {
-    const { container } = render(
       <TaskCard
         task={task}
         phaseColor={phaseColor}
@@ -165,6 +186,6 @@ describe("TaskCard", () => {
     expect(
       screen.queryByRole("button", { name: /open a bank account status not_started/i })
     ).not.toBeInTheDocument();
-    expect(container.querySelector(".cursor-default")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /view content/i })).toBeInTheDocument();
   });
 });
