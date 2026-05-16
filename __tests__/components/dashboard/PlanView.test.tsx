@@ -71,7 +71,7 @@ describe("PlanView", () => {
     expect(screen.getAllByText("In progress").length).toBeGreaterThan(0);
     expect(screen.getByText("Done")).toBeInTheDocument();
     expect(
-      screen.getByText("Click a task to update its status")
+      screen.getByText("Click the circle in a task to update its status")
     ).toBeInTheDocument();
   });
 
@@ -116,7 +116,7 @@ describe("PlanView", () => {
     expect(screen.queryByText("50%")).not.toBeInTheDocument();
     expect(screen.queryByText("Not started")).not.toBeInTheDocument();
     expect(
-      screen.queryByText("Click a task to update its status")
+      screen.queryByText("Click the circle in a task to update its status")
     ).not.toBeInTheDocument();
     expect(screen.getByTestId("plan-calendar-stub")).toBeInTheDocument();
   });

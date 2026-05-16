@@ -52,7 +52,7 @@ function validateTemplateData(
 
   if ("content_url" in data) {
     const contentUrl = data.content_url?.trim() ?? "";
-    if (contentUrl) {
+    if (contentUrl && !contentUrl.startsWith("/")) {
       try {
         new URL(contentUrl);
       } catch {

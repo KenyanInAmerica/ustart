@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** April 23, 2026
+**Date:** May 15, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -61,6 +61,7 @@ Stripe is the source of truth for entitlements once integrated. Supabase reflect
 
 - `react-calendar` — calendar widget on the dashboard plan view
 - `@dnd-kit/core`, `@dnd-kit/sortable`, `@dnd-kit/utilities` — drag-to-reorder for admin plan templates
+- `@notionhq/client` — Notion API SDK for server-side content fetching (Phase 7)
 
 **Fonts**
 
@@ -88,6 +89,12 @@ Never commit `.env` or `.env.local`. All secrets live in Vercel environment vari
 | `STRIPE_SECRET_KEY` | test key | test key | live key | Feature 12 |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | test key | test key | live key | Feature 12 |
 | `STRIPE_WEBHOOK_SECRET` | test secret | test secret | live secret | Feature 12 |
+| `NOTION_API_KEY` | integration secret | integration secret | integration secret | Notion integration secret key — server-side only, never expose to browser |
+| `NOTION_LITE_PAGE_ID` | page ID | page ID | page ID | Parent page ID for UStart Lite content modules |
+| `NOTION_EXPLORE_PAGE_ID` | page ID | page ID | page ID | Parent page ID for UStart Explore content modules |
+| `NOTION_CONCIERGE_PAGE_ID` | page ID | page ID | page ID | Parent page ID for UStart Concierge content modules |
+| `NOTION_PARENT_PACK_PAGE_ID` | page ID | page ID | page ID | Page ID for Parent Pack student-facing Notion content |
+| `NOTION_PARENT_HUB_PAGE_ID` | page ID | page ID | page ID | Page ID for Parent Hub parent-only Notion content |
 
 GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANON_KEY`, `STAGING_SERVICE_ROLE_KEY`.
 
@@ -194,10 +201,19 @@ Defined in `lib/config/productAccents.ts`.
     /community           # Community page
     /content             # Content card hub page
       /page.tsx          # My Content — content card grid
-      /lite/page.tsx     # UStart Lite content
-      /explore/page.tsx  # UStart Explore content
-      /concierge/page.tsx # UStart Concierge content
-      /parent-pack/page.tsx # Parent Pack content
+      /lite/page.tsx     # UStart Lite — redirects to first Notion module or shows placeholder
+      /lite/[slug]/
+        layout.tsx       # Two-column layout with NotionSidebar
+        page.tsx         # Module content page — blocks, prev/next nav, Explore upsell on last module
+      /explore/page.tsx  # UStart Explore — redirects to first Notion module or shows placeholder
+      /explore/[slug]/
+        layout.tsx
+        page.tsx
+      /concierge/page.tsx # UStart Concierge — redirects to first Notion module or shows placeholder
+      /concierge/[slug]/
+        layout.tsx
+        page.tsx
+      /parent-pack/page.tsx # Parent Pack — inline Notion content when NOTION_PARENT_PACK_PAGE_ID set
     /account             # Account & billing page
     /my-documents        # Individually assigned PDFs
     /parent
@@ -247,6 +263,12 @@ Defined in `lib/config/productAccents.ts`.
              PlanTemplateModal.tsx   # Create/edit plan template modal, display_order auto-assigned
              skeletons/
   /pricing   BuyNowButton.tsx
+  /notion
+    NotionRenderer.tsx  # Master block renderer — handles list grouping, threads toggleChildren prop
+    NotionBlock.tsx     # Individual block renderer — switches on block.type, 13 supported types
+    NotionRichText.tsx  # Renders RichTextItemResponse[] with bold/italic/code/color/link annotations
+    NotionSidebar.tsx   # Module nav sidebar — desktop aside + mobile <details> dropdown, no JS
+    NotionPageShell.tsx # Single-page layout wrapper — title, Open in Notion link, children slot, renderer
 /lib
   /supabase  client.ts, server.ts, service.ts
   /resend    client.ts (singleton Resend client)
@@ -261,6 +283,12 @@ Defined in `lib/config/productAccents.ts`.
              log.ts (logAction — fire-and-forget insert into audit_logs)
              actionBadge.ts (actionBadgeClass, actionCategory — plain module, safe for Server Components)
   /pdf       watermark.ts, fetch.ts
+  /notion
+    client.ts   # Singleton getNotionClient() — server-side only, never import in client components
+    fetcher.ts  # getNotionBlocks, getNotionChildPages, getNotionPage, getNotionPageTitle (React.cache);
+                # fetchToggleChildren() — parallel fetch of toggle block children
+    config.ts   # NOTION_PAGE_IDS mapping (lite, explore, concierge, parentPack, parentHub)
+    types.ts    # NotionChildPage, NotionPageContent interfaces; slugify() utility
   /config    brand.ts (centralised brand config — name, tagline, logo, font, colors, phase accents)
              productAccents.ts (per-product accent color mapping)
              pricing.ts (types only), getPricing.ts (fetch utils)
@@ -349,7 +377,7 @@ npm run test         # Jest test suite
 
 Always run `typecheck`, `lint`, and `test` after changes before committing. All three must pass with zero failures before any commit.
 
-**Current test count**: 505 tests across 69 suites (as of April 16, 2026). If the suite drops below this without a deliberate deletion, investigate before committing.
+**Current test count**: 694 tests across 99 suites (as of May 15, 2026). If the suite drops below this without a deliberate deletion, investigate before committing.
 
 ---
 
@@ -683,6 +711,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Feature 12 | Stripe Integration                           | ⏸ Deferred — tier structure now locked to Lite / Explore / Concierge |
 | Feature 13 | Resend Integration                           | ✅ Built                         |
 | Phase 5    | Parent Pack + Parent Dashboard               | ✅ Built                        |
+| Phase 7    | Notion Integration — multi-module content renderer, sidebar nav, Parent Pack + Parent Hub inline content | ✅ Built |
 
 ---
 
@@ -783,6 +812,10 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Plan system — support multiple template sets instead of a single global `plan_task_templates` set so cohorts or regional variants can be assigned per user
 - Plan system — keep notes and comments in Notion rather than building a separate collaboration layer inside UStart
 - Consider moving main_concerns to JSONB array in a future migration for easier querying
+- Module completion tracking — `NotionSidebar` shows "0 of N modules". Future: track which modules a student has viewed or completed (plan_tasks or a new table) and reflect real progress in the sidebar counter.
+- Toggle nested children — `fetchToggleChildren` fetches one level deep. Deeply nested toggles (toggle inside toggle) may need recursive fetching.
+- Notion image URLs expire — Notion file-hosted image URLs expire after ~1 hour. For production, consider proxying images through an API route or enforcing the use of externally hosted image URLs in Notion content.
+- Notion content is not cached beyond request level (React.cache). If Notion API rate limits become an issue post-launch, consider adding ISR revalidation to module pages (`export const revalidate = N`).
 
 **Business Owner Decisions Pending**
 
@@ -885,4 +918,4 @@ When starting a fresh chat outside Claude Code (e.g. pasting context manually):
 
 ---
 
-_End of snapshot — updated April 16, 2026_
+_End of snapshot — updated May 15, 2026_

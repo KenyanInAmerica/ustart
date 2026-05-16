@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   createPlanTemplate,
   updatePlanTemplate,
 } from "@/lib/actions/admin/planTemplates";
+import { verifyNotionUrl } from "@/lib/actions/admin/verifyNotionUrl";
+import { isNotionUrl } from "@/lib/notion/urlConverter";
 import {
   PLAN_PHASES,
   PLAN_PHASE_LABELS,
@@ -54,10 +56,26 @@ export function PlanTemplateModal({
   const [form, setForm] = useState<FormState>(buildInitialState(template));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isVerifying, setIsVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState<string | null>(null);
+  const [verifiedCaption, setVerifiedCaption] = useState<string | null>(null);
+  const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Auto-dismiss the success caption after 3 seconds
+  useEffect(() => {
+    if (!verifiedCaption) return;
+    captionTimer.current = setTimeout(() => setVerifiedCaption(null), 3000);
+    return () => {
+      if (captionTimer.current) clearTimeout(captionTimer.current);
+    };
+  }, [verifiedCaption]);
 
   useEffect(() => {
     setForm(buildInitialState(template));
     setError(null);
+    setVerificationError(null);
+    setVerifiedCaption(null);
+    setIsVerifying(false);
   }, [template, mode]);
 
   useEffect(() => {
@@ -71,6 +89,31 @@ export function PlanTemplateModal({
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function handleGenerateLink() {
+    const value = form.content_url.trim();
+    if (!value || !isNotionUrl(value)) return;
+
+    setVerificationError(null);
+    setVerifiedCaption(null);
+    setIsVerifying(true);
+
+    const result = await verifyNotionUrl(value, form.tier_required);
+    setIsVerifying(false);
+
+    if (result.valid && result.convertedUrl) {
+      updateField("content_url", result.convertedUrl);
+      setVerifiedCaption(`✓ Final URL: ${result.convertedUrl}`);
+    } else {
+      setVerificationError(result.error ?? "Verification failed.");
+    }
+  }
+
+  function handlePreview() {
+    const value = form.content_url.trim();
+    if (!value.startsWith("/")) return;
+    window.open(window.location.origin + value, "_blank", "noreferrer");
   }
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -212,17 +255,54 @@ export function PlanTemplateModal({
             </p>
           </label>
 
-          <label className="block">
+          <div className="block">
             <span className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Content URL</span>
             <input
               id="plan-template-content-url"
-              type="url"
+              aria-label="Content URL"
+              type="text"
               value={form.content_url}
-              onChange={(event) => updateField("content_url", event.target.value)}
-              placeholder="https://notion.so/..."
+              onChange={(event) => {
+                updateField("content_url", event.target.value);
+                setVerificationError(null);
+                setVerifiedCaption(null);
+              }}
+              placeholder="Paste a Notion URL to generate a UStart link"
               className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
             />
-          </label>
+
+            <div className="mt-2 flex gap-2">
+              <button
+                type="button"
+                onClick={handleGenerateLink}
+                disabled={isVerifying || !isNotionUrl(form.content_url.trim())}
+                className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text-mid)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              >
+                {isVerifying ? (
+                  <span className="animate-spin inline-block">⟳</span>
+                ) : (
+                  "Generate UStart Link"
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={handlePreview}
+                disabled={!form.content_url.trim().startsWith("/")}
+                className="shrink-0 rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text-mid)] hover:border-[var(--accent)] hover:text-[var(--accent)] disabled:cursor-not-allowed disabled:opacity-50 transition-colors"
+              >
+                Preview
+              </button>
+            </div>
+
+            {verifiedCaption && (
+              <p className="mt-1.5 text-xs text-emerald-600">{verifiedCaption}</p>
+            )}
+
+            {verificationError && (
+              <p className="mt-1.5 text-xs text-[var(--destructive)]">{verificationError}</p>
+            )}
+          </div>
 
           {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
 

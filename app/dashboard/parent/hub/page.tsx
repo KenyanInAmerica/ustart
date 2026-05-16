@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { Card } from "@/components/ui/Card";
 import { fetchParentPackLinks } from "@/lib/dashboard/parentPack";
+import { getNotionBlocks } from "@/lib/notion/fetcher";
+import { NOTION_PAGE_IDS } from "@/lib/notion/config";
+import { NotionPageShell } from "@/components/notion/NotionPageShell";
 
 function hasLiveParentHubUrl(url: string): boolean {
   const trimmed = url.trim();
@@ -28,7 +31,30 @@ export default async function ParentHubPage() {
 
   if (parentProfile?.role !== "parent") redirect("/dashboard");
 
-  const links = await fetchParentPackLinks();
+  const notionPageId = NOTION_PAGE_IDS.parentHub;
+
+  const [links, blocks] = await Promise.all([
+    fetchParentPackLinks(),
+    notionPageId ? getNotionBlocks(notionPageId) : Promise.resolve([]),
+  ]);
+
+  // When a Notion page is configured, render its content in place of the static card.
+  if (notionPageId) {
+    return (
+      <div className="bg-[var(--bg)]">
+        <NotionPageShell
+          title="Parent Hub"
+          blocks={blocks}
+        >
+          <p className="mb-6 font-primary text-sm text-[var(--text-muted)]">
+            Exclusive resources for parents of UStart students.
+          </p>
+        </NotionPageShell>
+      </div>
+    );
+  }
+
+  // Fallback: static card + "What's included" list (Notion not configured).
   const hasLiveUrl = hasLiveParentHubUrl(links.parentContentNotionUrl);
 
   return (
