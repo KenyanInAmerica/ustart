@@ -10,6 +10,17 @@ import {
   type PlanTask,
 } from "@/lib/types/plan";
 
+function normalizeContentPath(url: string): string {
+  try {
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      return new URL(url).pathname.replace(/\/$/, "");
+    }
+  } catch {
+    // fall through to relative path handling
+  }
+  return url.split("?")[0].replace(/\/$/, "");
+}
+
 export const fetchUserPlan = cache(
   async (
     userId: string,
@@ -43,5 +54,28 @@ export const fetchUserPlan = cache(
         totalCount: phaseTasks.length,
       };
     }).filter((group) => group.tasks.length > 0);
+  }
+);
+
+export const getTaskForContentUrl = cache(
+  async (userId: string, contentPath: string): Promise<PlanTask | null> => {
+    const supabase = createServiceClient();
+    const { data } = await supabase
+      .from("plan_tasks")
+      .select(
+        "id, title, description, phase, status, due_date, content_url, display_order, completed_at"
+      )
+      .eq("user_id", userId)
+      .not("content_url", "is", null);
+
+    const tasks = (data ?? []) as PlanTask[];
+    const normalizedTarget = normalizeContentPath(contentPath);
+
+    return (
+      tasks.find((task) => {
+        if (!task.content_url) return false;
+        return normalizeContentPath(task.content_url) === normalizedTarget;
+      }) ?? null
+    );
   }
 );

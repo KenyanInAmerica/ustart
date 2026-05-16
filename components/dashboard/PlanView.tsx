@@ -200,7 +200,7 @@ export function PlanView({
                     <span className="text-xs text-[var(--text-muted)]">Done</span>
                   </div>
                   <span className="ml-auto text-xs italic text-[var(--text-muted)]">
-                    Click a task to update its status
+                    Click the circle in a task to update its status
                   </span>
                 </div>
               )}

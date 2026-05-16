@@ -16,10 +16,16 @@
     account/page.tsx              # Account page; parents see profile only, no billing
     community/page.tsx            # Community page
     content/page.tsx              # Content card hub page
-    content/lite/page.tsx         # Lite tier content
-    content/explore/page.tsx      # Explore tier content
-    content/concierge/page.tsx    # Concierge tier content
-    content/parent-pack/page.tsx  # Parent Pack + invitation flow
+    content/lite/page.tsx         # Lite — redirects to first Notion module or shows placeholder
+    content/lite/[slug]/layout.tsx  # Module layout: two-column with NotionSidebar
+    content/lite/[slug]/page.tsx    # Module content: blocks, prev/next nav, Explore upsell on last
+    content/explore/page.tsx      # Explore — redirects to first Notion module or shows placeholder
+    content/explore/[slug]/layout.tsx
+    content/explore/[slug]/page.tsx
+    content/concierge/page.tsx    # Concierge — redirects to first Notion module or shows placeholder
+    content/concierge/[slug]/layout.tsx
+    content/concierge/[slug]/page.tsx
+    content/parent-pack/page.tsx  # Parent Pack — invitation flow + inline Notion content
     my-documents/page.tsx         # Individually assigned PDFs
     parent
       page.tsx                    # Redirects parents to /dashboard/parent/plan
@@ -131,6 +137,13 @@
     CommunityExportButton.tsx     # CSV export trigger
   /pricing
     BuyNowButton.tsx              # Purchase CTA button
+  /notion                           # Server-side only — never import from client components
+    NotionRenderer.tsx            # Master renderer — renders block array in order, groups list items into <ul>/<ol>
+    NotionBlock.tsx               # Switches on block.type; supports paragraph, headings, lists, to_do, toggle,
+                                  # callout, quote, divider, image, bookmark, code, child_page (13 types)
+    NotionRichText.tsx            # Renders RichTextItemResponse[] — bold/italic/underline/strikethrough/code/color/links
+    NotionSidebar.tsx             # Module list nav — desktop <aside> + mobile <details> dropdown (no JS required)
+    NotionPageShell.tsx           # Single-page layout — title, optional Open in Notion link, children slot, NotionRenderer
 
 /lib
   supabase.ts                     # DEAD FILE — do not import. Use lib/supabase/* instead.
@@ -191,6 +204,12 @@
   /pdf
     fetch.ts                      # fetchAndWatermarkPdf() — full pipeline
     watermark.ts                  # watermarkPdf() — stamps email on every page via pdf-lib
+  /notion
+    client.ts                     # getNotionClient() — lazy singleton, server-side only. Never import in client components.
+    fetcher.ts                    # getNotionPage(), getNotionBlocks(), getNotionChildPages(), getNotionPageTitle() — all React.cache()-wrapped.
+                                  # fetchToggleChildren() — parallel fetch of children for toggle blocks (not cached).
+    config.ts                     # NOTION_PAGE_IDS — maps tier/pack/hub keys to env var page IDs.
+    types.ts                      # NotionChildPage, NotionPageContent interfaces. slugify() utility for URL-safe slugs.
 
 /hooks
   useUser.ts                      # useUser() — client-side auth state hook

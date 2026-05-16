@@ -10,12 +10,8 @@ jest.mock("../../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
 }));
 
-jest.mock("../../../../lib/dashboard/content", () => ({
-  fetchTierContent: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock("../../../../components/dashboard/ContentGrid", () => ({
-  ContentGrid: () => <div data-testid="content-grid-stub" />,
+jest.mock("../../../../lib/notion/fetcher", () => ({
+  getNotionChildPages: jest.fn(),
 }));
 
 jest.mock("next/navigation", () => ({
@@ -23,6 +19,7 @@ jest.mock("next/navigation", () => ({
 }));
 
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
+import { getNotionChildPages } from "../../../../lib/notion/fetcher";
 import { redirect } from "next/navigation";
 
 const conciergeAccess: DashboardAccess = {
@@ -48,6 +45,7 @@ const conciergeAccess: DashboardAccess = {
 describe("ConciergePage", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(conciergeAccess);
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
     (redirect as unknown as jest.Mock).mockReset();
   });
 
@@ -56,14 +54,9 @@ describe("ConciergePage", () => {
     expect(container).toBeTruthy();
   });
 
-  it("renders the page heading", async () => {
+  it("renders the page heading when no modules are configured", async () => {
     render(await ConciergePage());
     expect(screen.getByRole("heading", { name: /ustart concierge/i })).toBeInTheDocument();
-  });
-
-  it("renders the content grid", async () => {
-    render(await ConciergePage());
-    expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
   });
 
   it("redirects to /dashboard when membership_rank is below 3", async () => {

@@ -128,6 +128,7 @@ export function ParentPackManager({
   const [error, setError] = useState("");
   const [successMsg, setSuccessMsg] = useState("");
   const [showUnlinkConfirm, setShowUnlinkConfirm] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -135,6 +136,7 @@ export function ParentPackManager({
     setParentEmail(initialParentEmail ?? "");
     setPreferences(initialPreferences);
     setSavedPreferences(initialPreferences);
+    setSettingsOpen(false);
   }, [initialParentEmail, initialPreferences, initialStatus]);
 
   useEffect(() => {
@@ -269,171 +271,195 @@ export function ParentPackManager({
     }
   }
 
+  const toggleLabel = settingsOpen
+    ? "Hide settings ↑"
+    : status === null
+    ? "Set up parent access ↓"
+    : "Manage settings ↓";
+
   return (
     <div className="space-y-6">
       <Card className="border border-[var(--border)]" padding="md">
-        <h2 className="font-primary text-2xl font-bold tracking-tight text-[var(--text)]">
-          Invite a Parent
-        </h2>
-        <p className="mt-2 text-sm text-[var(--text-muted)]">
-          Give a parent access to support your UStart journey. They&apos;ll get their
-          own login and can see what you choose to share.
-        </p>
-      </Card>
-
-      <Card className="border border-[var(--border)]" padding="md">
-        <h3 className="font-primary text-lg font-bold text-[var(--text)]">
-          Choose what to share
-        </h3>
-        <p className="mb-4 mt-1 text-sm text-[var(--text-muted)]">
-          You&apos;re in control. Toggle what your parent can see at any time.
-        </p>
-
-        <div className="space-y-3">
-          <SharingToggleRow
-            checked={preferences.share_tasks}
-            description="Your task list and progress"
-            disabled={disableSharingEdit || isBusy}
-            icon={<ChecklistIcon />}
-            onChange={(checked) => handlePreferenceChange("share_tasks", checked)}
-            title="My Plan & Tasks"
-          />
-          <SharingToggleRow
-            checked={preferences.share_calendar}
-            description="Your task schedule and due dates"
-            disabled={disableSharingEdit || isBusy}
-            icon={<CalendarIcon />}
-            onChange={(checked) => handlePreferenceChange("share_calendar", checked)}
-            title="My Calendar"
-          />
-          <SharingToggleRow
-            checked={preferences.share_content}
-            description="Your UStart resources and guides"
-            disabled={disableSharingEdit || isBusy}
-            icon={<DocumentIcon />}
-            onChange={(checked) => handlePreferenceChange("share_content", checked)}
-            title="My Content"
-          />
+        {/* Header row — always visible */}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="font-primary text-2xl font-bold tracking-tight text-[var(--text)]">
+              Invite a Parent
+            </h2>
+            {status === "pending" && (
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Invitation pending — waiting for {parentEmail} to accept.
+              </p>
+            )}
+            {(status === null || status === "accepted") && (
+              <p className="mt-1 text-sm text-[var(--text-muted)]">
+                Give a parent access to support your UStart journey.
+              </p>
+            )}
+          </div>
+          {status === "accepted" && (
+            <span className="shrink-0 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Connected
+            </span>
+          )}
         </div>
 
-        {status === "pending" && (
-          <p className="mt-4 text-xs text-[var(--text-muted)]">
-            Sharing preferences will become editable after your parent accepts the invitation.
-          </p>
-        )}
+        {/* Expand/collapse toggle */}
+        <button
+          type="button"
+          onClick={() => setSettingsOpen((open) => !open)}
+          className="mt-3 text-sm text-[var(--accent)] hover:underline"
+        >
+          {toggleLabel}
+        </button>
 
-        {status === "accepted" && successMsg && (
-          <p className="mt-4 text-xs text-emerald-600">{successMsg}</p>
-        )}
-
-        {status === "accepted" && hasUnsavedSharingChanges && (
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button
-              onClick={handleSaveSharingChanges}
-              disabled={isBusy}
-              size="sm"
-            >
-              {pendingAction === "update-sharing" ? "Saving…" : "Save changes"}
-            </Button>
-            <Button
-              onClick={handleCancelSharingChanges}
-              disabled={isBusy}
-              size="sm"
-              variant="ghost"
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
-      </Card>
-
-      {status === null && (
-        <Card className="border border-[var(--border)]" padding="md">
-          <label
-            htmlFor="parent-email"
-            className="mb-2 block font-primary text-sm font-semibold text-[var(--text)]"
-          >
-            Parent&apos;s email address
-          </label>
-          <input
-            id="parent-email"
-            type="email"
-            value={inputEmail}
-            onChange={(event) => setInputEmail(event.target.value)}
-            placeholder="name@example.com"
-            className={inputClassName}
-          />
-          <div className="mt-4">
-            <Button
-              onClick={handleSend}
-              disabled={isBusy || inputEmail.trim().length === 0}
-              size="sm"
-            >
-              {pendingAction === "send" ? "Sending…" : "Send invitation →"}
-            </Button>
-          </div>
-        </Card>
-      )}
-
-      {status === "pending" && (
-        <Card className="border border-[var(--border)]" padding="md">
-          <p className="font-primary text-lg font-semibold text-[var(--text)]">
-            Invitation sent to {parentEmail}
-          </p>
-          <p className="mt-1 text-sm text-[var(--text-muted)]">
-            Waiting for your parent to accept.
-          </p>
-          <div className="mt-4 flex flex-wrap gap-3">
-            <Button onClick={handleResend} disabled={isBusy} size="sm" variant="ghost">
-              {pendingAction === "resend" ? "Resending…" : "Resend invitation"}
-            </Button>
-            <Button onClick={handleCancel} disabled={isBusy} size="sm" variant="ghost">
-              {pendingAction === "cancel" ? "Cancelling…" : "Cancel invitation"}
-            </Button>
-          </div>
-          {successMsg && <p className="mt-4 text-xs text-emerald-600">{successMsg}</p>}
-        </Card>
-      )}
-
-      {status === "accepted" && (
-        <>
-          <Card className="border border-[var(--border)]" padding="md">
-            <div className="flex flex-wrap items-center justify-between gap-3">
+        {/* Collapsible content */}
+        {settingsOpen && (
+          <div className="mt-4 space-y-5 border-t border-[var(--border)] pt-4">
+            {/* Status-specific actions */}
+            {status === null && (
               <div>
-                <p className="font-primary text-lg font-semibold text-[var(--text)]">
-                  Connected to {parentEmail}
-                </p>
-              </div>
-              <div className="flex items-center gap-3">
-                <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
-                  Connected
-                </span>
-                <button
-                  type="button"
-                  onClick={() => setShowUnlinkConfirm(true)}
-                  className="text-sm text-[var(--destructive)] transition-opacity hover:opacity-80"
+                <label
+                  htmlFor="parent-email"
+                  className="mb-2 block font-primary text-sm font-semibold text-[var(--text)]"
                 >
-                  Remove parent access
-                </button>
-              </div>
-            </div>
-
-            {showUnlinkConfirm && (
-              <div className="mt-4 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4">
-                <p className="text-sm text-[var(--text)]">
-                  Are you sure? This will remove your parent&apos;s access.
-                </p>
-                <div className="mt-4 flex gap-3">
+                  Parent&apos;s email address
+                </label>
+                <input
+                  id="parent-email"
+                  type="email"
+                  value={inputEmail}
+                  onChange={(event) => setInputEmail(event.target.value)}
+                  placeholder="name@example.com"
+                  className={inputClassName}
+                />
+                <div className="mt-3">
                   <Button
-                    onClick={handleUnlink}
-                    disabled={isBusy}
+                    onClick={handleSend}
+                    disabled={isBusy || inputEmail.trim().length === 0}
                     size="sm"
-                    variant="destructive"
                   >
-                    {pendingAction === "unlink" ? "Removing…" : "Confirm"}
+                    {pendingAction === "send" ? "Sending…" : "Send invitation →"}
+                  </Button>
+                </div>
+                {successMsg && (
+                  <p className="mt-3 text-xs text-emerald-600">{successMsg}</p>
+                )}
+              </div>
+            )}
+
+            {status === "pending" && (
+              <div className="flex flex-wrap gap-3">
+                <Button onClick={handleResend} disabled={isBusy} size="sm" variant="ghost">
+                  {pendingAction === "resend" ? "Resending…" : "Resend invitation"}
+                </Button>
+                <Button onClick={handleCancel} disabled={isBusy} size="sm" variant="ghost">
+                  {pendingAction === "cancel" ? "Cancelling…" : "Cancel invitation"}
+                </Button>
+                {successMsg && (
+                  <p className="w-full text-xs text-emerald-600">{successMsg}</p>
+                )}
+              </div>
+            )}
+
+            {status === "accepted" && (
+              <div>
+                {!showUnlinkConfirm ? (
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-sm">
+                      <span className="text-emerald-600">✓</span>{" "}
+                      <span className="font-medium text-[var(--accent)]">Invited {parentEmail}</span>
+                    </p>
+                    <Button
+                      onClick={() => setShowUnlinkConfirm(true)}
+                      disabled={isBusy}
+                      size="sm"
+                      variant="destructive"
+                    >
+                      Remove Parent Access
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4">
+                    <p className="text-sm text-[var(--text)]">
+                      Are you sure? This will remove your parent&apos;s access.
+                    </p>
+                    <div className="mt-3 flex gap-3">
+                      <Button
+                        onClick={handleUnlink}
+                        disabled={isBusy}
+                        size="sm"
+                        variant="destructive"
+                      >
+                        {pendingAction === "unlink" ? "Removing…" : "Confirm"}
+                      </Button>
+                      <Button
+                        onClick={() => setShowUnlinkConfirm(false)}
+                        disabled={isBusy}
+                        size="sm"
+                        variant="ghost"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Sharing preferences — always shown inside settings */}
+            <div>
+              <h3 className="font-primary text-lg font-bold text-[var(--text)]">
+                Choose what to share
+              </h3>
+              <p className="mb-4 mt-1 text-sm text-[var(--text-muted)]">
+                You&apos;re in control. Toggle what your parent can see at any time.
+              </p>
+
+              <div className="space-y-3">
+                <SharingToggleRow
+                  checked={preferences.share_tasks}
+                  description="Your task list and progress"
+                  disabled={disableSharingEdit || isBusy}
+                  icon={<ChecklistIcon />}
+                  onChange={(checked) => handlePreferenceChange("share_tasks", checked)}
+                  title="My Plan & Tasks"
+                />
+                <SharingToggleRow
+                  checked={preferences.share_calendar}
+                  description="Your task schedule and due dates"
+                  disabled={disableSharingEdit || isBusy}
+                  icon={<CalendarIcon />}
+                  onChange={(checked) => handlePreferenceChange("share_calendar", checked)}
+                  title="My Calendar"
+                />
+                <SharingToggleRow
+                  checked={preferences.share_content}
+                  description="Your UStart resources and guides"
+                  disabled={disableSharingEdit || isBusy}
+                  icon={<DocumentIcon />}
+                  onChange={(checked) => handlePreferenceChange("share_content", checked)}
+                  title="My Content"
+                />
+              </div>
+
+              {status === "pending" && (
+                <p className="mt-4 text-xs text-[var(--text-muted)]">
+                  Sharing preferences will become editable after your parent accepts the invitation.
+                </p>
+              )}
+
+              {status === "accepted" && successMsg && (
+                <p className="mt-4 text-xs text-emerald-600">{successMsg}</p>
+              )}
+
+              {status === "accepted" && hasUnsavedSharingChanges && (
+                <div className="mt-4 flex flex-wrap gap-3">
+                  <Button onClick={handleSaveSharingChanges} disabled={isBusy} size="sm">
+                    {pendingAction === "update-sharing" ? "Saving…" : "Save changes"}
                   </Button>
                   <Button
-                    onClick={() => setShowUnlinkConfirm(false)}
+                    onClick={handleCancelSharingChanges}
                     disabled={isBusy}
                     size="sm"
                     variant="ghost"
@@ -441,33 +467,30 @@ export function ParentPackManager({
                     Cancel
                   </Button>
                 </div>
-              </div>
-            )}
-          </Card>
+              )}
+            </div>
+          </div>
+        )}
+      </Card>
 
-          <Card className="border border-[var(--border)]" padding="md">
-            <h3 className="font-primary text-lg font-semibold text-[var(--text)]">
-              Parent Pack Resources
-            </h3>
-            <p className="mt-1 text-sm text-[var(--text-muted)]">
-              Access exclusive resources for your parent&apos;s journey
-            </p>
-            {parentPackNotionUrl ? (
-              <a
-                href={parentPackNotionUrl}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-4 inline-flex min-h-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
-              >
-                Open Parent Pack →
-              </a>
-            ) : (
-              <p className="mt-4 text-sm text-[var(--text-muted)]">
-                Parent Pack resources URL is not configured yet.
-              </p>
-            )}
-          </Card>
-        </>
+      {/* Legacy link button — only renders when a static Notion URL is configured */}
+      {parentPackNotionUrl && (
+        <Card className="border border-[var(--border)]" padding="md">
+          <h3 className="font-primary text-lg font-semibold text-[var(--text)]">
+            Parent Pack Resources
+          </h3>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">
+            Access exclusive resources for your parent&apos;s journey
+          </p>
+          <a
+            href={parentPackNotionUrl}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-flex min-h-9 items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-3.5 py-2 text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]"
+          >
+            Open Parent Pack →
+          </a>
+        </Card>
       )}
 
       {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}

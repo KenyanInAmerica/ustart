@@ -20,6 +20,14 @@ jest.mock("../../../../lib/dashboard/parentPack", () => ({
   }),
 }));
 
+jest.mock("../../../../lib/notion/fetcher", () => ({
+  getNotionBlocks: jest.fn().mockResolvedValue([]),
+}));
+
+jest.mock("../../../../lib/notion/config", () => ({
+  NOTION_PAGE_IDS: { parentPack: "", parentHub: "", lite: "", explore: "", concierge: "" },
+}));
+
 jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
 }));
@@ -28,13 +36,21 @@ jest.mock("../../../../components/dashboard/ParentPackManager", () => ({
   ParentPackManager: ({
     initialParentEmail,
     initialStatus,
+    parentPackNotionUrl,
   }: {
     initialParentEmail: string | null;
     initialStatus: string | null;
+    parentPackNotionUrl: string;
   }) => (
     <div data-testid="invitation-section-stub">
-      {initialStatus}:{initialParentEmail ?? "none"}
+      {initialStatus}:{initialParentEmail ?? "none"}:{parentPackNotionUrl}
     </div>
+  ),
+}));
+
+jest.mock("../../../../components/notion/NotionPageShell", () => ({
+  NotionPageShell: ({ title }: { title: string }) => (
+    <div data-testid="notion-page-shell-stub">{title}</div>
   ),
 }));
 
@@ -69,7 +85,7 @@ const acceptedAccess: DashboardAccess = {
   parentInvitationAcceptedAt: "2026-04-22T00:00:00.000Z",
 };
 
-describe("ParentPackPage", () => {
+describe("ParentPackPage — fallback (no Notion page ID)", () => {
   beforeEach(() => {
     mockGetUser.mockResolvedValue({
       data: { user: { id: "student-1", email: "student@example.com" } },
@@ -93,11 +109,21 @@ describe("ParentPackPage", () => {
     expect(screen.getByTestId("invitation-section-stub")).toBeInTheDocument();
   });
 
+  it("passes parentPackNotionUrl to the manager when no Notion page ID is configured", async () => {
+    render(await ParentPackPage());
+    expect(screen.getByTestId("invitation-section-stub")).toHaveTextContent(
+      "https://notion.so/parent-pack"
+    );
+  });
+
+  it("does not render the Notion shell when no Notion page ID is configured", async () => {
+    render(await ParentPackPage());
+    expect(screen.queryByTestId("notion-page-shell-stub")).not.toBeInTheDocument();
+  });
+
   it("redirects signed-out users to /sign-in", async () => {
     mockGetUser.mockResolvedValue({ data: { user: null } });
-
     await ParentPackPage();
-
     expect(redirect).toHaveBeenCalledWith("/sign-in");
   });
 
@@ -115,17 +141,13 @@ describe("ParentPackPage", () => {
       ...studentAccess,
       role: "parent",
     });
-
     await ParentPackPage();
-
     expect(redirect).toHaveBeenCalledWith("/dashboard/parent/hub");
   });
 
   it("passes the existing invitation state into the client manager", async () => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(acceptedAccess);
-
     render(await ParentPackPage());
-
     expect(screen.getByTestId("invitation-section-stub")).toHaveTextContent(
       "accepted:parent@example.com"
     );

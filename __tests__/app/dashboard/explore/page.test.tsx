@@ -10,12 +10,8 @@ jest.mock("../../../../lib/dashboard/access", () => ({
   fetchDashboardAccess: jest.fn(),
 }));
 
-jest.mock("../../../../lib/dashboard/content", () => ({
-  fetchTierContent: jest.fn().mockResolvedValue([]),
-}));
-
-jest.mock("../../../../components/dashboard/ContentGrid", () => ({
-  ContentGrid: () => <div data-testid="content-grid-stub" />,
+jest.mock("../../../../lib/notion/fetcher", () => ({
+  getNotionChildPages: jest.fn(),
 }));
 
 jest.mock("next/navigation", () => ({
@@ -23,6 +19,7 @@ jest.mock("next/navigation", () => ({
 }));
 
 import { fetchDashboardAccess } from "../../../../lib/dashboard/access";
+import { getNotionChildPages } from "../../../../lib/notion/fetcher";
 import { redirect } from "next/navigation";
 
 const exploreAccess: DashboardAccess = {
@@ -45,30 +42,46 @@ const exploreAccess: DashboardAccess = {
   parentShareContent: true,
 };
 
-describe("ExplorePage", () => {
+describe("ExplorePage (index)", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(exploreAccess);
     (redirect as unknown as jest.Mock).mockReset();
   });
 
-  it("renders without error", async () => {
-    const { container } = render(await ExplorePage());
-    expect(container).toBeTruthy();
+  it("redirects to the first module slug when modules are available", async () => {
+    (getNotionChildPages as jest.Mock).mockResolvedValue([
+      { id: "m1", title: "Tax Filing", slug: "tax-filing", notionUrl: "" },
+    ]);
+
+    await ExplorePage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/content/explore/tax-filing");
   });
 
-  it("renders the Explore heading", async () => {
-    render(await ExplorePage());
-    expect(screen.getByRole("heading", { name: /ustart explore/i })).toBeInTheDocument();
-  });
+  it("shows placeholder when Notion returns no modules", async () => {
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
 
-  it("renders the content grid", async () => {
     render(await ExplorePage());
-    expect(screen.getByTestId("content-grid-stub")).toBeInTheDocument();
+
+    expect(screen.getByText(/content coming soon/i)).toBeInTheDocument();
+    expect(redirect).not.toHaveBeenCalled();
   });
 
   it("redirects to /dashboard when membership_rank is below 2", async () => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...exploreAccess, membershipRank: 1 });
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
+
     await ExplorePage();
+
     expect(redirect).toHaveBeenCalledWith("/dashboard");
+  });
+
+  it("redirects parent users to parent content", async () => {
+    (fetchDashboardAccess as jest.Mock).mockResolvedValue({ ...exploreAccess, role: "parent" });
+    (getNotionChildPages as jest.Mock).mockResolvedValue([]);
+
+    await ExplorePage();
+
+    expect(redirect).toHaveBeenCalledWith("/dashboard/parent/content");
   });
 });
