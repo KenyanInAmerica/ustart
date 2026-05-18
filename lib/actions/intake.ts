@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { instantiatePlan } from "@/lib/actions/plan";
+import { trackHubSpotContact, toHubSpotDate } from "@/lib/hubspot/contacts";
+import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 import type { IntakeFormData } from "@/lib/types/intake";
 
 type IntakeResult =
@@ -148,6 +150,7 @@ export async function submitIntake(formData: IntakeFormData): Promise<IntakeResu
     const { error: updateError } = await service
       .from("profiles")
       .update({
+        university_name: school,
         city,
         arrival_date: arrivalDate,
         graduation_date: graduationDate,
@@ -158,6 +161,19 @@ export async function submitIntake(formData: IntakeFormData): Promise<IntakeResu
     if (updateError) {
       return { success: false, error: updateError.message };
     }
+
+    trackHubSpotContact({
+      email: user.email ?? "",
+      lifecyclestage: "lead",
+      hs_lead_status: "IN_PROGRESS",
+      ustart_environment: getHubSpotEnvironment(),
+      ustart_intake_completed: true,
+      ustart_city: city,
+      ustart_school: school,
+      ustart_arrival_date: toHubSpotDate(arrivalDate),
+      ustart_graduation_timeline: graduationDate,
+      ustart_main_concerns: serializedConcerns,
+    });
 
     void instantiatePlan(user.id);
 

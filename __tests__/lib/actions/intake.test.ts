@@ -8,6 +8,7 @@ const mockGetUser = jest.fn();
 const mockProfileMaybeSingle = jest.fn();
 const mockIntakeInsert = jest.fn();
 const mockServiceUpdateEq = jest.fn();
+const mockServiceUpdate = jest.fn();
 const mockServerFrom = jest.fn((table: string) => {
   if (table === "profiles") {
     return {
@@ -38,15 +39,22 @@ jest.mock("../../../lib/supabase/server", () => ({
 jest.mock("../../../lib/supabase/service", () => ({
   createServiceClient: jest.fn(() => ({
     from: jest.fn(() => ({
-      update: jest.fn(() => ({
-        eq: mockServiceUpdateEq,
-      })),
+      update: mockServiceUpdate,
     })),
   })),
 }));
 
 jest.mock("../../../lib/actions/plan", () => ({
   instantiatePlan: jest.fn(),
+}));
+
+// HubSpot tracking is fire-and-forget — mock to prevent console noise in tests.
+jest.mock("../../../lib/hubspot/contacts", () => ({
+  trackHubSpotContact: jest.fn(),
+  toHubSpotDate: jest.fn(),
+}));
+jest.mock("../../../lib/hubspot/client", () => ({
+  getHubSpotEnvironment: jest.fn(() => "staging"),
 }));
 
 import { revalidatePath } from "next/cache";
@@ -65,6 +73,7 @@ const validPayload = {
 describe("submitIntake", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockServiceUpdate.mockReturnValue({ eq: mockServiceUpdateEq });
     mockGetUser.mockResolvedValue({
       data: { user: { id: "user-1", email: "student@example.com" } },
     });
@@ -88,6 +97,64 @@ describe("submitIntake", () => {
   it("returns an error when school is missing", async () => {
     const result = await submitIntake({ ...validPayload, school: "   " });
     expect(result).toEqual({ success: false, error: "School is required." });
+  });
+
+  it("returns an error when city is missing", async () => {
+    const result = await submitIntake({ ...validPayload, city: "   " });
+    expect(result).toEqual({ success: false, error: "City is required." });
+  });
+
+  it("returns an error when arrival_date is not a valid date", async () => {
+    const result = await submitIntake({ ...validPayload, arrival_date: "not-a-date" });
+    expect(result).toEqual({ success: false, error: "Arrival date is invalid." });
+  });
+
+  it("returns an error when graduation_date is not a valid date", async () => {
+    const result = await submitIntake({ ...validPayload, graduation_date: "not-a-date" });
+    expect(result).toEqual({ success: false, error: "Graduation date is invalid." });
+  });
+
+  it("returns an error when graduation_date is not after arrival_date", async () => {
+    const result = await submitIntake({
+      ...validPayload,
+      arrival_date: "2099-09-01",
+      graduation_date: "2099-09-01",
+    });
+    expect(result).toEqual({
+      success: false,
+      error: "Graduation date must be after arrival date.",
+    });
+  });
+
+  it("returns an error when no main_concerns are selected", async () => {
+    const result = await submitIntake({ ...validPayload, main_concerns: [] });
+    expect(result).toEqual({
+      success: false,
+      error: "Please select at least one main concern.",
+    });
+  });
+
+  it("returns an error when main_concerns contains an unrecognised key", async () => {
+    const result = await submitIntake({
+      ...validPayload,
+      main_concerns: ["not_a_valid_concern"],
+    });
+    expect(result).toEqual({
+      success: false,
+      error: "Main concerns include an invalid option.",
+    });
+  });
+
+  it("returns an error when the profile select fails", async () => {
+    mockProfileMaybeSingle.mockResolvedValue({
+      data: null,
+      error: { message: "select error" },
+    });
+
+    const result = await submitIntake(validPayload);
+
+    expect(result).toEqual({ success: false, error: "select error" });
+    expect(mockIntakeInsert).not.toHaveBeenCalled();
   });
 
   it("allows a past arrival date as long as it is valid", async () => {
@@ -138,6 +205,14 @@ describe("submitIntake", () => {
         graduation_date: "2103-05-15",
         main_concerns:
           "banking_credit,other: Understanding local banking setup",
+      })
+    );
+    expect(mockServiceUpdate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        university_name: "University of Michigan",
+        city: "Ann Arbor, MI",
+        arrival_date: "2099-09-01",
+        graduation_date: "2103-05-15",
       })
     );
     expect(mockServiceUpdateEq).toHaveBeenCalledWith("id", "user-1");

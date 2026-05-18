@@ -39,6 +39,14 @@ jest.mock("../../../lib/audit/log", () => ({
   logAction: (...args: unknown[]) => mockLogAction(...args),
 }));
 
+// HubSpot tracking is fire-and-forget — mock to prevent console noise in tests.
+jest.mock("../../../lib/hubspot/contacts", () => ({
+  trackHubSpotContact: jest.fn(),
+}));
+jest.mock("../../../lib/hubspot/client", () => ({
+  getHubSpotEnvironment: jest.fn(() => "staging"),
+}));
+
 // Resend client — jest.fn() must live inside the factory to avoid the hoisting
 // TDZ error. Access the mock via the imported module reference after jest.mock().
 jest.mock("../../../lib/resend/client", () => ({
@@ -376,6 +384,17 @@ describe("updateParentSharing", () => {
     });
   });
 
+  it("returns error when the invitation update query fails", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: AUTHENTICATED_USER } });
+    const acceptedChain = makeChain({ data: { id: "inv-1" }, error: null });
+    const updateChain = makeChain({ error: { message: "update failed" } });
+    mockFrom.mockReturnValueOnce(acceptedChain).mockReturnValueOnce(updateChain);
+
+    const result = await updateParentSharing(preferences);
+
+    expect(result).toEqual({ success: false, error: "update failed" });
+  });
+
   it("updates the accepted invitation sharing preferences", async () => {
     mockGetUser.mockResolvedValue({
       data: { user: { ...AUTHENTICATED_USER, email: "student@example.com" } },
@@ -464,6 +483,25 @@ describe("acceptInvitation", () => {
     );
   });
 
+  it("returns error when existing user is not found in user_access", async () => {
+    mockServiceFrom
+      .mockReturnValueOnce(
+        makeServiceReadChain({
+          data: { id: "inv-1", parent_email: "parent@example.com", student_id: "student-123" },
+        })
+      )
+      .mockReturnValueOnce(
+        makeServiceReadChain({ data: null })
+      );
+    mockCreateUser.mockResolvedValue({
+      data: null,
+      error: { message: "User already registered" },
+    });
+
+    const result = await acceptInvitation("valid-token");
+    expect(result).toEqual({ success: false, error: "Failed to set up your account. Please try again." });
+  });
+
   it("handles already-existing user — updates metadata and sends magic link", async () => {
     // First call: invitation lookup; second call: user_access email lookup.
     mockServiceFrom
@@ -516,5 +554,53 @@ describe("acceptInvitation", () => {
     // mockFrom is the regular (non-service) Supabase client — must not be called
     // because acceptInvitation never writes to parent_invitations directly.
     expect(mockFrom).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockServiceFrom.mockImplementation(() => { throw new Error("boom"); });
+    const result = await acceptInvitation("any-token");
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
+  });
+});
+
+// ── catch-block coverage ──────────────────────────────────────────────────────
+
+describe("sendParentInvitation — unexpected exception", () => {
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockGetUser.mockRejectedValue(new Error("boom"));
+    const result = await sendParentInvitation("parent@example.com");
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
+  });
+});
+
+describe("resendParentInvitation — unexpected exception", () => {
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockGetUser.mockRejectedValue(new Error("boom"));
+    const result = await resendParentInvitation();
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
+  });
+});
+
+describe("cancelParentInvitation — unexpected exception", () => {
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockGetUser.mockRejectedValue(new Error("boom"));
+    const result = await cancelParentInvitation();
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
+  });
+});
+
+describe("unlinkParent — unexpected exception", () => {
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockGetUser.mockRejectedValue(new Error("boom"));
+    const result = await unlinkParent();
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
+  });
+});
+
+describe("updateParentSharing — error branches", () => {
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockGetUser.mockRejectedValue(new Error("boom"));
+    const result = await updateParentSharing({ share_tasks: true, share_calendar: false, share_content: true });
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
   });
 });

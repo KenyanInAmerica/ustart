@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** May 15, 2026
+**Date:** May 17, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -95,6 +95,10 @@ Never commit `.env` or `.env.local`. All secrets live in Vercel environment vari
 | `NOTION_CONCIERGE_PAGE_ID` | page ID | page ID | page ID | Parent page ID for UStart Concierge content modules |
 | `NOTION_PARENT_PACK_PAGE_ID` | page ID | page ID | page ID | Page ID for Parent Pack student-facing Notion content |
 | `NOTION_PARENT_HUB_PAGE_ID` | page ID | page ID | page ID | Page ID for Parent Hub parent-only Notion content |
+| `HUBSPOT_API_KEY` | staging key | staging key | production key | HubSpot Service Key — server-side only |
+| `HUBSPOT_ENVIRONMENT` | `staging` | `staging` | `production` | Tags every contact — used to separate staging vs production data |
+| `NEXT_PUBLIC_HUBSPOT_ENABLED` | `true` | `true` | `true` | Controls "View in HubSpot →" link in admin UserPanel |
+| `NEXT_PUBLIC_HUBSPOT_PORTAL_ID` | Hub ID | Hub ID | Hub ID | HubSpot Hub ID — enables direct contact links in admin (Settings → Account → Account Information) |
 
 GitHub Actions secrets used by CI: `STAGING_SUPABASE_URL`, `STAGING_SUPABASE_ANON_KEY`, `STAGING_SERVICE_ROLE_KEY`.
 
@@ -289,6 +293,11 @@ Defined in `lib/config/productAccents.ts`.
                 # fetchToggleChildren() — parallel fetch of toggle block children
     config.ts   # NOTION_PAGE_IDS mapping (lite, explore, concierge, parentPack, parentHub)
     types.ts    # NotionChildPage, NotionPageContent interfaces; slugify() utility
+  /hubspot
+    client.ts   # hubspotFetch(), getHubSpotApiKey(), getHubSpotEnvironment() — server-side only
+    contacts.ts # upsertHubSpotContact(), trackHubSpotContact(), toHubSpotDate(),
+                # getHubSpotSearchUrl(), getHubSpotContactDirectUrl(),
+                # createHubSpotNote(), trackHubSpotNote()
   /config    brand.ts (centralised brand config — name, tagline, logo, font, colors, phase accents)
              productAccents.ts (per-product accent color mapping)
              pricing.ts (types only), getPricing.ts (fetch utils)
@@ -333,6 +342,11 @@ Defined in `lib/config/productAccents.ts`.
   /migrations
     001_initial_schema.sql     # Canonical schema — living file, updated in-place after every schema change
     README.md                  # Schema change workflow and per-environment status
+/scripts
+  setup-notion.ts             # One-time script — creates UStart page structure in Notion
+  setup-hubspot.ts            # One-time script — creates UStart property group and 12 custom contact properties
+  purge-hubspot-staging.ts    # Purge script — deletes all staging-tagged contacts from HubSpot.
+                              # Requires 'confirm' input before running.
 /public/favicon.ico    # Static favicon fallback
 middleware.ts — updated Feature 13: /invite added as intentionally public route
 /.github
@@ -377,7 +391,7 @@ npm run test         # Jest test suite
 
 Always run `typecheck`, `lint`, and `test` after changes before committing. All three must pass with zero failures before any commit.
 
-**Current test count**: 694 tests across 99 suites (as of May 15, 2026). If the suite drops below this without a deliberate deletion, investigate before committing.
+**Current test count**: 837 tests across 105 suites (as of May 17, 2026 — post-HubSpot integration). If the suite drops below this without a deliberate deletion, investigate before committing.
 
 ---
 
@@ -712,6 +726,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Feature 13 | Resend Integration                           | ✅ Built                         |
 | Phase 5    | Parent Pack + Parent Dashboard               | ✅ Built                        |
 | Phase 7    | Notion Integration — multi-module content renderer, sidebar nav, Parent Pack + Parent Hub inline content | ✅ Built |
+| Phase 6    | HubSpot CRM Integration — contact upsert, lifecycle tracking, admin "View in HubSpot" link | ✅ Built |
 
 ---
 
@@ -789,6 +804,38 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 
 ---
 
+## HubSpot CRM Integration
+
+No new npm packages — uses native `fetch` only. Setup and purge scripts use `dotenv` and `ts-node` (already installed).
+
+### Tracking Events
+
+| Event | File | Properties set |
+|---|---|---|
+| Signup / sign-in | `app/(auth)/auth/callback/route.ts` | `lifecyclestage: subscriber`, `ustart_role`, `ustart_signup_date`, `firstname`, `lastname`, `phone`, `country` |
+| Intake completion | `lib/actions/intake.ts` | `lifecyclestage: lead`, `hs_lead_status: IN_PROGRESS`, intake fields |
+| Profile update | `lib/actions/updateProfile.ts` | `firstname`, `lastname`, `phone`, `country` (only when these specific fields change) |
+| Plan progress update | `lib/actions/plan.ts` | `ustart_plan_progress: percentage` |
+| Plan 100% complete | `lib/actions/plan.ts` | `hs_lead_status: CONNECTED` + HubSpot note |
+| Parent Pack invitation sent | `lib/actions/parentInvitation.ts` | `ustart_parent_pack: true` |
+| Tier assigned (admin) | `lib/actions/admin/users.ts` | `ustart_tier: tier` |
+
+All tracking is fire-and-forget — same `void` pattern as `logAction()`. Never blocks user-facing flow.
+
+### Lifecycle Stage Progression
+
+`subscriber` → `lead` → `customer` (customer set in Phase 9 via Stripe webhook)
+
+### Admin Panel
+
+"View in HubSpot →" button in `UserPanel.tsx` — visible when `NEXT_PUBLIC_HUBSPOT_ENABLED=true`. When `NEXT_PUBLIC_HUBSPOT_PORTAL_ID` is set, the button fetches a direct contact record URL via `GET /api/admin/hubspot-contact-url?email=...` and links there. Falls back to a portal-scoped search URL while loading or if the contact is not yet in HubSpot.
+
+### Contact Upsert Strategy
+
+Uses `POST /crm/v3/objects/contacts/batch/upsert` with `inputs: [{ id: email, idProperty: "email", properties: {...} }]`. PATCH was not used because it returns 404 for contacts that do not yet exist; batch upsert handles create-or-update atomically.
+
+---
+
 ## Active TODOs
 
 **Code**
@@ -804,7 +851,7 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Parent Content Notion URL needs to be set in admin settings before launch (currently placeholder: https://notion.so/placeholder)
 - Two-parent model confirmed parked at one-to-one for now. Future: junction table for multiple students per parent and multiple parents per student.
 - Parent content pages currently show student content as read-only. Future enhancement: parents could have dedicated parent-specific content per tier.
-- Add school column to profiles table before or during Phase 9 (currently stored in intake_responses only)
+- Add school column to profiles table before or during Phase 9 (already stored in `profiles.university_name` via intake; `intake_responses.school` is a duplicate for historical record)
 - Booking flow for `arrival_call` and `additional_support_call` built in Phase 8
 - Plan system — add admin per-user task editing so admins can adjust titles, due dates, and create one-off tasks without changing the master template set
 - Plan system — when arrival date changes in account settings, recalculate `plan_tasks.due_date` from `template.days_from_arrival` while preserving task completion state; add a confirmation step before applying the update
@@ -816,6 +863,14 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - Toggle nested children — `fetchToggleChildren` fetches one level deep. Deeply nested toggles (toggle inside toggle) may need recursive fetching.
 - Notion image URLs expire — Notion file-hosted image URLs expire after ~1 hour. For production, consider proxying images through an API route or enforcing the use of externally hosted image URLs in Notion content.
 - Notion content is not cached beyond request level (React.cache). If Notion API rate limits become an issue post-launch, consider adding ISR revalidation to module pages (`export const revalidate = N`).
+
+**HubSpot**
+
+- Stripe webhook → tier purchase tracking (`lifecyclestage: customer`) added in Phase 9
+- Calendly webhook → booking activity note added in Phase 8
+- When Morgan's HubSpot account is ready: swap `HUBSPOT_API_KEY` and run `npm run hubspot:setup` to create properties, then `npm run hubspot:purge-staging` to clean test data
+- Morgan to create contact views in HubSpot: filter `ustart_environment = production` to see only real users
+- Future: weekly cron job to auto-purge staging contacts (Vercel Cron or GitHub Actions)
 
 **Business Owner Decisions Pending**
 
@@ -844,6 +899,10 @@ Update in Supabase Dashboard → Authentication → URL Configuration:
 - [ ] Export full schema: `supabase db dump --schema-only -f docs/ustart-schema-v4.sql`
 - [ ] Run copy/naming consistency audit against live codebase
 - [ ] Business owner to review and approve Privacy Policy and Terms of Service
+- [ ] Swap `HUBSPOT_API_KEY` to Morgan's account in Vercel env vars
+- [ ] Run `npm run hubspot:setup` on Morgan's HubSpot account to create properties
+- [ ] Run `npm run hubspot:purge-staging` to remove test contacts before launch
+- [ ] Morgan to set up HubSpot contact views/filters (`ustart_environment = production`)
 
 ---
 
@@ -918,4 +977,4 @@ When starting a fresh chat outside Claude Code (e.g. pasting context manually):
 
 ---
 
-_End of snapshot — updated May 15, 2026_
+_End of snapshot — updated May 17, 2026_

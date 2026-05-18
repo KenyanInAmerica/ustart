@@ -11,6 +11,14 @@ const mockRevalidatePath = jest.fn(); // unused but kept for future assertions
 
 jest.mock("../../../../lib/audit/log", () => ({ logAction: jest.fn() }));
 
+const mockTrackHubSpotContact = jest.fn();
+jest.mock("../../../../lib/hubspot/contacts", () => ({
+  trackHubSpotContact: (...args: unknown[]) => mockTrackHubSpotContact(...args),
+}));
+jest.mock("../../../../lib/hubspot/client", () => ({
+  getHubSpotEnvironment: jest.fn(() => "staging"),
+}));
+
 // lib/admin/data uses React.cache which is unavailable in the Node test environment.
 jest.mock("../../../../lib/admin/data", () => ({
   fetchAdminUsers: jest.fn(),
@@ -38,7 +46,10 @@ import {
   softDeleteUser,
   hardDeleteUser,
   reactivateUser,
+  setUserMembershipTier,
 } from "../../../../lib/actions/admin/users";
+
+const flush = () => new Promise<void>((r) => setTimeout(r, 0));
 
 // Helper: make requireAdmin() succeed (caller is an admin).
 function mockAdmin() {
@@ -218,5 +229,75 @@ describe("reactivateUser", () => {
     const result = await reactivateUser("u1");
     expect(result.success).toBe(false);
     if (!result.success) expect(result.error).toBe("DB error");
+  });
+});
+
+// ── setUserMembershipTier ─────────────────────────────────────────────────────
+
+describe("setUserMembershipTier", () => {
+  it("returns error when caller is not authenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+    const result = await setUserMembershipTier("u1", "lite");
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toMatch(/not authenticated/i);
+  });
+
+  it("returns success when tier is set (upsert path)", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({ data: { is_admin: true } });
+    const mockUpsert = jest.fn().mockResolvedValue({ error: null });
+    mockFromImpl.mockReturnValueOnce({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: mockMaybeSingle })) })) })
+      .mockReturnValueOnce({ upsert: mockUpsert })
+      .mockReturnValue({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: jest.fn().mockResolvedValue({ data: { email: "u@test.com" } }) })) })) });
+
+    const result = await setUserMembershipTier("u1", "concierge");
+    expect(result.success).toBe(true);
+    expect(mockUpsert).toHaveBeenCalledWith(
+      expect.objectContaining({ user_id: "u1", tier: "concierge" }),
+      { onConflict: "user_id" }
+    );
+    await flush();
+    expect(mockTrackHubSpotContact).toHaveBeenCalledWith(
+      expect.objectContaining({ ustart_tier: "concierge", ustart_environment: "staging" })
+    );
+  });
+
+  it("returns error when upsert fails", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({ data: { is_admin: true } });
+    const mockUpsert = jest.fn().mockResolvedValue({ error: { message: "upsert failed" } });
+    mockFromImpl.mockReturnValueOnce({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: mockMaybeSingle })) })) })
+      .mockReturnValueOnce({ upsert: mockUpsert });
+
+    const result = await setUserMembershipTier("u1", "lite");
+    expect(result.success).toBe(false);
+    if (!result.success) expect(result.error).toBe("upsert failed");
+  });
+
+  it("returns success when tier is null (delete path)", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({ data: { is_admin: true } });
+    const mockDelete = jest.fn(() => ({ eq: jest.fn().mockResolvedValue({ error: null }) }));
+    mockFromImpl.mockReturnValueOnce({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: mockMaybeSingle })) })) })
+      .mockReturnValueOnce({ delete: mockDelete });
+
+    const result = await setUserMembershipTier("u1", null);
+    expect(result.success).toBe(true);
+    expect(mockDelete).toHaveBeenCalled();
+  });
+
+  it("does not fire HubSpot tracking when user has no email", async () => {
+    mockMaybeSingle.mockResolvedValueOnce({ data: { is_admin: true } });
+    const mockUpsert = jest.fn().mockResolvedValue({ error: null });
+    mockFromImpl.mockReturnValueOnce({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: mockMaybeSingle })) })) })
+      .mockReturnValueOnce({ upsert: mockUpsert })
+      .mockReturnValue({ select: jest.fn(() => ({ eq: jest.fn(() => ({ maybeSingle: jest.fn().mockResolvedValue({ data: { email: null } }) })) })) });
+
+    await setUserMembershipTier("u1", "explore");
+    await flush();
+    expect(mockTrackHubSpotContact).not.toHaveBeenCalled();
+  });
+
+  it("returns a generic error when an unexpected exception is thrown", async () => {
+    mockGetUser.mockRejectedValue(new Error("boom"));
+    const result = await setUserMembershipTier("u1", "lite");
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
   });
 });
