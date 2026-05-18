@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
+import { trackHubSpotContact } from "@/lib/hubspot/contacts";
+import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 
 const PHONE_REGEX = /^\+[1-9]\d{6,14}$/;
 
@@ -95,6 +97,26 @@ export async function updateProfile(
       action: AuditAction.PROFILE_UPDATED,
       payload: { changedFields },
     });
+
+    // Sync any changed identity fields to HubSpot immediately rather than
+    // waiting for the user's next sign-in.
+    if (
+      update.first_name !== undefined ||
+      update.last_name !== undefined ||
+      update.phone_number !== undefined ||
+      update.country_of_origin !== undefined
+    ) {
+      trackHubSpotContact({
+        email: user.email ?? "",
+        ustart_environment: getHubSpotEnvironment(),
+        ...(update.first_name !== undefined && { firstname: update.first_name }),
+        ...(update.last_name !== undefined && { lastname: update.last_name }),
+        ...(update.phone_number !== undefined && { phone: update.phone_number }),
+        ...(update.country_of_origin !== undefined && {
+          country: update.country_of_origin,
+        }),
+      });
+    }
 
     // Invalidate both routes so server components reflect the new data on next visit.
     revalidatePath("/dashboard");

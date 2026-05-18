@@ -13,6 +13,8 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { fetchAdminUsers, fetchUserAssignments } from "@/lib/admin/data";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
+import { trackHubSpotContact } from "@/lib/hubspot/contacts";
+import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 import type { UserContentItem } from "@/types/admin";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -68,6 +70,27 @@ export async function setUserMembershipTier(
           { onConflict: "user_id" }
         );
       if (error) return { success: false, error: error.message };
+
+      void (async () => {
+        try {
+          const { data: profileData } = await service
+            .from("profiles")
+            .select("email")
+            .eq("id", userId)
+            .maybeSingle();
+          const userEmail =
+            (profileData as { email: string | null } | null)?.email ?? "";
+          if (userEmail) {
+            trackHubSpotContact({
+              email: userEmail,
+              ustart_environment: getHubSpotEnvironment(),
+              ustart_tier: tier,
+            });
+          }
+        } catch {
+          // fire-and-forget — never surface to caller
+        }
+      })();
     }
 
     revalidatePath("/admin/users");

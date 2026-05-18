@@ -13,6 +13,8 @@ import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
 import { resend } from "@/lib/resend/client";
 import { parentInvitationEmail } from "@/lib/resend/templates/parentInvitation";
+import { trackHubSpotContact } from "@/lib/hubspot/contacts";
+import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
@@ -151,6 +153,12 @@ export async function sendParentInvitation(
       });
 
     if (insertError) return { success: false, error: insertError.message };
+
+    trackHubSpotContact({
+      email: user.email ?? "",
+      ustart_environment: getHubSpotEnvironment(),
+      ustart_parent_pack: true,
+    });
 
     void logAction({
       actorId: user.id,

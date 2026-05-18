@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
+import { trackHubSpotContact, toHubSpotDate } from "@/lib/hubspot/contacts";
+import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -25,11 +27,17 @@ export async function GET(request: NextRequest) {
       // We sign out immediately and send them to the error page so no cookie persists.
       const { data: profileData } = await supabase
         .from("profiles")
-        .select("is_active")
+        .select("is_active, phone_number, country_of_origin, first_name, last_name")
         .eq("id", user.id)
         .maybeSingle();
 
-      const profile = profileData as { is_active: boolean | null } | null;
+      const profile = profileData as {
+        is_active: boolean | null;
+        phone_number: string | null;
+        country_of_origin: string | null;
+        first_name: string | null;
+        last_name: string | null;
+      } | null;
       if (profile?.is_active === false) {
         void logAction({
           actorId: user.id,
@@ -41,7 +49,12 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${origin}/auth/error?error=account_deactivated`);
       }
 
-      const meta = user.user_metadata as { student_id?: string; role?: string } | null;
+      const meta = user.user_metadata as {
+        student_id?: string;
+        role?: string;
+        first_name?: string;
+        last_name?: string;
+      } | null;
 
       // If the OTP was issued via a parent invitation, the metadata carries
       // `role: "parent"` and `student_id`. Use the service role to update the
@@ -95,6 +108,32 @@ export async function GET(request: NextRequest) {
         actorEmail: user.email,
         action: AuditAction.AUTH_SIGN_IN,
       });
+
+      trackHubSpotContact(
+        meta?.role === "parent"
+          ? {
+              email: user.email ?? "",
+              firstname: meta?.first_name ?? profile?.first_name ?? undefined,
+              lastname: meta?.last_name ?? profile?.last_name ?? undefined,
+              phone: profile?.phone_number ?? undefined,
+              country: profile?.country_of_origin ?? undefined,
+              lifecyclestage: "subscriber",
+              ustart_environment: getHubSpotEnvironment(),
+              ustart_role: "parent",
+              ustart_signup_date: toHubSpotDate(new Date()),
+            }
+          : {
+              email: user.email ?? "",
+              firstname: meta?.first_name ?? profile?.first_name ?? undefined,
+              lastname: meta?.last_name ?? profile?.last_name ?? undefined,
+              phone: profile?.phone_number ?? undefined,
+              country: profile?.country_of_origin ?? undefined,
+              lifecyclestage: "subscriber",
+              ustart_environment: getHubSpotEnvironment(),
+              ustart_role: meta?.role ?? "student",
+              ustart_signup_date: toHubSpotDate(new Date()),
+            }
+      );
 
       return NextResponse.redirect(`${origin}/dashboard`);
     }

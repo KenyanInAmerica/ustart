@@ -9,6 +9,14 @@ jest.mock("next/cache", () => ({
 
 jest.mock("../../../lib/audit/log", () => ({ logAction: jest.fn() }));
 
+// HubSpot tracking is fire-and-forget — mock to prevent console noise in tests.
+jest.mock("../../../lib/hubspot/contacts", () => ({
+  trackHubSpotContact: jest.fn(),
+}));
+jest.mock("../../../lib/hubspot/client", () => ({
+  getHubSpotEnvironment: jest.fn(() => "staging"),
+}));
+
 const mockUpdateEq = jest.fn();
 const mockMaybeSingle = jest.fn();
 const mockGetUser = jest.fn();
@@ -31,6 +39,9 @@ jest.mock("../../../lib/supabase/server", () => ({
 
 import { revalidatePath } from "next/cache";
 import { updateProfile } from "../../../lib/actions/updateProfile";
+import { trackHubSpotContact } from "../../../lib/hubspot/contacts";
+
+const mockTrackHubSpotContact = trackHubSpotContact as jest.Mock;
 
 describe("updateProfile", () => {
   beforeEach(() => {
@@ -102,5 +113,35 @@ describe("updateProfile", () => {
       success: false,
       error: "Something went wrong. Please try again.",
     });
+  });
+
+  it("fires trackHubSpotContact when a HubSpot-relevant field changes", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "student@test.com" } },
+    });
+    mockUpdateEq.mockResolvedValue({ error: null });
+
+    await updateProfile({ first_name: "Randy", last_name: "Osoti", phone_number: "+1 234 567 8900" });
+
+    expect(mockTrackHubSpotContact).toHaveBeenCalledWith(
+      expect.objectContaining({
+        email: "student@test.com",
+        firstname: "Randy",
+        lastname: "Osoti",
+        phone: "+12345678900",
+        ustart_environment: "staging",
+      })
+    );
+  });
+
+  it("does not fire trackHubSpotContact when only university_name changes", async () => {
+    mockGetUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "student@test.com" } },
+    });
+    mockUpdateEq.mockResolvedValue({ error: null });
+
+    await updateProfile({ university_name: "MIT" });
+
+    expect(mockTrackHubSpotContact).not.toHaveBeenCalled();
   });
 });
