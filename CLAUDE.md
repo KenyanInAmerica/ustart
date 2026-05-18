@@ -37,6 +37,7 @@ Before starting any task, read the sub-files relevant to your work:
 - **Stripe webhook** (`app/api/webhooks/stripe/route.ts`) is a stub pending Feature 12 — not yet implemented
 - **Desktop/mobile parity**: any change to navigation, access gating, or UI state must be applied to both `Sidebar.tsx` and `MobileDrawer.tsx` in the same PR
 - **Notion client**: `lib/notion/client.ts` and `lib/notion/fetcher.ts` are server-side only — never import from client components. Use `NOTION_PAGE_IDS` from `lib/notion/config.ts` to look up page IDs by tier.
+- **HubSpot client**: `lib/hubspot/client.ts` and `lib/hubspot/contacts.ts` are server-side only — never import from client components. All tracking calls use `trackHubSpotContact()` or `trackHubSpotNote()` which are fire-and-forget (`void`). Never `await` them.
 
 ---
 

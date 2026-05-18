@@ -9,7 +9,9 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "test": "jest",
-    "notion:setup": "ts-node --project tsconfig.scripts.json scripts/setup-notion.ts"
+    "notion:setup": "ts-node --project tsconfig.scripts.json scripts/setup-notion.ts",
+    "hubspot:setup": "ts-node --project tsconfig.scripts.json scripts/setup-hubspot.ts",
+    "hubspot:purge-staging": "ts-node --project tsconfig.scripts.json scripts/purge-hubspot-staging.ts"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

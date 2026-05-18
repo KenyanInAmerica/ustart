@@ -49,6 +49,8 @@
   /api
     pdf/route.ts                  # PDF download — access check, fetch, watermark, serve
     webhooks/stripe/route.ts      # Stripe webhook — STUB, pending Feature 12
+    /admin
+      hubspot-contact-url/route.ts  # GET ?email= — admin-only; returns direct HubSpot contact URL
   /invite
     page.tsx                      # Parent invitation confirmation (public, no auth)
     AcceptButton.tsx              # "use client" — calls acceptInvitation() on click
@@ -210,6 +212,11 @@
                                   # fetchToggleChildren() — parallel fetch of children for toggle blocks (not cached).
     config.ts                     # NOTION_PAGE_IDS — maps tier/pack/hub keys to env var page IDs.
     types.ts                      # NotionChildPage, NotionPageContent interfaces. slugify() utility for URL-safe slugs.
+  /hubspot
+    client.ts                     # hubspotFetch(), getHubSpotApiKey(), getHubSpotEnvironment() — server-side only. Never import in client components.
+    contacts.ts                   # upsertHubSpotContact(), trackHubSpotContact() (fire-and-forget upsert),
+                                  # toHubSpotDate(), getHubSpotSearchUrl(), getHubSpotContactDirectUrl(),
+                                  # createHubSpotNote(), trackHubSpotNote() (fire-and-forget note creation)
 
 /hooks
   useUser.ts                      # useUser() — client-side auth state hook
@@ -367,6 +374,10 @@ Runs on all requests except static files. Matcher: `/((?!_next/static|_next/imag
 | `RESEND_NOTIFICATION_EMAIL` | Server-only | `lib/actions/contactForm.ts` | `rosoti17@apu.edu` / `staging@u-start.co.uk` (not yet active) / `csr@u-start.co.uk` (not yet active) |
 | `NEXT_PUBLIC_POSTHOG_KEY` | Public | PostHog | Staging / staging / production key |
 | `NEXT_PUBLIC_POSTHOG_HOST` | Public | PostHog | `https://app.posthog.com` (all envs) |
+| `HUBSPOT_API_KEY` | Server-only | `lib/hubspot/client.ts` | Staging key / staging key / production key |
+| `HUBSPOT_ENVIRONMENT` | Server-only | `lib/hubspot/client.ts` | `staging` / `staging` / `production` |
+| `NEXT_PUBLIC_HUBSPOT_ENABLED` | Public | `components/admin/UserPanel.tsx` | `true` / `true` / `true` |
+| `NEXT_PUBLIC_HUBSPOT_PORTAL_ID` | Public | `lib/hubspot/contacts.ts`, `app/api/admin/hubspot-contact-url/route.ts` | HubSpot Hub ID — Settings → Account → Account Information |
 
 Never commit `.env` or `.env.local`. All secrets live in Vercel environment variables.
 
@@ -380,6 +391,19 @@ Never commit `.env` or `.env.local`. All secrets live in Vercel environment vari
 - Parent invitation: email contains a `/invite?token=UUID` URL (not a magic link). `acceptInvitation()` calls `admin.createUser()` + `signInWithOtp()` — PKCE compatible. This prevents Gmail pre-fetch bots consuming the one-time token.
 - Parent accounts have `profiles.role = 'parent'` and `profiles.student_id` pointing at the linked student. Dashboard layout routes parents into `/dashboard/parent/*` and bypasses student intake gating.
 - Parent sharing permissions are independent flags on `parent_invitations`: `share_tasks`, `share_calendar`, and `share_content`. Students manage them from `/dashboard/content/parent-pack`.
+
+---
+
+## HubSpot CRM
+
+All HubSpot calls are fire-and-forget — same `void` pattern as `logAction()`. Never block user-facing flow. Never import from client components.
+
+- **`lib/hubspot/client.ts`** — `hubspotFetch()` wraps `fetch` with `Authorization: Bearer` header. `getHubSpotEnvironment()` returns the current env tag.
+- **`lib/hubspot/contacts.ts`** — `trackHubSpotContact()` upserts a contact via `POST /crm/v3/objects/contacts/batch/upsert` (batch upsert handles create-or-update atomically; PATCH returns 404 for new contacts). `trackHubSpotNote()` creates an engagement note and associates it with the contact. `getHubSpotSearchUrl()` returns a portal-scoped or global search URL; `getHubSpotContactDirectUrl()` looks up the direct contact record URL.
+- **`ustart_environment`** tags every contact as `staging` or `production`. Use this to build filtered views in HubSpot and to target the purge script.
+- **Lifecycle stage progression:** `subscriber` (signup) → `lead` (intake) → `customer` (Phase 9, Stripe webhook)
+- **Purge script:** `npm run hubspot:purge-staging` — deletes all contacts tagged `ustart_environment=staging`. Requires interactive `confirm` input. Safe to re-run.
+- **Setup script:** `npm run hubspot:setup` — creates the `ustart` property group and all 12 custom contact properties. Run once per HubSpot account.
 
 ---
 

@@ -6,6 +6,10 @@ import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAcce
 import type { AdminUser } from "@/types/admin";
 import { setUserAddon, setUserMembershipTier } from "@/lib/actions/admin/users";
 import { reinstantiatePlan } from "@/lib/actions/plan";
+import { getHubSpotSearchUrl } from "@/lib/hubspot/contacts";
+
+// Module-level constant — NEXT_PUBLIC_* vars are baked in at build time.
+const hubspotEnabled = !!process.env.NEXT_PUBLIC_HUBSPOT_ENABLED;
 
 type Tier = "lite" | "explore" | "concierge" | null;
 type Addon = "parent_pack";
@@ -85,6 +89,7 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
   const [planError, setPlanError] = useState<string | null>(null);
   const [planSuccess, setPlanSuccess] = useState<string | null>(null);
   const [isReinstantiating, startPlanTransition] = useTransition();
+  const [hubspotUrl, setHubspotUrl] = useState<string | null>(null);
 
   useEffect(() => {
     if (!user) return;
@@ -98,7 +103,18 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
     setSaveSuccess(false);
     setPlanError(null);
     setPlanSuccess(null);
+    setHubspotUrl(null);
   }, [user]);
+
+  useEffect(() => {
+    if (!hubspotEnabled || !user?.email) return;
+    fetch(
+      `/api/admin/hubspot-contact-url?email=${encodeURIComponent(user.email)}`
+    )
+      .then((r) => r.json())
+      .then((data: { url: string | null }) => setHubspotUrl(data.url ?? null))
+      .catch(() => {});
+  }, [user?.email]);
 
   useEffect(() => {
     if (saveSuccess) {
@@ -194,6 +210,21 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
               <p className="mt-0.5 text-[13px] text-[var(--text-mid)]">
                 {[user.first_name, user.last_name].filter(Boolean).join(" ")}
               </p>
+            )}
+            {hubspotEnabled && (
+              <a
+                href={hubspotUrl ?? getHubSpotSearchUrl(user.email)}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-flex items-center gap-1.5 rounded-[var(--radius-sm)] px-3 py-1.5 text-xs font-semibold text-white transition-opacity hover:opacity-90"
+                style={{ backgroundColor: "#FF7A59" }}
+              >
+                {/* HubSpot sprocket icon */}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                  <path d="M18.164 9.013a5.188 5.188 0 0 0 1.386-.367V5.698a2.164 2.164 0 1 0-2.164 0v2.046a5.19 5.19 0 0 0-2.62 1.402L8.63 6.388a2.913 2.913 0 1 0-.812 1.421l6.124 2.757a5.149 5.149 0 0 0-.08 4.576L10.97 16.74a2.913 2.913 0 1 0 .966 1.248l2.893-1.598a5.19 5.19 0 1 0 3.335-7.377z" />
+                </svg>
+                View in HubSpot
+              </a>
             )}
           </div>
           <button

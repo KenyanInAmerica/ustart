@@ -34,6 +34,15 @@ jest.mock("next/headers", () => ({
 // mockServiceFrom call slots and break the call-count assertions below.
 jest.mock("../../../../../lib/audit/log", () => ({ logAction: jest.fn() }));
 
+// HubSpot tracking is fire-and-forget — mock to prevent console noise in tests.
+jest.mock("../../../../../lib/hubspot/contacts", () => ({
+  trackHubSpotContact: jest.fn(),
+  toHubSpotDate: jest.fn(),
+}));
+jest.mock("../../../../../lib/hubspot/client", () => ({
+  getHubSpotEnvironment: jest.fn(() => "staging"),
+}));
+
 import { GET } from "@/app/(auth)/auth/callback/route";
 import { NextRequest } from "next/server";
 

@@ -4,6 +4,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
+import { trackHubSpotContact, trackHubSpotNote } from "@/lib/hubspot/contacts";
+import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 import type { PlanTaskStatus, PlanTaskTemplate } from "@/lib/types/plan";
 
 type ActionResult = { success: true } | { success: false; error: string };
@@ -193,6 +195,35 @@ export async function updateTaskStatus(
       .eq("user_id", user.id);
 
     if (updateError) return { success: false, error: updateError.message };
+
+    void (async () => {
+      try {
+        const service = createServiceClient();
+        const { data: taskData } = await service
+          .from("plan_tasks")
+          .select("status")
+          .eq("user_id", user.id);
+        const tasks = (taskData ?? []) as { status: string }[];
+        const total = tasks.length;
+        const completed = tasks.filter((t) => t.status === "completed").length;
+        const percentage = total > 0 ? Math.round((completed / total) * 100) : 0;
+        trackHubSpotContact({
+          email: user.email ?? "",
+          ustart_environment: getHubSpotEnvironment(),
+          ustart_plan_progress: percentage,
+          ...(percentage === 100 ? { hs_lead_status: "CONNECTED" } : {}),
+        });
+        if (percentage === 100) {
+          trackHubSpotNote(
+            user.email ?? "",
+            "Student completed their UStart plan — all tasks marked complete."
+          );
+        }
+      } catch {
+        // fire-and-forget — never surface to caller
+      }
+    })();
+
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };

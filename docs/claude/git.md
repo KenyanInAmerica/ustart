@@ -46,6 +46,14 @@ npm run test
 
 Zero failures required. A single failing test or type error is a hard blocker.
 
+Also verify coverage for every new or modified file in the branch (≥90% statements, ideally 100%):
+
+```bash
+npm run test -- --coverage --collectCoverageFrom="lib/path/to/file.ts"
+```
+
+Pre-existing untested code in a partially-modified file is exempt, but the code added in the branch must be fully covered. See `docs/claude/testing.md` for the coverage rule.
+
 ---
 
 ## Commit Message Format
