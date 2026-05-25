@@ -8,6 +8,7 @@ import { NOTION_PAGE_IDS } from "@/lib/notion/config";
 import { PLAN_PHASE_COLORS } from "@/lib/types/plan";
 import { NotionRenderer } from "@/components/notion/NotionRenderer";
 import { TaskStatusWidget } from "@/components/dashboard/TaskStatusWidget";
+import { VideoEmbed } from "@/components/notion/VideoEmbed";
 
 export default async function LiteModulePage({
   params,
@@ -122,6 +123,10 @@ export default async function LiteModulePage({
       <h1 className="font-primary font-bold text-2xl text-[var(--text)] mb-6">
         {currentModule.title}
       </h1>
+
+      {matchingTask?.video_url && (
+        <VideoEmbed url={matchingTask.video_url} title={currentModule.title} />
+      )}
 
       <NotionRenderer blocks={blocks} toggleChildren={toggleChildren} />
 

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { logAction } from "@/lib/audit/log";
 import { AuditAction } from "@/lib/audit/actions";
-import { trackHubSpotContact, trackHubSpotNote } from "@/lib/hubspot/contacts";
+import { trackHubSpotContact, trackHubSpotNote, toHubSpotDate } from "@/lib/hubspot/contacts";
 import { getHubSpotEnvironment } from "@/lib/hubspot/client";
 import type { PlanTaskStatus, PlanTaskTemplate } from "@/lib/types/plan";
 
@@ -157,6 +157,82 @@ export async function reinstantiatePlan(userId: string): Promise<InstantiatePlan
     });
 
     return result;
+  } catch {
+    return { success: false, error: "Something went wrong. Please try again." };
+  }
+}
+
+export async function recalculatePlanDueDates(): Promise<
+  { success: true; updatedCount: number } | { success: false; error: string }
+> {
+  try {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) return { success: false, error: "Not authenticated." };
+
+    const { data: profileData, error: profileError } = await supabase
+      .from("profiles")
+      .select("arrival_date")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (profileError) return { success: false, error: profileError.message };
+
+    const newArrivalDate =
+      (profileData as { arrival_date: string | null } | null)?.arrival_date ??
+      null;
+
+    if (!newArrivalDate) {
+      return { success: false, error: "No arrival date set on your profile." };
+    }
+
+    // Fetch tasks that are template-linked so we can recalculate their due dates.
+    const { data: taskData, error: taskError } = await supabase
+      .from("plan_tasks")
+      .select(
+        "id, plan_task_templates!template_id(days_from_arrival)"
+      )
+      .eq("user_id", user.id)
+      .not("template_id", "is", null);
+
+    if (taskError) return { success: false, error: taskError.message };
+
+    type TaskRow = {
+      id: string;
+      plan_task_templates: { days_from_arrival: number }[] | null;
+    };
+
+    const rows = (taskData ?? []) as unknown as TaskRow[];
+    const updates = rows.flatMap((row) => {
+      const templateRow = Array.isArray(row.plan_task_templates)
+        ? row.plan_task_templates[0]
+        : row.plan_task_templates;
+      if (!templateRow) return [];
+      return [{ id: row.id, due_date: addDays(newArrivalDate, templateRow.days_from_arrival) }];
+    });
+
+    if (updates.length === 0) return { success: true, updatedCount: 0 };
+
+    const service = createServiceClient();
+    const results = await Promise.all(
+      updates.map(({ id, due_date }) =>
+        service.from("plan_tasks").update({ due_date }).eq("id", id)
+      )
+    );
+
+    const failed = results.find((r) => r.error);
+    if (failed?.error) return { success: false, error: failed.error.message };
+
+    trackHubSpotContact({
+      email: user.email ?? "",
+      ustart_environment: getHubSpotEnvironment(),
+      ustart_arrival_date: toHubSpotDate(newArrivalDate),
+    });
+
+    return { success: true, updatedCount: updates.length };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };
   }

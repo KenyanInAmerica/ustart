@@ -17,7 +17,7 @@ import type {
   AdminRecord,
   RecentSignup,
 } from "@/types/admin";
-import type { PlanTaskTemplate } from "@/lib/types/plan";
+import type { PlanTask, PlanTaskTemplate } from "@/lib/types/plan";
 
 const PAGE_SIZE = 25;
 
@@ -212,11 +212,30 @@ export async function fetchPlanTemplates(): Promise<PlanTaskTemplate[]> {
     phase: row.phase,
     days_from_arrival: row.days_from_arrival,
     content_url: row.content_url,
+    video_url: row.video_url,
     tier_required: row.tier_required,
     display_order: row.display_order,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }));
+}
+
+// ── Plan Tasks ────────────────────────────────────────────────────────────────
+
+// Fetches a user's plan tasks ordered for display. Includes description so
+// admin edit modals can pre-populate notes without a second query.
+export async function fetchUserPlanTasks(userId: string): Promise<PlanTask[]> {
+  const service = createServiceClient();
+  const { data } = await service
+    .from("plan_tasks")
+    .select(
+      "id, title, description, phase, status, due_date, content_url, display_order, completed_at"
+    )
+    .eq("user_id", userId)
+    .order("phase")
+    .order("display_order")
+    .order("created_at");
+  return (data ?? []) as PlanTask[];
 }
 
 // ── User Management ───────────────────────────────────────────────────────────

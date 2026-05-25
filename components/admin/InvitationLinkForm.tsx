@@ -3,34 +3,27 @@
 
 "use client";
 
-import { useState, useTransition, useEffect } from "react";
+import { useState, useTransition } from "react";
 import { adminLinkParent } from "@/lib/actions/admin/invitations";
 import { Button } from "@/components/ui/Button";
+import { useFlashMessage } from "@/hooks/useFlashMessage";
 
 export function InvitationLinkForm() {
   const [studentEmail, setStudentEmail] = useState("");
   const [parentEmail, setParentEmail] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useFlashMessage();
   const [isPending, startTransition] = useTransition();
-
-  // Auto-dismiss success message after 3 seconds.
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
+    setSuccessMsg(null);
 
     startTransition(async () => {
       const result = await adminLinkParent(studentEmail.trim(), parentEmail.trim());
       if (result.success) {
-        setSuccess(true);
+        setSuccessMsg("Parent linked successfully.");
         setStudentEmail("");
         setParentEmail("");
       } else {
@@ -69,7 +62,7 @@ export function InvitationLinkForm() {
       </div>
 
       {error && <p className="text-[12px] text-[var(--destructive)]">{error}</p>}
-      {success && <p className="text-[12px] text-emerald-600">Parent linked successfully.</p>}
+      {successMsg && <p className="text-[12px] text-emerald-600">{successMsg}</p>}
 
       <Button
         type="submit"

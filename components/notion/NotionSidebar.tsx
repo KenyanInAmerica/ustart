@@ -6,6 +6,9 @@ interface NotionSidebarProps {
   currentSlug: string;
   tier: string;
   tierLabel: string;
+  backHref?: string;
+  backLabel?: string;
+  moduleBasePath?: string;
 }
 
 export function NotionSidebar({
@@ -13,13 +16,20 @@ export function NotionSidebar({
   currentSlug,
   tier,
   tierLabel,
+  backHref,
+  backLabel,
+  moduleBasePath,
 }: NotionSidebarProps) {
+  const resolvedBackHref = backHref ?? "/dashboard/content";
+  const resolvedBackLabel = backLabel ?? "← My Content";
+  const resolvedModuleBase = moduleBasePath ?? `/dashboard/content/${tier}`;
+
   const navItems = modules.map((mod) => {
     const isActive = mod.slug === currentSlug;
     return (
       <Link
         key={mod.id}
-        href={`/dashboard/content/${tier}/${mod.slug}`}
+        href={`${resolvedModuleBase}/${mod.slug}`}
         className={
           isActive
             ? "block bg-[var(--accent)]/10 text-[var(--accent)] font-semibold rounded-[var(--radius-sm)] px-3 py-2 text-sm"
@@ -36,10 +46,10 @@ export function NotionSidebar({
       {/* Desktop sidebar — hidden below 860px */}
       <aside className="hidden min-[860px]:flex flex-col w-64 flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border)] p-4 min-h-full overflow-y-auto">
         <Link
-          href="/dashboard/content"
+          href={resolvedBackHref}
           className="text-[var(--text-muted)] text-sm mb-4 inline-block hover:text-[var(--text)]"
         >
-          ← My Content
+          {resolvedBackLabel}
         </Link>
 
         <p className="font-semibold text-[var(--text)] mb-1 text-sm">{tierLabel}</p>

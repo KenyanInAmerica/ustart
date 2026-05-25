@@ -250,6 +250,7 @@ export function PlanView({
                           status={task.status}
                           onToggle={handleToggle}
                           readOnly={readOnly}
+                          video_url={task.video_url}
                         />
                       ))}
                     </div>

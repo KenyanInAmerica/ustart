@@ -62,6 +62,10 @@ function validateTemplateData(
     next.content_url = contentUrl;
   }
 
+  if ("video_url" in data) {
+    next.video_url = data.video_url?.trim() ?? "";
+  }
+
   if ("days_from_arrival" in data) {
     if (
       typeof data.days_from_arrival !== "number" ||
@@ -116,6 +120,7 @@ export async function createPlanTemplate(
       phase: validated.value.phase!,
       days_from_arrival: validated.value.days_from_arrival!,
       content_url: validated.value.content_url || null,
+      video_url: validated.value.video_url || null,
       tier_required: validated.value.tier_required!,
       display_order: count ?? 0,
     };
@@ -168,6 +173,10 @@ export async function updatePlanTemplate(
         validated.value.content_url === undefined
           ? undefined
           : validated.value.content_url || null,
+      video_url:
+        validated.value.video_url === undefined
+          ? undefined
+          : validated.value.video_url || null,
     };
 
     const service = createServiceClient();
@@ -202,7 +211,7 @@ export async function deletePlanTemplate(id: string): Promise<ActionResult> {
     const { data: existing } = await service
       .from("plan_task_templates")
       .select(
-        "id, title, description, phase, days_from_arrival, content_url, tier_required, display_order, created_at, updated_at"
+        "id, title, description, phase, days_from_arrival, content_url, video_url, tier_required, display_order, created_at, updated_at"
       )
       .eq("id", id)
       .maybeSingle();

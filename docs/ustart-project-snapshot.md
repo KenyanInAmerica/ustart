@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** May 17, 2026
+**Date:** May 25, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -224,9 +224,18 @@ Defined in `lib/config/productAccents.ts`.
       /page.tsx          # Redirects to /dashboard/parent/plan
       /plan/page.tsx     # Parent view of student's plan, read-only, respects share_tasks/share_calendar
       /content/page.tsx  # Parent view of student's content, respects share_content
-      /content/lite/page.tsx
-      /content/explore/page.tsx
-      /content/concierge/page.tsx
+      /content/lite/page.tsx         # Guards share_content + rank ≥ 1; redirects to first module
+      /content/lite/[slug]/
+        layout.tsx       # Two-column with NotionSidebar (parent back links + moduleBasePath override)
+        page.tsx         # Read-only content; task lookup via student's /dashboard/content/lite/{slug}
+      /content/explore/page.tsx      # Guards rank ≥ 2; redirects to first module
+      /content/explore/[slug]/
+        layout.tsx
+        page.tsx
+      /content/concierge/page.tsx    # Guards rank ≥ 3; redirects to first module
+      /content/concierge/[slug]/
+        layout.tsx
+        page.tsx
       /hub/page.tsx      # Parent Hub — parent-only Notion content
   /pricing               # Public pricing page (includes Footer)
   /privacy               # Privacy Policy page — added Feature 14
@@ -257,6 +266,7 @@ Defined in `lib/config/productAccents.ts`.
     AddonModal.tsx, PdfViewer.tsx (react-pdf backed), SignOutButton.tsx
     skeletons/  # Loading skeletons for each Suspense section
   /account   ProfileSection.tsx, BillingSection.tsx
+             IntakeEditSection.tsx  # "use client" intake field editing with arrival date recalculation confirmation
   /admin     AdminSidebar.tsx, AdminStatsSection.tsx, RecentSignupsSection.tsx
              DeleteUserModal.tsx (two-step soft/hard delete confirmation — added Feature 14)
              UserPanel.tsx, AdminGrantForm.tsx, AdminRevokeButton.tsx
@@ -265,6 +275,8 @@ Defined in `lib/config/productAccents.ts`.
              CommunityExportButton.tsx
              PlanTemplatesClient.tsx # "use client" template list with drag-to-reorder per phase, @dnd-kit integration
              PlanTemplateModal.tsx   # Create/edit plan template modal, display_order auto-assigned
+             PlanTaskEditModal.tsx   # Admin per-user task editor (title, status, due date, content URL, notes)
+             PlanTaskAddModal.tsx    # Admin add task modal (title, phase, due date, content URL)
              skeletons/
   /pricing   BuyNowButton.tsx
   /notion
@@ -273,6 +285,7 @@ Defined in `lib/config/productAccents.ts`.
     NotionRichText.tsx  # Renders RichTextItemResponse[] with bold/italic/code/color/link annotations
     NotionSidebar.tsx   # Module nav sidebar — desktop aside + mobile <details> dropdown, no JS
     NotionPageShell.tsx # Single-page layout wrapper — title, Open in Notion link, children slot, renderer
+    VideoEmbed.tsx      # iframe embed for YouTube, Vimeo, and Loom URLs
 /lib
   /supabase  client.ts, server.ts, service.ts
   /resend    client.ts (singleton Resend client)
@@ -281,7 +294,7 @@ Defined in `lib/config/productAccents.ts`.
                parentInvitation.ts     # Parent invitation email template — CTA links to /invite confirmation page
   /dashboard access.ts (fetchDashboardAccess, fetchWhatsappLink)
              plan.ts (fetchUserPlan, PlanPhaseGroup, PlanTask types)
-  /admin     data.ts (fetchAdminOverview includes inactiveAccounts count, fetchUserIntake)
+  /admin     data.ts (fetchAdminOverview includes inactiveAccounts count, fetchUserIntake, fetchUserPlanTasks)
              auditLog.ts (fetchAuditLog, AuditLogFilters, ACTION_GROUPS, PAGE_SIZE)
   /audit     actions.ts (AuditAction const enum + AuditActionType)
              log.ts (logAction — fire-and-forget insert into audit_logs)
@@ -293,6 +306,7 @@ Defined in `lib/config/productAccents.ts`.
                 # fetchToggleChildren() — parallel fetch of toggle block children
     config.ts   # NOTION_PAGE_IDS mapping (lite, explore, concierge, parentPack, parentHub)
     types.ts    # NotionChildPage, NotionPageContent interfaces; slugify() utility
+    videoEmbed.ts # detectVideoProvider(), getVideoEmbedUrl(), getVideoEmbedInfo() — YouTube/Vimeo/Loom
   /hubspot
     client.ts   # hubspotFetch(), getHubSpotApiKey(), getHubSpotEnvironment() — server-side only
     contacts.ts # upsertHubSpotContact(), trackHubSpotContact(), toHubSpotDate(),
@@ -301,6 +315,7 @@ Defined in `lib/config/productAccents.ts`.
   /config    brand.ts (centralised brand config — name, tagline, logo, font, colors, phase accents)
              productAccents.ts (per-product accent color mapping)
              pricing.ts (types only), getPricing.ts (fetch utils)
+             intakeOptions.ts (GRADUATION_TIMELINE_OPTIONS, MAIN_CONCERN_OPTIONS constants)
   /types     plan.ts (PlanPhase, PlanTask, PlanTaskTemplate, CreatePlanTemplateData, TaskStatus)
   /actions
     signOut.ts                  # signOut() — logs AUTH_SIGN_OUT then signs out
@@ -309,7 +324,9 @@ Defined in `lib/config/productAccents.ts`.
     trackContentVisit.ts        # trackContentVisit() — idempotent first-visit stamp
     contactForm.ts              # submitContactForm() — inserts submission, sends Resend notification
     intake.ts                   # submitIntake() — validates intake, stores column-based intake response, marks profiles.intake_completed_at, triggers fire-and-forget plan instantiation
+                                # updateIntake() — updates intake fields from account page; returns arrivalDateChanged flag
     plan.ts                     # instantiatePlan(), reinstantiatePlan(), updateTaskStatus()
+                                # recalculatePlanDueDates() — recalculates task due dates from arrival_date + days_from_arrival
     parentInvitation.ts         # sendParentInvitation(), resendParentInvitation(),
                                 #   cancelParentInvitation(), unlinkParent(), acceptInvitation()
                                 #   Updated Feature 13: invite token flow (UUID + 72h expiry),
@@ -318,6 +335,7 @@ Defined in `lib/config/productAccents.ts`.
     admin/content.ts            # uploadContentItem(), deleteContentItem(), etc.
     admin/invitations.ts        # adminLinkParent() — updated Feature 13: creates invite token row
     admin/planTemplates.ts      # CRUD + savePlanTemplateOrder() + ADMIN_PLAN_TEMPLATE_REORDERED logging
+    admin/planTasks.ts          # adminFetchUserPlanTasks(), adminUpdatePlanTask(), adminAddPlanTask(), adminDeletePlanTask()
     admin/settings.ts           # saveWhatsappLink()
     admin/updatePricing.ts      # updatePricing() — diff-based, logs changes
     admin/users.ts              # setUserMembershipTier(), setUserAddon(), assignContentToUser(),
@@ -325,7 +343,10 @@ Defined in `lib/config/productAccents.ts`.
                                 #   reactivateUser() — added Feature 14
 /lib
   /env         guard.ts (assertNotProduction — throws if production env used outside prod build)
-/hooks  /types  /references  /public
+/hooks
+  useUser.ts           # useUser() — client-side auth state hook
+  useFlashMessage.ts   # useFlashMessage(duration?) — auto-dismiss flash message; returns [message, setMessage]; default 3000ms
+/types  /references  /public
 /docs
   ustart-project-snapshot.md  # Living project snapshot — updated on every PR
   staging-setup.md             # Staging environment setup guide
@@ -368,7 +389,7 @@ middleware.ts — updated Feature 13: /invite added as intentionally public rout
 - All server actions return `{ success: true } | { success: false; error: string }`
 - All server actions begin with a server-side auth check
 - All queries against `user_access` must include `.eq("id", user!.id)`
-- Success messages auto-dismiss after 3 seconds using `setTimeout` + `useEffect` cleanup
+- Success messages auto-dismiss after 3 seconds using `useFlashMessage()` from `hooks/useFlashMessage.ts` — returns `[message, setMessage]`; set to a string to show, `null` to dismiss; do NOT duplicate the pattern with raw `setTimeout` in components
 - No `window.confirm`, `window.alert`, or `window.prompt` — use custom modals instead _(enforced as of Feature 14)_
 - Nav button order for signed-in admin users: Admin, Dashboard, Sign Out
 - Nav button order for signed-in non-admin users: Dashboard, Sign Out
@@ -391,7 +412,7 @@ npm run test         # Jest test suite
 
 Always run `typecheck`, `lint`, and `test` after changes before committing. All three must pass with zero failures before any commit.
 
-**Current test count**: 837 tests across 105 suites (as of May 17, 2026 — post-HubSpot integration). If the suite drops below this without a deliberate deletion, investigate before committing.
+**Current test count**: 961 tests across 112 suites (as of May 25, 2026 — post-product-improvements-v2). If the suite drops below this without a deliberate deletion, investigate before committing.
 
 ---
 
@@ -453,6 +474,10 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 - `pricing.name` and `pricing.billing` — read-only in admin UI. Changes require codebase and schema updates.
 - `profiles.is_active` — boolean NOT NULL DEFAULT true. Added Feature 14. Inactive users are blocked at the auth callback (immediate sign-out + redirect to `/auth/error?error=account_deactivated`) and by middleware.
 - `audit_logs.payload_text` — stored generated column (`payload::text`). Added to allow ILIKE substring search on JSONB payload via PostgREST `.or()`, which does not support type cast syntax (`::text`) inside filter strings. Never set manually — Postgres keeps it in sync automatically.
+- `profiles.school` — TEXT, stores the student's university name as entered in the intake form. Mirrors `intake_responses.school` for direct profile access.
+- `profiles.graduation_date` — changed from DATE to TEXT; stores a graduation timeline key (e.g. `1_to_2_years`) rather than an exact date. Values defined in `lib/config/intakeOptions.ts`.
+- `intake_responses.graduation_date` — same change as `profiles.graduation_date`; stores the selected timeline key, not a calendar date.
+- `plan_task_templates.video_url` — TEXT, optional YouTube/Vimeo/Loom URL. Rendered as an embedded video on content pages via `components/notion/VideoEmbed.tsx`.
 - `plan_task_templates.display_order` — auto-assigned on create using the count of existing templates in the same phase. It is managed by the drag-to-reorder UI after creation and is never set manually by admins.
 - Queries against `plan_task_templates` and `plan_tasks` use `ORDER BY phase, display_order, created_at` so `created_at` acts as the stable tiebreaker when `display_order` values are equal.
 - `config.parent_pack_notion_url` — Notion link shown on the student Parent Pack page, editable in `/admin/settings`
@@ -727,6 +752,8 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Phase 5    | Parent Pack + Parent Dashboard               | ✅ Built                        |
 | Phase 7    | Notion Integration — multi-module content renderer, sidebar nav, Parent Pack + Parent Hub inline content | ✅ Built |
 | Phase 6    | HubSpot CRM Integration — contact upsert, lifecycle tracking, admin "View in HubSpot" link | ✅ Built |
+| Phase 8a   | Product Improvements — intake editing from account page, graduation timeline select, arrival date recalculation, admin per-user task editing, video URL on plan templates | ✅ Built |
+| Phase 8b   | Product Improvements v2 — parent content slug routes (read-only module pages for all 3 tiers), `useFlashMessage` shared hook (replaces duplicated 3s auto-dismiss pattern across 10 components), isDirty guards on PlanTaskEditModal / PlanTemplateModal / UserPanel admin task editor | ✅ Built |
 
 ---
 
@@ -851,11 +878,7 @@ Uses `POST /crm/v3/objects/contacts/batch/upsert` with `inputs: [{ id: email, id
 - Parent Content Notion URL needs to be set in admin settings before launch (currently placeholder: https://notion.so/placeholder)
 - Two-parent model confirmed parked at one-to-one for now. Future: junction table for multiple students per parent and multiple parents per student.
 - Parent content pages currently show student content as read-only. Future enhancement: parents could have dedicated parent-specific content per tier.
-- Add school column to profiles table before or during Phase 9 (already stored in `profiles.university_name` via intake; `intake_responses.school` is a duplicate for historical record)
 - Booking flow for `arrival_call` and `additional_support_call` built in Phase 8
-- Plan system — add admin per-user task editing so admins can adjust titles, due dates, and create one-off tasks without changing the master template set
-- Plan system — when arrival date changes in account settings, recalculate `plan_tasks.due_date` from `template.days_from_arrival` while preserving task completion state; add a confirmation step before applying the update
-- Account page — allow students to edit intake fields (`school`, `city`, `arrival_date`, `graduation_date`, `main_concerns`) from `/dashboard/account`, with arrival date changes using the due-date recalculation flow instead of re-instantiating the plan
 - Plan system — support multiple template sets instead of a single global `plan_task_templates` set so cohorts or regional variants can be assigned per user
 - Plan system — keep notes and comments in Notion rather than building a separate collaboration layer inside UStart
 - Consider moving main_concerns to JSONB array in a future migration for easier querying
@@ -977,4 +1000,4 @@ When starting a fresh chat outside Claude Code (e.g. pasting context manually):
 
 ---
 
-_End of snapshot — updated May 17, 2026_
+_End of snapshot — updated May 25, 2026_

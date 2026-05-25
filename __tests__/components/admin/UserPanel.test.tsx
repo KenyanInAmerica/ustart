@@ -11,6 +11,11 @@ jest.mock("../../../lib/actions/plan", () => ({
   reinstantiatePlan: jest.fn(),
 }));
 
+jest.mock("../../../lib/actions/admin/planTasks", () => ({
+  adminFetchUserPlanTasks: jest.fn().mockResolvedValue([]),
+  adminDeletePlanTask: jest.fn(),
+}));
+
 import {
   setUserMembershipTier,
   setUserAddon,
@@ -164,7 +169,7 @@ describe("UserPanel", () => {
       screen.getByRole("button", { name: /reinstantiate plan/i })
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/rebuilds this user's plan tasks from current templates/i)
+      screen.getByText(/reinstantiate rebuilds template-based tasks/i)
     ).toBeInTheDocument();
   });
 

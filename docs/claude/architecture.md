@@ -31,9 +31,15 @@
       page.tsx                    # Redirects parents to /dashboard/parent/plan
       plan/page.tsx               # Parent view of student's plan/calendar (read-only)
       content/page.tsx            # Parent view of student's unlocked content cards
-      content/lite/page.tsx       # Lite tier content in parent read-only view
-      content/explore/page.tsx    # Explore tier content in parent read-only view
-      content/concierge/page.tsx  # Concierge tier content in parent read-only view
+      content/lite/page.tsx       # Lite — guards share_content + rank ≥ 1; redirects to first module
+      content/lite/[slug]/layout.tsx  # Two-column layout with NotionSidebar (parent-specific back links)
+      content/lite/[slug]/page.tsx    # Read-only module content; task lookup uses student's /dashboard/content/lite/{slug} path
+      content/explore/page.tsx    # Explore — guards rank ≥ 2; redirects to first module
+      content/explore/[slug]/layout.tsx
+      content/explore/[slug]/page.tsx
+      content/concierge/page.tsx  # Concierge — guards rank ≥ 3; redirects to first module
+      content/concierge/[slug]/layout.tsx
+      content/concierge/[slug]/page.tsx
       hub/page.tsx                # Parent Hub — parent-only Notion resources
   /admin
     layout.tsx                    # Admin shell (AdminSidebar)
@@ -118,6 +124,7 @@
   /account
     ProfileSection.tsx            # Profile edit form
     BillingSection.tsx            # Billing info and Stripe portal link
+    IntakeEditSection.tsx         # "use client" — intake field editing from account page; arrival date change triggers recalculation confirmation
   /admin
     AdminSidebar.tsx              # Admin portal sidebar nav
     AdminStatsSection.tsx         # Stats cards (Suspense)
@@ -131,6 +138,8 @@
     UserPdfAssignment.tsx         # Per-user PDF assignment UI
     PlanTemplatesClient.tsx       # "use client" template list with per-phase drag reorder via @dnd-kit
     PlanTemplateModal.tsx         # Create/edit plan template modal, display_order auto-assigned
+    PlanTaskEditModal.tsx         # Admin per-user task editor (title, status, due date, content URL, notes)
+    PlanTaskAddModal.tsx          # Admin add one-off task modal (title, phase, due date, content URL)
     AdminGrantForm.tsx            # Grant admin access form
     AdminRevokeButton.tsx         # Revoke admin button
     DeleteUserModal.tsx           # Two-step soft/hard delete modal
@@ -146,6 +155,7 @@
     NotionRichText.tsx            # Renders RichTextItemResponse[] — bold/italic/underline/strikethrough/code/color/links
     NotionSidebar.tsx             # Module list nav — desktop <aside> + mobile <details> dropdown (no JS required)
     NotionPageShell.tsx           # Single-page layout — title, optional Open in Notion link, children slot, NotionRenderer
+    VideoEmbed.tsx                # iframe embed for YouTube, Vimeo, and Loom URLs detected via lib/notion/videoEmbed.ts
 
 /lib
   supabase.ts                     # DEAD FILE — do not import. Use lib/supabase/* instead.
@@ -166,7 +176,9 @@
     trackContentVisit.ts          # trackContentVisit() — idempotent first-visit stamp
     contactForm.ts                # submitContactForm() — inserts + sends Resend notification
     intake.ts                     # submitIntake() — validates, stores intake payload, marks profile complete
+                                  # updateIntake() — updates intake fields from account page; returns arrivalDateChanged flag
     plan.ts                       # instantiatePlan(), reinstantiatePlan(), updateTaskStatus()
+                                  # recalculatePlanDueDates() — updates task due dates from arrival_date + days_from_arrival
     parentInvitation.ts           # sendParentInvitation(), resendParentInvitation(),
                                   # cancelParentInvitation(), unlinkParent(), updateParentSharing(),
                                   # acceptInvitation()
@@ -175,13 +187,14 @@
       content.ts                  # uploadContentItem(), deleteContentItem(), etc.
       invitations.ts              # adminLinkParent()
       planTemplates.ts            # create/update/delete + savePlanTemplateOrder()
+      planTasks.ts                # adminFetchUserPlanTasks(), adminUpdatePlanTask(), adminAddPlanTask(), adminDeletePlanTask()
       settings.ts                 # saveAdminSettings() — WhatsApp + parent Notion config
       updatePricing.ts            # updatePricing() — diff-based, logs changes
       users.ts                    # setUserMembershipTier(), setUserAddon(),
                                   # softDeleteUser(), hardDeleteUser(), reactivateUser(),
                                   # assignContentToUser(), revokeContentFromUser(), etc.
   /admin
-    data.ts                       # fetchAdminOverview(), fetchUsers(), fetchUserIntake() — server data functions
+    data.ts                       # fetchAdminOverview(), fetchUsers(), fetchUserIntake(), fetchUserPlanTasks() — server data functions
     auditLog.ts                   # fetchAuditLog(), ACTION_GROUPS, PAGE_SIZE
   /audit
     actions.ts                    # AuditAction const object + AuditActionType union
@@ -192,6 +205,7 @@
     pricing.ts                    # PricingItem, TierId, AddonId, ProductId types only
     getPricing.ts                 # getPricing(), getPublicPricing(), getPricingById() (React.cache)
     productAccents.ts             # Per-product accent mapping for dashboard/admin UI
+    intakeOptions.ts              # GRADUATION_TIMELINE_OPTIONS, MAIN_CONCERN_OPTIONS — shared between intake form and account editing
   /types
     plan.ts                       # PlanPhase, PlanTask, PlanTaskTemplate, TaskStatus, CRUD payload types
   /dashboard
@@ -212,6 +226,7 @@
                                   # fetchToggleChildren() — parallel fetch of children for toggle blocks (not cached).
     config.ts                     # NOTION_PAGE_IDS — maps tier/pack/hub keys to env var page IDs.
     types.ts                      # NotionChildPage, NotionPageContent interfaces. slugify() utility for URL-safe slugs.
+    videoEmbed.ts                 # detectVideoProvider(), getVideoEmbedUrl(), getVideoEmbedInfo() — parses YouTube/Vimeo/Loom URLs.
   /hubspot
     client.ts                     # hubspotFetch(), getHubSpotApiKey(), getHubSpotEnvironment() — server-side only. Never import in client components.
     contacts.ts                   # upsertHubSpotContact(), trackHubSpotContact() (fire-and-forget upsert),
@@ -220,6 +235,7 @@
 
 /hooks
   useUser.ts                      # useUser() — client-side auth state hook
+  useFlashMessage.ts              # useFlashMessage(duration?) — auto-dismiss flash message state; returns [message, setMessage]; default 3000ms
 
 /types
   index.ts                        # DashboardAccess, User, Entitlement, ProductSlug
@@ -321,7 +337,7 @@ The service client uses `SUPABASE_SERVICE_ROLE_KEY` and must never be exposed to
 | `pricing` | id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at | Single source of truth for all product pricing |
 | `contact_submissions` | id, name, email, message, user_id, created_at | Contact form submissions |
 | `audit_logs` | id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated) | Immutable event log. payload_text is a stored generated column for ILIKE search |
-| `plan_task_templates` | id, phase, title, description, days_from_arrival, content_url, tier_required, display_order, created_at, updated_at | Phase-based planning templates. `display_order` is auto-assigned on create, then managed by drag reorder. |
+| `plan_task_templates` | id, phase, title, description, days_from_arrival, content_url, video_url, tier_required, display_order, created_at, updated_at | Phase-based planning templates. `display_order` is auto-assigned on create, then managed by drag reorder. `video_url` is optional YouTube/Vimeo/Loom URL rendered on content pages. |
 | `plan_tasks` | id, user_id, template_id, phase, title, description, due_date, completed_at, status, content_url, display_order, created_at, updated_at | Per-user tasks derived from plan templates. Ordered reads use `ORDER BY phase, display_order, created_at`. |
 | `intake_responses` | id, user_id, school, city, arrival_date, graduation_date, main_concerns, completed_at | Per-user intake submission data stored in concrete columns |
 | `user_access` | (view) | Full access state: has_membership, membership_tier, membership_rank, has_parent_seat, has_explore, has_concierge, has_agreed_to_community, parent_share_tasks, parent_share_calendar, parent_share_content, active_addons, etc. `has_explore` and `has_concierge` are derived from `tier_rank(m.tier)`, not addon rows. |

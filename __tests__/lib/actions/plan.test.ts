@@ -25,6 +25,7 @@ jest.mock("../../../lib/audit/log", () => ({
 jest.mock("../../../lib/hubspot/contacts", () => ({
   trackHubSpotContact: jest.fn(),
   trackHubSpotNote: jest.fn(),
+  toHubSpotDate: jest.fn((d: string) => d),
 }));
 jest.mock("../../../lib/hubspot/client", () => ({
   getHubSpotEnvironment: jest.fn(() => "staging"),
@@ -33,6 +34,7 @@ jest.mock("../../../lib/hubspot/client", () => ({
 import {
   instantiatePlan,
   reinstantiatePlan,
+  recalculatePlanDueDates,
   updateTaskStatus,
 } from "../../../lib/actions/plan";
 import { trackHubSpotContact, trackHubSpotNote } from "../../../lib/hubspot/contacts";
@@ -53,6 +55,7 @@ function makeAsyncChain(returnValue: unknown): Record<string, unknown> {
   chain.select = fn;
   chain.eq = fn;
   chain.in = fn;
+  chain.not = fn;
   chain.order = fn;
   chain.delete = fn;
   chain.update = fn;
@@ -482,5 +485,94 @@ describe("plan actions", () => {
       success: false,
       error: "Something went wrong. Please try again.",
     });
+  });
+
+  // ── recalculatePlanDueDates ───────────────────────────────────────────────────
+
+  it("recalculatePlanDueDates returns error when not authenticated", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: null } });
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: false, error: "Not authenticated." });
+  });
+
+  it("recalculatePlanDueDates returns error when profile fetch fails", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    mockServerFrom.mockReturnValueOnce(
+      makeAsyncChain({ data: null, error: { message: "profile error" } })
+    );
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: false, error: "profile error" });
+  });
+
+  it("recalculatePlanDueDates returns error when arrival_date is missing", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    mockServerFrom.mockReturnValueOnce(
+      makeAsyncChain({ data: { arrival_date: null }, error: null })
+    );
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: false, error: "No arrival date set on your profile." });
+  });
+
+  it("recalculatePlanDueDates returns error when task fetch fails", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    mockServerFrom
+      .mockReturnValueOnce(makeAsyncChain({ data: { arrival_date: "2099-01-01" }, error: null }))
+      .mockReturnValueOnce(makeAsyncChain({ data: null, error: { message: "task fetch error" } }));
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: false, error: "task fetch error" });
+  });
+
+  it("recalculatePlanDueDates returns updatedCount 0 when no template-linked tasks exist", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    mockServerFrom
+      .mockReturnValueOnce(makeAsyncChain({ data: { arrival_date: "2099-01-01" }, error: null }))
+      .mockReturnValueOnce(makeAsyncChain({ data: [], error: null }));
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: true, updatedCount: 0 });
+  });
+
+  it("recalculatePlanDueDates updates due dates and returns correct count", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    mockServerFrom
+      .mockReturnValueOnce(makeAsyncChain({ data: { arrival_date: "2099-01-01" }, error: null }))
+      .mockReturnValueOnce(
+        makeAsyncChain({
+          data: [
+            { id: "task-1", plan_task_templates: [{ days_from_arrival: 0 }] },
+            { id: "task-2", plan_task_templates: [{ days_from_arrival: 7 }] },
+          ],
+          error: null,
+        })
+      );
+    mockServiceFrom
+      .mockReturnValueOnce(makeAsyncChain({ error: null }))
+      .mockReturnValueOnce(makeAsyncChain({ error: null }));
+
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: true, updatedCount: 2 });
+  });
+
+  it("recalculatePlanDueDates returns error when a batch due-date update fails", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    mockServerFrom
+      .mockReturnValueOnce(makeAsyncChain({ data: { arrival_date: "2099-01-01" }, error: null }))
+      .mockReturnValueOnce(
+        makeAsyncChain({
+          data: [{ id: "task-1", plan_task_templates: [{ days_from_arrival: 0 }] }],
+          error: null,
+        })
+      );
+    mockServiceFrom.mockReturnValueOnce(
+      makeAsyncChain({ error: { message: "due date update failed" } })
+    );
+
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: false, error: "due date update failed" });
+  });
+
+  it("recalculatePlanDueDates returns a generic error on unexpected exception", async () => {
+    mockGetUser.mockRejectedValue(new Error("unexpected"));
+    const result = await recalculatePlanDueDates();
+    expect(result).toEqual({ success: false, error: "Something went wrong. Please try again." });
   });
 });

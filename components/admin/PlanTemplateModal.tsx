@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/Button";
 import {
   createPlanTemplate,
   updatePlanTemplate,
 } from "@/lib/actions/admin/planTemplates";
+import { useFlashMessage } from "@/hooks/useFlashMessage";
 import { verifyNotionUrl } from "@/lib/actions/admin/verifyNotionUrl";
 import { isNotionUrl } from "@/lib/notion/urlConverter";
 import {
@@ -29,6 +30,7 @@ interface FormState {
   days_from_arrival: string;
   tier_required: TierId;
   content_url: string;
+  video_url: string;
 }
 
 const TIER_OPTIONS: { value: TierId; label: string }[] = [
@@ -45,6 +47,7 @@ function buildInitialState(template?: PlanTaskTemplate): FormState {
     days_from_arrival: String(template?.days_from_arrival ?? 0),
     tier_required: template?.tier_required ?? "lite",
     content_url: template?.content_url ?? "",
+    video_url: template?.video_url ?? "",
   };
 }
 
@@ -54,29 +57,22 @@ export function PlanTemplateModal({
   onClose,
 }: PlanTemplateModalProps) {
   const [form, setForm] = useState<FormState>(buildInitialState(template));
+  const [initialForm, setInitialForm] = useState<FormState>(buildInitialState(template));
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
-  const [verifiedCaption, setVerifiedCaption] = useState<string | null>(null);
-  const captionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  // Auto-dismiss the success caption after 3 seconds
-  useEffect(() => {
-    if (!verifiedCaption) return;
-    captionTimer.current = setTimeout(() => setVerifiedCaption(null), 3000);
-    return () => {
-      if (captionTimer.current) clearTimeout(captionTimer.current);
-    };
-  }, [verifiedCaption]);
+  const [verifiedCaption, setVerifiedCaption] = useFlashMessage();
 
   useEffect(() => {
-    setForm(buildInitialState(template));
+    const next = buildInitialState(template);
+    setForm(next);
+    setInitialForm(next);
     setError(null);
     setVerificationError(null);
     setVerifiedCaption(null);
     setIsVerifying(false);
-  }, [template, mode]);
+  }, [template, mode, setVerifiedCaption]);
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -86,6 +82,15 @@ export function PlanTemplateModal({
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [onClose]);
+
+  const isDirty =
+    form.title !== initialForm.title ||
+    form.description !== initialForm.description ||
+    form.phase !== initialForm.phase ||
+    form.days_from_arrival !== initialForm.days_from_arrival ||
+    form.tier_required !== initialForm.tier_required ||
+    form.content_url !== initialForm.content_url ||
+    form.video_url !== initialForm.video_url;
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -134,6 +139,7 @@ export function PlanTemplateModal({
       days_from_arrival: daysFromArrival,
       tier_required: form.tier_required,
       content_url: form.content_url,
+      video_url: form.video_url,
     };
 
     startTransition(async () => {
@@ -304,13 +310,30 @@ export function PlanTemplateModal({
             )}
           </div>
 
+          <div className="block">
+            <span className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Video URL</span>
+            <input
+              id="plan-template-video-url"
+              aria-label="Video URL"
+              type="text"
+              value={form.video_url}
+              onChange={(event) => updateField("video_url", event.target.value)}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
+            />
+            <p className="mt-1 text-xs text-[var(--text-muted)]">
+              Paste a YouTube, Vimeo, or Loom URL. The video will be embedded on the content page
+              and shown as a badge on the task card.
+            </p>
+          </div>
+
           {error && <p className="text-sm text-[var(--destructive)]">{error}</p>}
 
           <div className="flex justify-end gap-3 pt-2">
             <Button type="button" variant="ghost" onClick={onClose}>
               Cancel
             </Button>
-            <Button type="submit" loading={isPending}>
+            <Button type="submit" loading={isPending} disabled={!isDirty || isPending}>
               {mode === "create" ? "Create template" : "Save changes"}
             </Button>
           </div>
