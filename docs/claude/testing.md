@@ -61,7 +61,7 @@ npm run test -- --coverage           # Full suite + coverage report
 
 `npm run test` does **not** report coverage by default — the `--coverage` flag must be passed explicitly. Coverage is not enforced in CI; it is used for manual auditing only.
 
-**Coverage baseline** (as of May 17, 2026 — post-HubSpot integration):
+**Coverage baseline** (as of May 25, 2026 — post-product-improvements-v2):
 
 | Metric     | Overall |
 |------------|---------|
@@ -70,7 +70,7 @@ npm run test -- --coverage           # Full suite + coverage report
 | Functions  | 80.39%  |
 | Lines      | 84.72%  |
 
-Test count: 837 tests across 105 suites.
+Test count: 961 tests across 112 suites.
 
 Notable gaps: `lib/actions/admin/users.ts` (~57% — `setUserAddon`, `assignContentToUser`, `revokeContentFromUser` are pre-existing untested functions; `setUserMembershipTier` is fully covered), `lib/dashboard/access.ts` (~63% — parent cross-user branch).
 

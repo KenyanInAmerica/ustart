@@ -188,4 +188,76 @@ describe("TaskCard", () => {
     ).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /view content/i })).toBeInTheDocument();
   });
+
+  // --- Video URL badge ---
+
+  it("renders a Watch video link when video_url is provided", () => {
+    render(
+      <TaskCard
+        task={task}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+        video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+      />
+    );
+    const link = screen.getByRole("link", { name: /watch video/i });
+    expect(link).toBeInTheDocument();
+    expect(link).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+  });
+
+  it("does not render a Watch video link when video_url is not provided", () => {
+    render(
+      <TaskCard
+        task={task}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+      />
+    );
+    expect(screen.queryByRole("link", { name: /watch video/i })).not.toBeInTheDocument();
+  });
+
+  it("does not render a Watch video link when video_url is null", () => {
+    render(
+      <TaskCard
+        task={task}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+        video_url={null}
+      />
+    );
+    expect(screen.queryByRole("link", { name: /watch video/i })).not.toBeInTheDocument();
+  });
+
+  it("renders both View Content and Watch video when both are present", () => {
+    render(
+      <TaskCard
+        task={task}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+        video_url="https://youtu.be/dQw4w9WgXcQ"
+      />
+    );
+    expect(screen.getByRole("link", { name: /view content/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /watch video/i })).toBeInTheDocument();
+  });
+
+  it("renders Watch video without View Content when content_url is null", () => {
+    render(
+      <TaskCard
+        task={noContentTask}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+        video_url="https://youtu.be/dQw4w9WgXcQ"
+      />
+    );
+    expect(screen.queryByRole("link", { name: /view content/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /watch video/i })).toBeInTheDocument();
+  });
 });

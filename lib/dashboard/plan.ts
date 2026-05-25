@@ -63,19 +63,42 @@ export const getTaskForContentUrl = cache(
     const { data } = await supabase
       .from("plan_tasks")
       .select(
-        "id, title, description, phase, status, due_date, content_url, display_order, completed_at"
+        "id, title, description, phase, status, due_date, content_url, display_order, completed_at, plan_task_templates!template_id(video_url)"
       )
       .eq("user_id", userId)
       .not("content_url", "is", null);
 
-    const tasks = (data ?? []) as PlanTask[];
     const normalizedTarget = normalizeContentPath(contentPath);
 
-    return (
-      tasks.find((task) => {
-        if (!task.content_url) return false;
-        return normalizeContentPath(task.content_url) === normalizedTarget;
-      }) ?? null
-    );
+    type RawRow = {
+      id: string;
+      title: string;
+      description: string | null;
+      phase: string;
+      status: string;
+      due_date: string | null;
+      content_url: string | null;
+      display_order: number;
+      completed_at: string | null;
+      // Supabase returns one-to-one FK joins as an array in TypeScript inference
+      plan_task_templates: { video_url: string | null }[] | null;
+    };
+
+    const rows = (data ?? []) as unknown as RawRow[];
+    const matched = rows.find((row) => {
+      if (!row.content_url) return false;
+      return normalizeContentPath(row.content_url) === normalizedTarget;
+    });
+
+    if (!matched) return null;
+
+    const { plan_task_templates, ...rest } = matched;
+    const templateRow = Array.isArray(plan_task_templates)
+      ? plan_task_templates[0]
+      : plan_task_templates;
+    return {
+      ...(rest as PlanTask),
+      video_url: templateRow?.video_url ?? null,
+    };
   }
 );

@@ -4,9 +4,10 @@
 
 "use client";
 
-import { useRef, useState, useTransition, useEffect } from "react";
+import { useRef, useState, useTransition } from "react";
 import { uploadContentItem } from "@/lib/actions/admin/content";
 import { Button } from "@/components/ui/Button";
+import { useFlashMessage } from "@/hooks/useFlashMessage";
 import type { ContentItem } from "@/types/admin";
 
 const TIERS: { value: ContentItem["tier"]; label: string }[] = [
@@ -19,22 +20,14 @@ const TIERS: { value: ContentItem["tier"]; label: string }[] = [
 export function ContentUploadForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [successMsg, setSuccessMsg] = useFlashMessage();
   const [fileName, setFileName] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-
-  // Auto-dismiss success message after 3 seconds.
-  useEffect(() => {
-    if (success) {
-      const timer = setTimeout(() => setSuccess(false), 3000);
-      return () => clearTimeout(timer);
-    }
-  }, [success]);
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSuccess(false);
+    setSuccessMsg(null);
 
     const form = formRef.current;
     if (!form) return;
@@ -43,7 +36,7 @@ export function ContentUploadForm() {
     startTransition(async () => {
       const result = await uploadContentItem(formData);
       if (result.success) {
-        setSuccess(true);
+        setSuccessMsg("Uploaded successfully.");
         setFileName(null);
         form.reset();
       } else {
@@ -61,7 +54,7 @@ export function ContentUploadForm() {
           type="text"
           required
           placeholder="e.g. SSN Application Guide"
-          onChange={() => { setError(null); setSuccess(false); }}
+          onChange={() => { setError(null); setSuccessMsg(null); }}
           className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
@@ -73,7 +66,7 @@ export function ContentUploadForm() {
           required
           rows={2}
           placeholder="Brief description of the content"
-          onChange={() => { setError(null); setSuccess(false); }}
+          onChange={() => { setError(null); setSuccessMsg(null); }}
           className="w-full resize-none rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] placeholder:text-[var(--text-muted)] focus:border-[var(--accent)] focus:outline-none"
         />
       </div>
@@ -107,7 +100,7 @@ export function ContentUploadForm() {
               onChange={(e) => {
                 setFileName(e.target.files?.[0]?.name ?? null);
                 setError(null);
-                setSuccess(false);
+                setSuccessMsg(null);
               }}
             />
             <svg className="h-3.5 w-3.5 shrink-0 text-[var(--text-muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
@@ -122,7 +115,7 @@ export function ContentUploadForm() {
       </div>
 
       {error && <p className="text-[12px] text-[var(--destructive)]">{error}</p>}
-      {success && <p className="text-[12px] text-emerald-600">Uploaded successfully.</p>}
+      {successMsg && <p className="text-[12px] text-emerald-600">{successMsg}</p>}
 
       <Button
         type="submit"

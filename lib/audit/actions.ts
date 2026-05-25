@@ -55,6 +55,11 @@ export const AuditAction = {
   // Admin — Settings
   ADMIN_SETTINGS_UPDATED: "admin.settings.updated",
 
+  // Admin — Plan Tasks
+  ADMIN_PLAN_TASK_UPDATED: "admin.plan_task.updated",
+  ADMIN_PLAN_TASK_ADDED: "admin.plan_task.added",
+  ADMIN_PLAN_TASK_DELETED: "admin.plan_task.deleted",
+
   // Admin — Parent Management
   ADMIN_PARENT_MANUALLY_LINKED: "admin.parent.manually_linked",
   ADMIN_PARENT_INVITATION_CANCELLED: "admin.parent.invitation_cancelled",

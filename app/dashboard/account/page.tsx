@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { ProfileSection } from "@/components/account/ProfileSection";
 import { BillingSection } from "@/components/account/BillingSection";
+import { IntakeEditSection } from "@/components/account/IntakeEditSection";
 import { getPricing } from "@/lib/config/getPricing";
 import type { PricingItem, ProductId } from "@/lib/config/pricing";
 
@@ -27,25 +28,42 @@ export default async function AccountPage() {
   } = await supabase.auth.getUser();
 
   // Run the remaining account data fetches in parallel once we know the user id.
-  const [allPricing, { data: profileData }, { data }] = await Promise.all([
-    getPricing(),
-    supabase.from("profiles").select("role").eq("id", user!.id).maybeSingle(),
-    supabase
-      .from("user_access")
-      .select(
-        "first_name, last_name, email, phone_number, university_name, country_of_origin, membership_tier, membership_purchased_at, active_addons, has_parent_seat"
-      )
-      .eq("id", user!.id)
-      .maybeSingle(),
-  ]);
+  const [allPricing, { data: profileData }, { data }, { data: intakeData }] =
+    await Promise.all([
+      getPricing(),
+      supabase
+        .from("profiles")
+        .select("role, school, city, arrival_date, graduation_date")
+        .eq("id", user!.id)
+        .maybeSingle(),
+      supabase
+        .from("user_access")
+        .select(
+          "first_name, last_name, email, phone_number, university_name, country_of_origin, membership_tier, membership_purchased_at, active_addons, has_parent_seat"
+        )
+        .eq("id", user!.id)
+        .maybeSingle(),
+      supabase
+        .from("intake_responses")
+        .select("main_concerns")
+        .eq("user_id", user!.id)
+        .maybeSingle(),
+    ]);
 
   // Filter pricing down to just the three add-ons to pass to BillingSection.
   const addonPricing: PricingItem[] = allPricing.filter((p) =>
     (ADDON_IDS as string[]).includes(p.id)
   );
 
-  const profile = profileData as { role: "student" | "parent" | null } | null;
+  const profile = profileData as {
+    role: "student" | "parent" | null;
+    school: string | null;
+    city: string | null;
+    arrival_date: string | null;
+    graduation_date: string | null;
+  } | null;
   const isParent = profile?.role === "parent";
+  const intakeRow = intakeData as { main_concerns: string | null } | null;
 
   const raw = data as {
     first_name: string | null;
@@ -75,13 +93,24 @@ export default async function AccountPage() {
         role={isParent ? "parent" : "student"}
       />
       {!isParent && (
-        <BillingSection
-          membershipTier={raw?.membership_tier ?? null}
-          membershipPurchasedAt={raw?.membership_purchased_at ?? null}
-          activeAddons={raw?.active_addons ?? []}
-          hasParentSeat={raw?.has_parent_seat ?? false}
-          addonPricing={addonPricing}
-        />
+        <>
+          <IntakeEditSection
+            currentData={{
+              school: profile?.school ?? null,
+              city: profile?.city ?? null,
+              arrival_date: profile?.arrival_date ?? null,
+              graduation_date: profile?.graduation_date ?? null,
+              main_concerns: intakeRow?.main_concerns ?? null,
+            }}
+          />
+          <BillingSection
+            membershipTier={raw?.membership_tier ?? null}
+            membershipPurchasedAt={raw?.membership_purchased_at ?? null}
+            activeAddons={raw?.active_addons ?? []}
+            hasParentSeat={raw?.has_parent_seat ?? false}
+            addonPricing={addonPricing}
+          />
+        </>
       )}
     </div>
   );

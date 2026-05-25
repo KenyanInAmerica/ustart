@@ -31,6 +31,7 @@ const mockTemplate: PlanTaskTemplate = {
   phase: "first_7_days",
   days_from_arrival: 3,
   content_url: "https://notion.so/bank",
+  video_url: null,
   tier_required: "explore",
   display_order: 2,
   created_at: "2026-04-21T12:00:00.000Z",
@@ -100,6 +101,7 @@ describe("PlanTemplateModal", () => {
         days_from_arrival: 10,
         tier_required: "concierge",
         content_url: "https://notion.so/ssn",
+        video_url: "",
       })
     );
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -129,6 +131,7 @@ describe("PlanTemplateModal", () => {
         days_from_arrival: 3,
         tier_required: "explore",
         content_url: "https://notion.so/bank",
+        video_url: "",
       })
     );
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -258,6 +261,21 @@ describe("PlanTemplateModal", () => {
     // User edits the field — caption clears immediately
     fireEvent.change(urlInput, { target: { value: "https://notion.so/other" } });
     expect(screen.queryByText(/✓ Final URL/)).not.toBeInTheDocument();
+  });
+
+  // --- isDirty ---
+
+  it("Save changes button is disabled when no fields have changed in edit mode", () => {
+    render(<PlanTemplateModal mode="edit" template={mockTemplate} onClose={jest.fn()} />);
+    expect(screen.getByRole("button", { name: /save changes/i })).toBeDisabled();
+  });
+
+  it("Save changes button is enabled after changing a field in edit mode", () => {
+    render(<PlanTemplateModal mode="edit" template={mockTemplate} onClose={jest.fn()} />);
+    fireEvent.change(screen.getByLabelText(/title/i), {
+      target: { value: "Modified title" },
+    });
+    expect(screen.getByRole("button", { name: /save changes/i })).not.toBeDisabled();
   });
 
   // --- Preview button ---
