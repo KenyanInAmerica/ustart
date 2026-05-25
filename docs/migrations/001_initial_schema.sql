@@ -24,8 +24,9 @@ CREATE TABLE public.profiles (
   university_name TEXT,
   country_of_origin TEXT,
   arrival_date DATE,
-  graduation_date DATE,
+  graduation_date TEXT,
   city TEXT,
+  school TEXT,
   intake_completed_at TIMESTAMPTZ,
   first_name TEXT,
   last_name TEXT,
@@ -185,6 +186,11 @@ CREATE TABLE public.audit_logs (
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Audit action constants (defined in lib/audit/actions.ts):
+-- admin.plan_task.updated  (ADMIN_PLAN_TASK_UPDATED)
+-- admin.plan_task.added    (ADMIN_PLAN_TASK_ADDED)
+-- admin.plan_task.deleted  (ADMIN_PLAN_TASK_DELETED)
+
 CREATE TABLE public.plan_task_templates (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   phase TEXT NOT NULL,
@@ -192,6 +198,7 @@ CREATE TABLE public.plan_task_templates (
   description TEXT,
   days_from_arrival INTEGER NOT NULL DEFAULT 0,
   content_url TEXT,
+  video_url TEXT,
   tier_required TEXT NOT NULL DEFAULT 'lite',
   display_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -243,8 +250,12 @@ CREATE TABLE public.plan_tasks (
 CREATE TABLE public.intake_responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES public.profiles(id) ON DELETE CASCADE NOT NULL,
-  responses JSONB NOT NULL DEFAULT '{}'::jsonb,
-  submitted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  school TEXT,
+  city TEXT,
+  arrival_date DATE,
+  graduation_date TEXT,
+  main_concerns TEXT,
+  completed_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   CONSTRAINT intake_responses_user_id_key UNIQUE (user_id)
 );

@@ -29,7 +29,7 @@ describe("IntakeForm", () => {
     expect(
       screen.getByLabelText(/when did you arrive, or when will you arrive in the us/i)
     ).toBeInTheDocument();
-    expect(screen.getByLabelText(/when do you graduate/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/how long is your program/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /build my plan/i })).toBeInTheDocument();
   });
 
@@ -69,8 +69,8 @@ describe("IntakeForm", () => {
       target: { value: "2099-09-01" },
       }
     );
-    fireEvent.change(screen.getByLabelText(/when do you graduate/i), {
-      target: { value: "2103-05-15" },
+    fireEvent.change(screen.getByLabelText(/how long is your program/i), {
+      target: { value: "1_to_2_years" },
     });
     fireEvent.click(screen.getByLabelText(/^other$/i));
     fireEvent.click(screen.getByRole("button", { name: /build my plan/i }));
@@ -96,8 +96,8 @@ describe("IntakeForm", () => {
       target: { value: "2099-09-01" },
       }
     );
-    fireEvent.change(screen.getByLabelText(/when do you graduate/i), {
-      target: { value: "2103-05-15" },
+    fireEvent.change(screen.getByLabelText(/how long is your program/i), {
+      target: { value: "1_to_2_years" },
     });
     fireEvent.click(screen.getByLabelText(/banking & credit/i));
     fireEvent.click(screen.getByRole("button", { name: /build my plan/i }));
@@ -108,7 +108,7 @@ describe("IntakeForm", () => {
           school: "University of Michigan",
           city: "Ann Arbor, MI",
           arrival_date: "2099-09-01",
-          graduation_date: "2103-05-15",
+          graduation_date: "1_to_2_years",
           main_concerns: ["banking_credit"],
         })
       );
@@ -151,8 +151,8 @@ describe("IntakeForm", () => {
       target: { value: "2099-09-01" },
       }
     );
-    fireEvent.change(screen.getByLabelText(/when do you graduate/i), {
-      target: { value: "2103-05-15" },
+    fireEvent.change(screen.getByLabelText(/how long is your program/i), {
+      target: { value: "1_to_2_years" },
     });
     fireEvent.click(screen.getByLabelText(/banking & credit/i));
     fireEvent.click(screen.getByRole("button", { name: /build my plan/i }));

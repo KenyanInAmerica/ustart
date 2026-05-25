@@ -13,6 +13,7 @@ export interface PlanTaskTemplate {
   phase: PlanPhase;
   days_from_arrival: number;
   content_url: string | null;
+  video_url: string | null;
   tier_required: TierId;
   display_order: number;
   created_at: string;
@@ -29,6 +30,7 @@ export interface PlanTask {
   status: PlanTaskStatus;
   due_date: string | null;
   content_url: string | null;
+  video_url?: string | null;
   display_order: number;
   completed_at: string | null;
 }
@@ -48,6 +50,7 @@ export interface CreatePlanTemplateData {
   phase: PlanPhase;
   days_from_arrival: number;
   content_url?: string;
+  video_url?: string;
   tier_required: TierId;
 }
 

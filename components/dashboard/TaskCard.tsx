@@ -9,6 +9,7 @@ interface TaskCardProps {
   status: PlanTaskStatus;
   onToggle: (taskId: string, newStatus: PlanTaskStatus) => void;
   readOnly?: boolean;
+  video_url?: string | null;
 }
 
 function nextStatus(status: PlanTaskStatus): PlanTaskStatus {
@@ -52,6 +53,7 @@ export function TaskCard({
   status,
   onToggle,
   readOnly = false,
+  video_url,
 }: TaskCardProps) {
   const isOverdue = isOverdueTask({ ...task, status });
   const dueDateLabel = formatDueDate(task.due_date, isOverdue);
@@ -113,16 +115,29 @@ export function TaskCard({
           />
         </div>
 
-        {contentHref && (
-          <div className="mt-2">
-            <Link
-              href={contentHref}
-              {...(!isInternalUrl ? { target: "_blank", rel: "noreferrer" } : {})}
-              className="inline-flex items-center gap-1 text-xs font-medium text-[var(--accent)] hover:underline"
-              onClick={(e) => e.stopPropagation()}
-            >
-              View Content →
-            </Link>
+        {(contentHref || video_url) && (
+          <div className="flex items-center gap-3 mt-2">
+            {contentHref && (
+              <Link
+                href={contentHref}
+                {...(!isInternalUrl ? { target: "_blank", rel: "noreferrer" } : {})}
+                className="inline-flex items-center gap-1 text-[var(--accent)] text-xs font-medium hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                View Content →
+              </Link>
+            )}
+            {video_url && (
+              <a
+                href={video_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 text-[var(--text-muted)] text-xs hover:text-[var(--text)]"
+                onClick={(e) => e.stopPropagation()}
+              >
+                ▶ Watch video
+              </a>
+            )}
           </div>
         )}
       </div>

@@ -6,6 +6,7 @@
 import { useState, useTransition } from "react";
 import { saveAdminSettings } from "@/lib/actions/admin/settings";
 import { Button } from "@/components/ui/Button";
+import { useFlashMessage } from "@/hooks/useFlashMessage";
 import type { AdminSettingsValues } from "@/lib/admin/data";
 
 interface SettingsFormProps {
@@ -20,7 +21,7 @@ export function SettingsForm({ initialValues }: SettingsFormProps) {
   const [values, setValues] = useState(initialValues);
   const [committed, setCommitted] = useState(initialValues);
   const [error, setError] = useState<string | null>(null);
-  const [saved, setSaved] = useState(false);
+  const [savedMsg, setSavedMsg] = useFlashMessage();
   const [isPending, startTransition] = useTransition();
 
   const isDirty =
@@ -31,17 +32,15 @@ export function SettingsForm({ initialValues }: SettingsFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
-    setSaved(false);
+    setSavedMsg(null);
 
     startTransition(async () => {
       const result = await saveAdminSettings(values);
       if (result.success) {
         setCommitted(values);
-        setSaved(true);
-        setTimeout(() => setSaved(false), 3000);
+        setSavedMsg("Saved successfully.");
       } else {
         setError(result.error);
-        setTimeout(() => setError(null), 3000);
       }
     });
   }
@@ -106,7 +105,7 @@ export function SettingsForm({ initialValues }: SettingsFormProps) {
       </div>
 
       {error && <p className="text-[12px] text-[var(--destructive)]">{error}</p>}
-      {saved && <p className="text-[12px] text-emerald-600">Saved successfully.</p>}
+      {savedMsg && <p className="text-[12px] text-emerald-600">{savedMsg}</p>}
 
       <Button
         type="submit"

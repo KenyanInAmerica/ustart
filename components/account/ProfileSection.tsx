@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useFlashMessage } from "@/hooks/useFlashMessage";
 
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -124,7 +125,7 @@ export function ProfileSection({
   const [editingPersonal, setEditingPersonal] = useState(false);
   const [personalLoading, setPersonalLoading] = useState(false);
   const [personalError, setPersonalError] = useState("");
-  const [personalSaved, setPersonalSaved] = useState(false);
+  const [personalSaved, setPersonalSaved] = useFlashMessage();
 
   const [savedPhone, setSavedPhone] = useState(phoneNumber ?? "");
   const [savedUniversity, setSavedUniversity] = useState(universityName ?? "");
@@ -135,7 +136,7 @@ export function ProfileSection({
   const [editingContact, setEditingContact] = useState(false);
   const [contactLoading, setContactLoading] = useState(false);
   const [contactError, setContactError] = useState("");
-  const [contactSaved, setContactSaved] = useState(false);
+  const [contactSaved, setContactSaved] = useFlashMessage();
 
   const [countryQuery, setCountryQuery] = useState(countryOfOrigin ?? "");
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
@@ -144,23 +145,11 @@ export function ProfileSection({
     country.toLowerCase().includes(countryQuery.toLowerCase())
   ).slice(0, COUNTRY_DROPDOWN_LIMIT);
 
-  useEffect(() => {
-    if (!personalSaved) return;
-    const timer = setTimeout(() => setPersonalSaved(false), 3000);
-    return () => clearTimeout(timer);
-  }, [personalSaved]);
-
-  useEffect(() => {
-    if (!contactSaved) return;
-    const timer = setTimeout(() => setContactSaved(false), 3000);
-    return () => clearTimeout(timer);
-  }, [contactSaved]);
-
   function handleEditPersonal() {
     setDraftFirstName(savedFirstName);
     setDraftLastName(savedLastName);
     setPersonalError("");
-    setPersonalSaved(false);
+    setPersonalSaved(null);
     setEditingPersonal(true);
   }
 
@@ -186,7 +175,7 @@ export function ProfileSection({
     setSavedFirstName(draftFirstName);
     setSavedLastName(draftLastName);
     setEditingPersonal(false);
-    setPersonalSaved(true);
+    setPersonalSaved("Changes saved.");
     router.refresh();
   }
 
@@ -196,7 +185,7 @@ export function ProfileSection({
     setDraftCountry(savedCountry);
     setCountryQuery(savedCountry);
     setContactError("");
-    setContactSaved(false);
+    setContactSaved(null);
     setEditingContact(true);
   }
 
@@ -206,7 +195,7 @@ export function ProfileSection({
     setDraftCountry(savedCountry);
     setCountryQuery(savedCountry);
     setContactError("");
-    setContactSaved(false);
+    setContactSaved(null);
     setShowCountryDropdown(false);
     setEditingContact(false);
   }
@@ -246,7 +235,7 @@ export function ProfileSection({
     setSavedCountry(draftCountry);
     setShowCountryDropdown(false);
     setEditingContact(false);
-    setContactSaved(true);
+    setContactSaved("Changes saved.");
   }
 
   return (

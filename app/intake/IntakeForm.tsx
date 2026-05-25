@@ -1,35 +1,18 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { submitIntake } from "@/lib/actions/intake";
+import {
+  GRADUATION_TIMELINE_OPTIONS,
+  MAIN_CONCERN_OPTIONS,
+} from "@/lib/config/intakeOptions";
 import type { IntakeFormData } from "@/lib/types/intake";
 
 type FieldErrors = Partial<Record<keyof IntakeFormData, string>>;
 
-type ConcernOption = {
-  key: string;
-  label: string;
-};
-
-const concernOptions: ConcernOption[] = [
-  { key: "banking_credit", label: "Banking & Credit" },
-  { key: "ssn", label: "Social Security Number (SSN)" },
-  { key: "housing", label: "Housing & Accommodation" },
-  { key: "transportation", label: "Transportation" },
-  { key: "health_insurance", label: "Health Insurance" },
-  { key: "tax_finance", label: "Tax & Finance" },
-  { key: "campus_life", label: "Campus Life" },
-  { key: "community_social", label: "Community & Social" },
-  { key: "other", label: "Other" },
-];
-
 const MIN_PLAN_BUILD_MS = 2500;
-
-function todayIsoDate(): string {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function isValidDateOnly(value: string): boolean {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
@@ -59,7 +42,6 @@ export function IntakeForm() {
   const [generalError, setGeneralError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isBuildingPlan, setIsBuildingPlan] = useState(false);
-  const minGraduationDate = useMemo(() => todayIsoDate(), []);
   const otherSelected = formData.main_concerns.includes("other");
 
   useEffect(() => {
@@ -116,13 +98,8 @@ export function IntakeForm() {
       nextErrors.arrival_date = "Please enter a valid arrival date.";
     }
 
-    if (!isValidDateOnly(formData.graduation_date)) {
-      nextErrors.graduation_date = "Please enter a valid graduation date.";
-    } else if (
-      isValidDateOnly(formData.arrival_date) &&
-      formData.graduation_date <= formData.arrival_date
-    ) {
-      nextErrors.graduation_date = "Graduation date must be after arrival date.";
+    if (!formData.graduation_date) {
+      nextErrors.graduation_date = "Please select your graduation timeline.";
     }
 
     if (formData.main_concerns.length === 0) {
@@ -300,17 +277,34 @@ export function IntakeForm() {
             htmlFor="graduation_date"
             className="mb-2 block text-sm font-medium text-[var(--text)]"
           >
-            When do you graduate?
+            How long is your program?
           </label>
-          <input
-            id="graduation_date"
-            type="date"
-            required
-            min={formData.arrival_date || minGraduationDate}
-            value={formData.graduation_date}
-            onChange={(event) => updateField("graduation_date", event.target.value)}
-            className={baseInputClassName(Boolean(fieldErrors.graduation_date))}
-          />
+          <div className="relative">
+            <select
+              id="graduation_date"
+              required
+              value={formData.graduation_date}
+              onChange={(event) => updateField("graduation_date", event.target.value)}
+              className={`${baseInputClassName(Boolean(fieldErrors.graduation_date))} appearance-none pr-8`}
+            >
+              <option value="">Select a timeline</option>
+              {GRADUATION_TIMELINE_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+            <svg
+              className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              aria-hidden="true"
+            >
+              <path d="M2 4l4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </div>
           {fieldErrors.graduation_date && (
             <p className="mt-2 text-xs text-[var(--destructive)]" role="alert">
               {fieldErrors.graduation_date}
@@ -323,12 +317,12 @@ export function IntakeForm() {
             What are you most concerned about? (Select all that apply)
           </p>
           <div className="grid grid-cols-1 gap-3 md-900:grid-cols-2">
-            {concernOptions.map((option) => {
-              const checked = formData.main_concerns.includes(option.key);
+            {MAIN_CONCERN_OPTIONS.map((option) => {
+              const checked = formData.main_concerns.includes(option.value);
 
               return (
                 <label
-                  key={option.key}
+                  key={option.value}
                   className={[
                     "flex cursor-pointer items-center gap-3 rounded-[var(--radius-sm)] border px-3 py-2.5",
                     checked
@@ -339,7 +333,7 @@ export function IntakeForm() {
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={() => toggleConcern(option.key)}
+                    onChange={() => toggleConcern(option.value)}
                     className="h-4 w-4 rounded border-[var(--border)] text-[var(--accent)] focus:ring-[var(--accent)]"
                   />
                   <span className="text-sm text-[var(--text)]">{option.label}</span>

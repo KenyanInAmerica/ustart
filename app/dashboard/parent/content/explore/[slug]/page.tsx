@@ -1,7 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
-import { fetchDashboardAccess } from "@/lib/dashboard/access";
+import { fetchParentStudentContext } from "@/lib/dashboard/parent";
 import { getTaskForContentUrl } from "@/lib/dashboard/plan";
 import { getNotionChildPages, getNotionBlocks, fetchToggleChildren } from "@/lib/notion/fetcher";
 import { NOTION_PAGE_IDS } from "@/lib/notion/config";
@@ -10,28 +9,22 @@ import { NotionRenderer } from "@/components/notion/NotionRenderer";
 import { TaskStatusWidget } from "@/components/dashboard/TaskStatusWidget";
 import { VideoEmbed } from "@/components/notion/VideoEmbed";
 
-export default async function ExploreModulePage({
+export default async function ParentExploreModulePage({
   params,
   searchParams,
 }: {
   params: { slug: string };
   searchParams: { from?: string };
 }) {
-  const supabase = createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const context = await fetchParentStudentContext();
 
-  if (!user) redirect("/sign-in");
+  if (!context.studentId) redirect("/dashboard/parent/content");
+  if (!context.shareContent) redirect("/dashboard/parent/content");
+  if (context.membershipRank < 2) redirect("/dashboard/parent/content");
 
-  const [access, modules] = await Promise.all([
-    fetchDashboardAccess(),
-    getNotionChildPages(NOTION_PAGE_IDS.explore),
-  ]);
+  const studentId = context.studentId as string;
 
-  if (access.role === "parent") redirect("/dashboard/parent/content");
-  if (access.membershipRank < 2) redirect("/dashboard/content");
-
+  const modules = await getNotionChildPages(NOTION_PAGE_IDS.explore);
   const currentModule = modules.find((m) => m.slug === params.slug);
   if (!currentModule) return notFound();
 
@@ -39,7 +32,7 @@ export default async function ExploreModulePage({
 
   const [blocks, matchingTask] = await Promise.all([
     getNotionBlocks(currentModule.id),
-    getTaskForContentUrl(user.id, contentPath),
+    getTaskForContentUrl(studentId, contentPath),
   ]);
 
   const toggleChildren = await fetchToggleChildren(blocks);
@@ -52,17 +45,22 @@ export default async function ExploreModulePage({
     <div>
       {searchParams.from === "plan" && (
         <Link
-          href="/dashboard"
+          href="/dashboard/parent/plan"
           className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text)]"
         >
-          ← Back to My Plan
+          ← Back to My Student&apos;s Plan
         </Link>
       )}
+
+      <div className="mb-4 rounded-[var(--radius-sm)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-4 py-2 text-sm text-[var(--accent)]">
+        You&apos;re viewing {context.studentFirstName}&apos;s content
+      </div>
 
       {matchingTask && (
         <TaskStatusWidget
           task={matchingTask}
           phaseColor={PLAN_PHASE_COLORS[matchingTask.phase]}
+          readOnly={true}
         />
       )}
 
@@ -80,7 +78,7 @@ export default async function ExploreModulePage({
         <div>
           {prevModule && (
             <Link
-              href={`/dashboard/content/explore/${prevModule.slug}`}
+              href={`/dashboard/parent/content/explore/${prevModule.slug}`}
               className="flex items-center gap-2 text-[var(--text-muted)] text-sm hover:text-[var(--text)]"
             >
               ← {prevModule.title}
@@ -90,7 +88,7 @@ export default async function ExploreModulePage({
         <div>
           {nextModule && (
             <Link
-              href={`/dashboard/content/explore/${nextModule.slug}`}
+              href={`/dashboard/parent/content/explore/${nextModule.slug}`}
               className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-[var(--radius-sm)] text-sm hover:bg-[var(--accent-hover)]"
             >
               {nextModule.title} →

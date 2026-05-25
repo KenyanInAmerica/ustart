@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
-import { fetchTierContent } from "@/lib/dashboard/content";
 import { fetchParentStudentContext } from "@/lib/dashboard/parent";
-import { ContentGrid } from "@/components/dashboard/ContentGrid";
+import { getNotionChildPages } from "@/lib/notion/fetcher";
+import { NOTION_PAGE_IDS } from "@/lib/notion/config";
 
 export default async function ParentExploreContentPage() {
   const context = await fetchParentStudentContext();
@@ -10,20 +10,18 @@ export default async function ParentExploreContentPage() {
   if (!context.shareContent) redirect("/dashboard/parent/content");
   if (context.membershipRank < 2) redirect("/dashboard/parent/content");
 
-  const items = await fetchTierContent("explore");
+  const modules = await getNotionChildPages(NOTION_PAGE_IDS.explore);
+
+  if (modules.length > 0) {
+    redirect(`/dashboard/parent/content/explore/${modules[0].slug}`);
+  }
 
   return (
-    <div className="bg-[var(--bg)]">
-      <div className="mb-4 rounded-[var(--radius-sm)] border border-[var(--accent)]/20 bg-[var(--accent)]/5 px-4 py-2 text-sm text-[var(--accent)]">
-        You&apos;re viewing {context.studentFirstName}&apos;s content
-      </div>
-      <h1 className="mb-1 font-primary text-3xl font-bold tracking-tight text-[var(--text)]">
-        UStart Explore
-      </h1>
-      <p className="mb-8 font-primary text-sm text-[var(--text-muted)]">
-        Everything in Lite plus deeper guides to help you settle in and thrive.
+    <div className="rounded-[var(--radius-lg)] border border-[var(--border)] bg-white p-8 text-center">
+      <p className="mb-1 font-medium text-[var(--text)]">Content coming soon</p>
+      <p className="text-sm text-[var(--text-muted)]">
+        UStart Explore modules are being prepared.
       </p>
-      <ContentGrid items={items} />
     </div>
   );
 }
