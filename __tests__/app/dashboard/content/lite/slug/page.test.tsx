@@ -32,12 +32,17 @@ jest.mock("../../../../../../components/dashboard/TaskStatusWidget", () => ({
   TaskStatusWidget: () => <div data-testid="task-status-widget-stub" />,
 }));
 
+jest.mock("../../../../../../components/documents/TaskUploadSection", () => ({
+  TaskUploadSection: () => <div data-testid="task-upload-section-stub" />,
+}));
+
 jest.mock("next/navigation", () => ({
   redirect: jest.fn(),
   notFound: jest.fn(),
 }));
 
 import { fetchDashboardAccess } from "../../../../../../lib/dashboard/access";
+import { getTaskForContentUrl } from "../../../../../../lib/dashboard/plan";
 import { getNotionChildPages } from "../../../../../../lib/notion/fetcher";
 import { redirect, notFound } from "next/navigation";
 
@@ -72,6 +77,7 @@ const mockModules = [
 describe("LiteModulePage", () => {
   beforeEach(() => {
     (fetchDashboardAccess as jest.Mock).mockResolvedValue(liteAccess);
+    (getTaskForContentUrl as jest.Mock).mockResolvedValue(null);
     (getNotionChildPages as jest.Mock).mockResolvedValue(mockModules);
     (redirect as unknown as jest.Mock).mockReset();
     (notFound as unknown as jest.Mock).mockReset();
@@ -97,6 +103,26 @@ describe("LiteModulePage", () => {
   it("does not render an Open in Notion link", async () => {
     render(await LiteModulePage({ params: { slug: "banking-basics" }, searchParams: defaultSearchParams }));
     expect(screen.queryByRole("link", { name: /open in notion/i })).not.toBeInTheDocument();
+  });
+
+  it("renders the task upload section when the matching task accepts uploads", async () => {
+    (getTaskForContentUrl as jest.Mock).mockResolvedValue({
+      id: "task-1",
+      template_id: "template-1",
+      title: "Upload I-20",
+      description: null,
+      phase: "before_arrival",
+      status: "not_started",
+      due_date: null,
+      content_url: "/dashboard/content/lite/banking-basics",
+      display_order: 0,
+      completed_at: null,
+      accepts_upload: true,
+    });
+
+    render(await LiteModulePage({ params: { slug: "banking-basics" }, searchParams: defaultSearchParams }));
+
+    expect(screen.getByTestId("task-upload-section-stub")).toBeInTheDocument();
   });
 
   it("renders a Next button linking to the following module", async () => {

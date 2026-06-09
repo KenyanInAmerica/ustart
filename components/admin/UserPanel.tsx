@@ -5,6 +5,7 @@ import { useFlashMessage } from "@/hooks/useFlashMessage";
 import { Button } from "@/components/ui/Button";
 import { PlanTaskEditModal } from "@/components/admin/PlanTaskEditModal";
 import { PlanTaskAddModal } from "@/components/admin/PlanTaskAddModal";
+import { DocumentReviewSection } from "@/components/admin/DocumentReviewSection";
 import { accentSurfaceClass, type ProductAccent } from "@/lib/config/productAccents";
 import type { AdminUser } from "@/types/admin";
 import { setUserAddon, setUserMembershipTier } from "@/lib/actions/admin/users";
@@ -135,6 +136,7 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
   const [deletingTaskId, setDeletingTaskId] = useState<string | null>(null);
   const [isDeletingTask, startDeleteTransition] = useTransition();
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [pendingDocumentCount, setPendingDocumentCount] = useState(0);
 
   // Reset all panel state when the selected user changes.
   useEffect(() => {
@@ -157,6 +159,7 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
     setShowAddModal(false);
     setDeletingTaskId(null);
     setDeleteError(null);
+    setPendingDocumentCount(0);
   }, [user, setSaveSuccessMsg, setPlanSuccess]);
 
   // Load plan tasks whenever the panel opens for a new user.
@@ -359,6 +362,22 @@ export function UserPanel({ user, onClose }: UserPanelProps) {
                 </button>
               ))}
             </div>
+          </section>
+
+          <section>
+            <h3 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">
+              <span>Documents</span>
+              {pendingDocumentCount > 0 && (
+                <span className="rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-xs font-semibold leading-none text-white">
+                  {pendingDocumentCount}
+                </span>
+              )}
+            </h3>
+            <DocumentReviewSection
+              userId={user.id}
+              userName={user.first_name ?? user.email}
+              onPendingCountChange={setPendingDocumentCount}
+            />
           </section>
 
           <section>

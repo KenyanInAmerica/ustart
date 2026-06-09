@@ -60,6 +60,9 @@ export const AuditAction = {
   ADMIN_PLAN_TASK_ADDED: "admin.plan_task.added",
   ADMIN_PLAN_TASK_DELETED: "admin.plan_task.deleted",
 
+  // Admin — Document Submissions
+  ADMIN_DOCUMENT_REVIEWED: "admin.document.reviewed",
+
   // Admin — Parent Management
   ADMIN_PARENT_MANUALLY_LINKED: "admin.parent.manually_linked",
   ADMIN_PARENT_INVITATION_CANCELLED: "admin.parent.invitation_cancelled",

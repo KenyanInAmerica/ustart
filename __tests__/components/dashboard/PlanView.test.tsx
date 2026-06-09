@@ -12,6 +12,10 @@ jest.mock("../../../components/dashboard/PlanCalendar", () => ({
   ),
 }));
 
+jest.mock("../../../components/documents/GeneralUploadModal", () => ({
+  GeneralUploadModal: () => <div data-testid="general-upload-modal-stub" />,
+}));
+
 import { updateTaskStatus } from "../../../lib/actions/plan";
 
 const phaseGroups: PlanPhaseGroup[] = [
@@ -30,6 +34,8 @@ const phaseGroups: PlanPhaseGroup[] = [
         status: "completed",
         due_date: "2099-09-01",
         content_url: null,
+        video_url: null,
+        accepts_upload: false,
         display_order: 1,
         completed_at: "2026-04-21T00:00:00.000Z",
       },
@@ -41,6 +47,8 @@ const phaseGroups: PlanPhaseGroup[] = [
         status: "in_progress",
         due_date: "2099-09-02",
         content_url: null,
+        video_url: null,
+        accepts_upload: false,
         display_order: 2,
         completed_at: null,
       },

@@ -67,7 +67,8 @@ function tierAccent(tier: PlanTaskTemplate["tier_required"]): ProductAccent {
   }
 }
 
-export function formatDaysFromArrival(days: number): string {
+export function formatDaysFromArrival(days: number | null): string {
+  if (days === null) return "No due date";
   if (days === 0) return "Day of arrival";
   if (days > 0) return `${days} day${days === 1 ? "" : "s"} after arrival`;
   return `${Math.abs(days)} day${Math.abs(days) === 1 ? "" : "s"} before arrival`;
@@ -187,6 +188,11 @@ function SortableTemplateCard({
                 {template.tier_required}
               </span>
               <span>{formatDaysFromArrival(template.days_from_arrival)}</span>
+              {template.accepts_upload && (
+                <span className="inline-flex rounded-full border border-[var(--border)] bg-[var(--bg-subtle)] px-2 py-0.5 text-[11px] font-semibold text-[var(--text-mid)]">
+                  Upload enabled
+                </span>
+              )}
             </div>
 
             {template.content_url && (

@@ -16,6 +16,10 @@ jest.mock("../../../lib/actions/admin/planTasks", () => ({
   adminDeletePlanTask: jest.fn(),
 }));
 
+jest.mock("../../../components/admin/DocumentReviewSection", () => ({
+  DocumentReviewSection: () => <div data-testid="document-review-section-stub" />,
+}));
+
 import {
   setUserMembershipTier,
   setUserAddon,
@@ -85,6 +89,13 @@ describe("UserPanel", () => {
     expect(
       screen.getByText("Banking & Credit, SSN, other: Need help with visa")
     ).toBeInTheDocument();
+  });
+
+  it("renders the documents section", () => {
+    render(<UserPanel user={mockUser} onClose={jest.fn()} />);
+
+    expect(screen.getByText("Documents")).toBeInTheDocument();
+    expect(screen.getByTestId("document-review-section-stub")).toBeInTheDocument();
   });
 
   it("shows an empty-state message when intake is missing", () => {

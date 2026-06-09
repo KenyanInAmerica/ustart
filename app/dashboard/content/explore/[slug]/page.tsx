@@ -9,6 +9,7 @@ import { PLAN_PHASE_COLORS } from "@/lib/types/plan";
 import { NotionRenderer } from "@/components/notion/NotionRenderer";
 import { TaskStatusWidget } from "@/components/dashboard/TaskStatusWidget";
 import { VideoEmbed } from "@/components/notion/VideoEmbed";
+import { TaskUploadSection } from "@/components/documents/TaskUploadSection";
 
 export default async function ExploreModulePage({
   params,
@@ -75,6 +76,15 @@ export default async function ExploreModulePage({
       )}
 
       <NotionRenderer blocks={blocks} toggleChildren={toggleChildren} />
+
+      {matchingTask?.accepts_upload && (
+        <TaskUploadSection
+          taskId={matchingTask.id}
+          templateId={matchingTask.template_id ?? ""}
+          sectionLabel={currentModule.title}
+          userId={user.id}
+        />
+      )}
 
       <div className="flex items-center justify-between mt-12 pt-6 border-t border-[var(--border)]">
         <div>
