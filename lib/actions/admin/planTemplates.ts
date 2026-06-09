@@ -68,12 +68,13 @@ function validateTemplateData(
 
   if ("days_from_arrival" in data) {
     if (
-      typeof data.days_from_arrival !== "number" ||
-      !Number.isInteger(data.days_from_arrival)
+      data.days_from_arrival !== null &&
+      (typeof data.days_from_arrival !== "number" ||
+        !Number.isInteger(data.days_from_arrival))
     ) {
       return { ok: false, error: "Days from arrival must be a whole number." };
     }
-    next.days_from_arrival = data.days_from_arrival;
+    next.days_from_arrival = data.days_from_arrival ?? null;
   }
 
   if ("display_order" in data) {
@@ -93,6 +94,10 @@ function validateTemplateData(
 
   if ("tier_required" in data && data.tier_required) {
     next.tier_required = data.tier_required;
+  }
+
+  if ("accepts_upload" in data) {
+    next.accepts_upload = data.accepts_upload === true;
   }
 
   return { ok: true, value: next };
@@ -118,9 +123,10 @@ export async function createPlanTemplate(
       title: validated.value.title!,
       description: validated.value.description || null,
       phase: validated.value.phase!,
-      days_from_arrival: validated.value.days_from_arrival!,
+      days_from_arrival: validated.value.days_from_arrival ?? null,
       content_url: validated.value.content_url || null,
       video_url: validated.value.video_url || null,
+      accepts_upload: validated.value.accepts_upload ?? false,
       tier_required: validated.value.tier_required!,
       display_order: count ?? 0,
     };
@@ -211,7 +217,7 @@ export async function deletePlanTemplate(id: string): Promise<ActionResult> {
     const { data: existing } = await service
       .from("plan_task_templates")
       .select(
-        "id, title, description, phase, days_from_arrival, content_url, video_url, tier_required, display_order, created_at, updated_at"
+        "id, title, description, phase, days_from_arrival, content_url, video_url, accepts_upload, tier_required, display_order, created_at, updated_at"
       )
       .eq("id", id)
       .maybeSingle();

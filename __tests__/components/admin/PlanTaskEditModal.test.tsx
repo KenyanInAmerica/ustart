@@ -18,6 +18,8 @@ const baseTask: PlanTask = {
   status: "not_started",
   due_date: "2099-09-01",
   content_url: "https://notion.so/task",
+  video_url: null,
+  accepts_upload: false,
   display_order: 1,
   completed_at: null,
 };

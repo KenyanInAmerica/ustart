@@ -32,6 +32,7 @@ const templates: PlanTaskTemplate[] = [
     days_from_arrival: 0,
     content_url: "https://notion.so/housing",
     video_url: null,
+    accepts_upload: true,
     tier_required: "lite",
     display_order: 1,
     created_at: "2026-04-21T12:00:00.000Z",
@@ -45,6 +46,7 @@ const templates: PlanTaskTemplate[] = [
     days_from_arrival: -7,
     content_url: null,
     video_url: null,
+    accepts_upload: false,
     tier_required: "lite",
     display_order: 0,
     created_at: "2026-04-21T11:00:00.000Z",
@@ -58,6 +60,7 @@ const templates: PlanTaskTemplate[] = [
     days_from_arrival: 3,
     content_url: null,
     video_url: null,
+    accepts_upload: false,
     tier_required: "explore",
     display_order: 0,
     created_at: "2026-04-21T13:00:00.000Z",
@@ -113,6 +116,17 @@ describe("PlanTemplatesClient", () => {
     expect(screen.getByText("7 days before arrival")).toBeInTheDocument();
     expect(screen.getByText("Day of arrival")).toBeInTheDocument();
     expect(screen.getByText("3 days after arrival")).toBeInTheDocument();
+  });
+
+  it("shows upload-enabled and no-due-date labels", () => {
+    render(
+      <PlanTemplatesClient
+        templates={[{ ...templates[0], days_from_arrival: null }]}
+      />
+    );
+
+    expect(screen.getByText("No due date")).toBeInTheDocument();
+    expect(screen.getByText("Upload enabled")).toBeInTheDocument();
   });
 
   it("toggles reorder mode and saves the current order", async () => {

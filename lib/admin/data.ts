@@ -18,6 +18,10 @@ import type {
   RecentSignup,
 } from "@/types/admin";
 import type { PlanTask, PlanTaskTemplate } from "@/lib/types/plan";
+import type {
+  DocumentSubmission,
+  DocumentSubmissionFile,
+} from "@/lib/types/documents";
 
 const PAGE_SIZE = 25;
 
@@ -28,6 +32,17 @@ type RawRow = {
   assigned_by: string | null;
   created_at: string;
   content_items: Pick<ContentItem, "id" | "title" | "tier" | "file_name"> | null;
+};
+
+type DocumentSubmissionRow = Omit<DocumentSubmission, "files"> & {
+  document_submission_files?: DocumentSubmissionFile[] | null;
+  files?: DocumentSubmissionFile[] | null;
+};
+
+export type AdminDocumentSubmission = DocumentSubmission & {
+  student_first_name: string | null;
+  student_last_name: string | null;
+  student_email: string | null;
 };
 
 // ── Overview ──────────────────────────────────────────────────────────────────
@@ -213,11 +228,178 @@ export async function fetchPlanTemplates(): Promise<PlanTaskTemplate[]> {
     days_from_arrival: row.days_from_arrival,
     content_url: row.content_url,
     video_url: row.video_url,
+    accepts_upload: row.accepts_upload,
     tier_required: row.tier_required,
     display_order: row.display_order,
     created_at: row.created_at,
     updated_at: row.updated_at,
   }));
+}
+
+export async function fetchUserDocumentSubmissions(
+  userId: string
+): Promise<DocumentSubmission[]> {
+  const service = createServiceClient();
+  const { data: submissionData, error: submissionError } = await service
+    .from("document_submissions")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (submissionError) {
+    console.error("[fetchUserDocumentSubmissions] submissions query failed:", submissionError);
+    throw new Error(submissionError.message);
+  }
+
+  const submissions = (submissionData ?? []) as Omit<DocumentSubmission, "files">[];
+  const submissionIds = submissions.map((submission) => submission.id);
+  if (submissionIds.length === 0) return [];
+
+  const { data: fileData, error: fileError } = await service
+    .from("document_submission_files")
+    .select("*")
+    .in("submission_id", submissionIds)
+    .order("created_at", { ascending: true });
+
+  if (fileError) {
+    console.error("[fetchUserDocumentSubmissions] files query failed:", fileError);
+    throw new Error(fileError.message);
+  }
+
+  const filesBySubmission = ((fileData ?? []) as DocumentSubmissionFile[]).reduce<
+    Record<string, DocumentSubmissionFile[]>
+  >((groups, file) => {
+    const current = groups[file.submission_id] ?? [];
+    return {
+      ...groups,
+      [file.submission_id]: [...current, file],
+    };
+  }, {});
+
+  return submissions.map((row) => ({
+    id: row.id,
+    user_id: row.user_id,
+    task_id: row.task_id,
+    template_id: row.template_id,
+    section_label: row.section_label,
+    status: row.status,
+    admin_comment: row.admin_comment,
+    reviewed_by: row.reviewed_by,
+    reviewed_at: row.reviewed_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    files: filesBySubmission[row.id] ?? [],
+  }));
+}
+
+export async function fetchPendingDocumentSubmissionCount(): Promise<number> {
+  const service = createServiceClient();
+  const { count } = await service
+    .from("document_submissions")
+    .select("*", { count: "exact", head: true })
+    .eq("status", "pending_review");
+
+  return count ?? 0;
+}
+
+export async function fetchAdminDocumentSubmissions(): Promise<
+  AdminDocumentSubmission[]
+> {
+  const service = createServiceClient();
+  const { data: submissionData, error: submissionError } = await service
+    .from("document_submissions")
+    .select("*")
+    .order("created_at", { ascending: false });
+
+  if (submissionError) {
+    console.error("[fetchAdminDocumentSubmissions] submissions query failed:", submissionError);
+    throw new Error(submissionError.message);
+  }
+
+  const submissions = (submissionData ?? []) as Omit<DocumentSubmission, "files">[];
+  if (submissions.length === 0) return [];
+
+  const userIds = Array.from(new Set(submissions.map((submission) => submission.user_id)));
+  const submissionIds = submissions.map((submission) => submission.id);
+
+  const [
+    { data: profileData, error: profileError },
+    { data: fileData, error: fileError },
+  ] = await Promise.all([
+    service
+      .from("profiles")
+      .select("id, first_name, last_name, email")
+      .in("id", userIds),
+    service
+      .from("document_submission_files")
+      .select("*")
+      .in("submission_id", submissionIds)
+      .order("created_at", { ascending: true }),
+  ]);
+
+  if (profileError) {
+    console.error("[fetchAdminDocumentSubmissions] profiles query failed:", profileError);
+    throw new Error(profileError.message);
+  }
+
+  if (fileError) {
+    console.error("[fetchAdminDocumentSubmissions] files query failed:", fileError);
+    throw new Error(fileError.message);
+  }
+
+  const profilesById = ((profileData ?? []) as {
+    id: string;
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  }[]).reduce<Record<string, {
+    first_name: string | null;
+    last_name: string | null;
+    email: string | null;
+  }>>((groups, profile) => ({
+    ...groups,
+    [profile.id]: {
+      first_name: profile.first_name,
+      last_name: profile.last_name,
+      email: profile.email,
+    },
+  }), {});
+
+  const filesBySubmission = ((fileData ?? []) as DocumentSubmissionFile[]).reduce<
+    Record<string, DocumentSubmissionFile[]>
+  >((groups, file) => {
+    const current = groups[file.submission_id] ?? [];
+    return {
+      ...groups,
+      [file.submission_id]: [...current, file],
+    };
+  }, {});
+
+  return submissions
+    .map((row) => ({
+      id: row.id,
+      user_id: row.user_id,
+      task_id: row.task_id,
+      template_id: row.template_id,
+      section_label: row.section_label,
+      status: row.status,
+      admin_comment: row.admin_comment,
+      reviewed_by: row.reviewed_by,
+      reviewed_at: row.reviewed_at,
+      created_at: row.created_at,
+      updated_at: row.updated_at,
+      files: filesBySubmission[row.id] ?? [],
+      student_first_name: profilesById[row.user_id]?.first_name ?? null,
+      student_last_name: profilesById[row.user_id]?.last_name ?? null,
+      student_email: profilesById[row.user_id]?.email ?? null,
+    }))
+    .sort((a, b) => {
+      if (a.status === "pending_review" && b.status !== "pending_review") return -1;
+      if (a.status !== "pending_review" && b.status === "pending_review") return 1;
+      return (
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      );
+    });
 }
 
 // ── Plan Tasks ────────────────────────────────────────────────────────────────
@@ -235,7 +417,13 @@ export async function fetchUserPlanTasks(userId: string): Promise<PlanTask[]> {
     .order("phase")
     .order("display_order")
     .order("created_at");
-  return (data ?? []) as PlanTask[];
+  return ((data ?? []) as Omit<PlanTask, "accepts_upload" | "video_url">[]).map(
+    (task) => ({
+      ...task,
+      accepts_upload: false,
+      video_url: null,
+    })
+  );
 }
 
 // ── User Management ───────────────────────────────────────────────────────────

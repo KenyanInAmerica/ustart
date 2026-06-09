@@ -171,35 +171,50 @@ export function PlanView({
           ) : (
             <>
               {!readOnly && (
-                <div className="mb-6 flex flex-wrap items-center gap-4 px-1">
-                  <div className="flex items-center gap-1.5">
-                    <span className="h-3.5 w-3.5 rounded-full border border-[var(--border-hi)] bg-white" />
-                    <span className="text-xs text-[var(--text-muted)]">Not started</span>
+                <div className="mb-6 px-1">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <span className="h-3.5 w-3.5 rounded-full border border-[var(--border-hi)] bg-white" />
+                      <span className="text-xs text-[var(--text-muted)]">Not started</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--text-muted)] bg-[rgba(28,43,58,0.15)] text-[var(--text-muted)]">
+                        <svg width="6" height="2" viewBox="0 0 6 2" aria-hidden="true">
+                          <rect width="6" height="2" rx="1" fill="currentColor" />
+                        </svg>
+                      </span>
+                      <span className="text-xs text-[var(--text-muted)]">In progress</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#4ECBA5]">
+                        <svg width="6" height="5" viewBox="0 0 10 8" aria-hidden="true">
+                          <path
+                            d="M1 4L3.5 6.5L9 1"
+                            stroke="white"
+                            strokeWidth="1.5"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            fill="none"
+                          />
+                        </svg>
+                      </span>
+                      <span className="text-xs text-[var(--text-muted)]">Done</span>
+                    </div>
+                    <span className="select-none text-xs text-[var(--border)]">|</span>
+                    <div className="flex items-center gap-1">
+                      <LegendPaperclipIcon />
+                      <span className="text-xs text-[var(--text-muted)]">
+                        Document upload
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <LegendPlayIcon />
+                      <span className="text-xs text-[var(--text-muted)]">
+                        Video available
+                      </span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full border border-[var(--text-muted)] bg-[rgba(28,43,58,0.15)] text-[var(--text-muted)]">
-                      <svg width="6" height="2" viewBox="0 0 6 2" aria-hidden="true">
-                        <rect width="6" height="2" rx="1" fill="currentColor" />
-                      </svg>
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)]">In progress</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <span className="flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#4ECBA5]">
-                      <svg width="6" height="5" viewBox="0 0 10 8" aria-hidden="true">
-                        <path
-                          d="M1 4L3.5 6.5L9 1"
-                          stroke="white"
-                          strokeWidth="1.5"
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          fill="none"
-                        />
-                      </svg>
-                    </span>
-                    <span className="text-xs text-[var(--text-muted)]">Done</span>
-                  </div>
-                  <span className="ml-auto text-xs italic text-[var(--text-muted)]">
+                  <span className="mt-2 block text-xs italic text-[var(--text-muted)]">
                     Click the circle in a task to update its status
                   </span>
                 </div>
@@ -250,6 +265,7 @@ export function PlanView({
                           status={task.status}
                           onToggle={handleToggle}
                           readOnly={readOnly}
+                          accepts_upload={task.accepts_upload}
                           video_url={task.video_url}
                         />
                       ))}
@@ -316,5 +332,43 @@ export function PlanView({
         </div>
       )}
     </div>
+  );
+}
+
+function LegendPaperclipIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-[var(--text-muted)]"
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+function LegendPlayIcon() {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="text-[var(--text-muted)]"
+    >
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
   );
 }

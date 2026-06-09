@@ -94,7 +94,13 @@ describe("planTasks admin actions", () => {
         .mockReturnValueOnce(makeChain({ data: tasks, error: null }));
 
       const result = await adminFetchUserPlanTasks("user-1");
-      expect(result).toEqual(tasks);
+      expect(result).toEqual([
+        {
+          ...tasks[0],
+          accepts_upload: false,
+          video_url: null,
+        },
+      ]);
     });
 
     it("returns empty array on unexpected exception", async () => {

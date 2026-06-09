@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** May 25, 2026
+**Date:** June 9, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -180,6 +180,8 @@ Defined in `lib/config/productAccents.ts`.
     /layout.tsx          # Admin shell layout with own sidebar
     /page.tsx            # Overview — stats (including inactive accounts count) and recent signups
     /users               # User management — inactive badge, Reactivate/Delete/Erase/Manage actions
+    /documents
+      page.tsx           # Admin document review queue
     /community           # Community members view
     /invitations         # Parent invitations + manual linking tool (route kept, hidden from sidebar)
     /content             # PDF upload and content management
@@ -219,7 +221,7 @@ Defined in `lib/config/productAccents.ts`.
         page.tsx
       /parent-pack/page.tsx # Parent Pack — inline Notion content when NOTION_PARENT_PACK_PAGE_ID set
     /account             # Account & billing page
-    /my-documents        # Individually assigned PDFs
+    /my-documents        # Individually assigned PDFs and student document submissions
     /parent
       /page.tsx          # Redirects to /dashboard/parent/plan
       /plan/page.tsx     # Parent view of student's plan, read-only, respects share_tasks/share_calendar
@@ -277,7 +279,15 @@ Defined in `lib/config/productAccents.ts`.
              PlanTemplateModal.tsx   # Create/edit plan template modal, display_order auto-assigned
              PlanTaskEditModal.tsx   # Admin per-user task editor (title, status, due date, content URL, notes)
              PlanTaskAddModal.tsx    # Admin add task modal (title, phase, due date, content URL)
+             DocumentReviewSection.tsx # "use client" per-user document review interface
+             DocumentSubmissionsQueue.tsx # "use client" admin document review queue
              skeletons/
+  /documents
+    DocumentUpload.tsx        # "use client" drag/drop file upload component
+    SubmissionCard.tsx        # "use client" submission display with resubmit flow
+    TaskUploadSection.tsx     # Server Component upload/submission section on content pages
+    GeneralUploadModal.tsx    # "use client" general document upload modal
+    GeneralUploadLauncher.tsx # "use client" modal trigger for /dashboard/my-documents
   /pricing   BuyNowButton.tsx
   /notion
     NotionRenderer.tsx  # Master block renderer — handles list grouping, threads toggleChildren prop
@@ -317,6 +327,7 @@ Defined in `lib/config/productAccents.ts`.
              pricing.ts (types only), getPricing.ts (fetch utils)
              intakeOptions.ts (GRADUATION_TIMELINE_OPTIONS, MAIN_CONCERN_OPTIONS constants)
   /types     plan.ts (PlanPhase, PlanTask, PlanTaskTemplate, CreatePlanTemplateData, TaskStatus)
+             documents.ts (DocumentSubmission, DocumentSubmissionFile, DocumentSubmissionStatus)
   /actions
     signOut.ts                  # signOut() — logs AUTH_SIGN_OUT then signs out
     updateProfile.ts            # updateProfile() — diff-based, logs changes
@@ -327,6 +338,7 @@ Defined in `lib/config/productAccents.ts`.
                                 # updateIntake() — updates intake fields from account page; returns arrivalDateChanged flag
     plan.ts                     # instantiatePlan(), reinstantiatePlan(), updateTaskStatus()
                                 # recalculatePlanDueDates() — recalculates task due dates from arrival_date + days_from_arrival
+    documents.ts                # submitDocument(), fetchUserSubmissions(), fetchSubmissionFiles(), getSubmissionDownloadUrl()
     parentInvitation.ts         # sendParentInvitation(), resendParentInvitation(),
                                 #   cancelParentInvitation(), unlinkParent(), acceptInvitation()
                                 #   Updated Feature 13: invite token flow (UUID + 72h expiry),
@@ -336,6 +348,7 @@ Defined in `lib/config/productAccents.ts`.
     admin/invitations.ts        # adminLinkParent() — updated Feature 13: creates invite token row
     admin/planTemplates.ts      # CRUD + savePlanTemplateOrder() + ADMIN_PLAN_TEMPLATE_REORDERED logging
     admin/planTasks.ts          # adminFetchUserPlanTasks(), adminUpdatePlanTask(), adminAddPlanTask(), adminDeletePlanTask()
+    admin/documents.ts          # adminReviewSubmission(), adminFetchUserDocumentSubmissions()
     admin/settings.ts           # saveWhatsappLink()
     admin/updatePricing.ts      # updatePricing() — diff-based, logs changes
     admin/users.ts              # setUserMembershipTier(), setUserAddon(), assignContentToUser(),
@@ -452,9 +465,11 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 | `pricing`              | Single source of truth for all product pricing. Columns: id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at |
 | `contact_submissions`  | Stores contact form submissions until Resend is integrated. Columns: id, name, email, message, user_id, created_at. Added Feature 14.                                                      |
 | `audit_logs`           | Immutable event log of all auditable actions. Columns: id, created_at, actor_id, actor_email, action, target_id, target_email, payload (JSONB), payload_text (generated). Added Audit Log feature. |
-| `plan_task_templates`  | Plan builder template rows. Phase-based default tasks with title, description, days_from_arrival, content_url, tier_required, and display_order.                                             |
+| `plan_task_templates`  | Plan builder template rows. Phase-based default tasks with title, description, nullable days_from_arrival, content_url, video_url, accepts_upload, tier_required, and display_order.          |
 | `plan_tasks`           | Per-user task rows derived from plan templates. Tracks phase, due date, completion, status, content_url, and display_order.                                                                  |
 | `intake_responses`     | Stores submitted intake form data. `main_concerns` is a comma-separated string of concern keys, and the most recent row is used for admin visibility and future planning flows.              |
+| `document_submissions` | Student document uploads with status tracking and review. Columns: id, user_id, task_id, template_id, section_label, status (`pending_review` \| `approved` \| `resubmit_requested` \| `cancelled`), admin_comment, reviewed_by, reviewed_at, created_at, updated_at. |
+| `document_submission_files` | Individual files per document submission. Up to 5 files per submission are enforced in the server action. Columns: id, submission_id, file_path, file_name, file_size, mime_type, created_at. |
 
 ### Column Notes
 
@@ -478,8 +493,12 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 - `profiles.graduation_date` — changed from DATE to TEXT; stores a graduation timeline key (e.g. `1_to_2_years`) rather than an exact date. Values defined in `lib/config/intakeOptions.ts`.
 - `intake_responses.graduation_date` — same change as `profiles.graduation_date`; stores the selected timeline key, not a calendar date.
 - `plan_task_templates.video_url` — TEXT, optional YouTube/Vimeo/Loom URL. Rendered as an embedded video on content pages via `components/notion/VideoEmbed.tsx`.
+- `plan_task_templates.accepts_upload` — BOOLEAN NOT NULL DEFAULT false. When true, the matching content page shows the task upload UI.
+- `plan_task_templates.days_from_arrival` — INTEGER nullable. `NULL` means no generated due date; instantiated `plan_tasks.due_date` is set to `NULL`.
 - `plan_task_templates.display_order` — auto-assigned on create using the count of existing templates in the same phase. It is managed by the drag-to-reorder UI after creation and is never set manually by admins.
 - Queries against `plan_task_templates` and `plan_tasks` use `ORDER BY phase, display_order, created_at` so `created_at` acts as the stable tiebreaker when `display_order` values are equal.
+- `document_submissions.status` — status is `pending_review` by default. Review can set `approved` or `resubmit_requested`; resubmission requests require a comment. When a user uploads a newer version for the same task/section, older active versions are marked `cancelled`.
+- `document_submission_files.file_path` — bucket-relative path in the private `submissions` bucket: `{userId}/{submissionId}/{timestamp}_{filename}`.
 - `config.parent_pack_notion_url` — Notion link shown on the student Parent Pack page, editable in `/admin/settings`
 - `config.parent_content_notion_url` — Notion link shown in the parent Parent Hub, editable in `/admin/settings`
 
@@ -506,6 +525,7 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 | `plan_tasks.phase`                   | CHECK (phase = ANY ('before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'))                    |
 | `plan_task_templates.phase`          | CHECK (phase = ANY ('before_arrival', 'first_7_days', 'settling_in', 'ongoing_support'))                    |
 | `plan_task_templates.tier_required`  | CHECK (tier_required = ANY ('lite', 'explore', 'concierge'))                                                 |
+| `document_submissions.status`        | CHECK (status = ANY ('pending_review', 'approved', 'resubmit_requested', 'cancelled'))                       |
 
 ### Dashboard Route Notes
 
@@ -564,6 +584,10 @@ All live pricing data is fetched from the `public.pricing` table in Supabase. `l
 - All PDF access goes through `app/api/pdf/route.ts`
 - PDF viewer: react-pdf backed (`react-pdf@7.7.3`) — renders via canvas, not an iframe
 - Watermarking: pdf-lib stamps user email at bottom centre of every page
+- Private bucket: `submissions`
+- Submission file path: `submissions/{userId}/{submissionId}/{timestamp}_{filename}`. The stored object path is bucket-relative: `{userId}/{submissionId}/{timestamp}_{filename}`.
+- Submission bucket file size limit: 10MB per file. Server validation allows PDF, JPEG, PNG, HEIC, and Word document MIME types, with up to 5 files per submission.
+- Submission signed URLs: 60 minute expiry for viewing and downloads
 - NOTE: `/icon.png` 404 in dev console is expected and harmless — Next.js ImageResponse only pre-renders at build time. `/public/favicon.ico` resolves correctly in all environments.
 
 ---
@@ -754,6 +778,7 @@ Payload structure varies by action: auth events carry `{ method }`, admin user a
 | Phase 6    | HubSpot CRM Integration — contact upsert, lifecycle tracking, admin "View in HubSpot" link | ✅ Built |
 | Phase 8a   | Product Improvements — intake editing from account page, graduation timeline select, arrival date recalculation, admin per-user task editing, video URL on plan templates | ✅ Built |
 | Phase 8b   | Product Improvements v2 — parent content slug routes (read-only module pages for all 3 tiers), `useFlashMessage` shared hook (replaces duplicated 3s auto-dismiss pattern across 10 components), isDirty guards on PlanTaskEditModal / PlanTemplateModal / UserPanel admin task editor | ✅ Built |
+| Phase 8b — Document Submissions | Student upload flows, task-linked upload sections, admin review queue, and per-user review panel | ✅ Built |
 
 ---
 
@@ -886,6 +911,12 @@ Uses `POST /crm/v3/objects/contacts/batch/upsert` with `inputs: [{ id: email, id
 - Toggle nested children — `fetchToggleChildren` fetches one level deep. Deeply nested toggles (toggle inside toggle) may need recursive fetching.
 - Notion image URLs expire — Notion file-hosted image URLs expire after ~1 hour. For production, consider proxying images through an API route or enforcing the use of externally hosted image URLs in Notion content.
 - Notion content is not cached beyond request level (React.cache). If Notion API rate limits become an issue post-launch, consider adding ISR revalidation to module pages (`export const revalidate = N`).
+- Document submission notifications use `RESEND_NOTIFICATION_EMAIL` — update to `csr@u-start.co.uk` when the Google Workspace inbox is active.
+- Signed URLs for submission files expire after 1 hour — consider longer expiry or on-demand generation for admin downloads.
+- Add Supabase Realtime subscription on `document_submissions` for the student dashboard — on row change fire `router.refresh()` so document status updates appear without manual page reload.
+- Audit server actions that affect visible user/admin state and add a consistent refresh/invalidation strategy so users do not see stale data after another actor updates records.
+- Future: bulk document review in admin.
+- Future: document submission history/versioning.
 
 **HubSpot**
 
