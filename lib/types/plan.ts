@@ -11,9 +11,10 @@ export interface PlanTaskTemplate {
   title: string;
   description: string | null;
   phase: PlanPhase;
-  days_from_arrival: number;
+  days_from_arrival: number | null;
   content_url: string | null;
   video_url: string | null;
+  accepts_upload: boolean;
   tier_required: TierId;
   display_order: number;
   created_at: string;
@@ -24,13 +25,15 @@ export type PlanTaskStatus = "not_started" | "in_progress" | "completed";
 
 export interface PlanTask {
   id: string;
+  template_id?: string | null;
   title: string;
   description: string | null;
   phase: PlanPhase;
   status: PlanTaskStatus;
   due_date: string | null;
   content_url: string | null;
-  video_url?: string | null;
+  video_url: string | null;
+  accepts_upload: boolean;
   display_order: number;
   completed_at: string | null;
 }
@@ -48,9 +51,10 @@ export interface CreatePlanTemplateData {
   title: string;
   description?: string;
   phase: PlanPhase;
-  days_from_arrival: number;
+  days_from_arrival?: number | null;
   content_url?: string;
   video_url?: string;
+  accepts_upload?: boolean;
   tier_required: TierId;
 }
 

@@ -48,7 +48,13 @@ export async function adminFetchUserPlanTasks(userId: string): Promise<PlanTask[
       .order("display_order")
       .order("created_at");
 
-    return (data ?? []) as PlanTask[];
+    return ((data ?? []) as Omit<PlanTask, "accepts_upload" | "video_url">[]).map(
+      (task) => ({
+        ...task,
+        accepts_upload: false,
+        video_url: null,
+      })
+    );
   } catch {
     return [];
   }

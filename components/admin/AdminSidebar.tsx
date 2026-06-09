@@ -69,6 +69,19 @@ const NAV_ITEMS = [
     ),
   },
   {
+    label: "Documents",
+    href: "/admin/documents",
+    exact: false,
+    icon: (
+      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+        <polyline points="14 2 14 8 20 8" />
+        <path d="M12 18v-6" />
+        <path d="m9 15 3 3 3-3" />
+      </svg>
+    ),
+  },
+  {
     label: "Plan Templates",
     href: "/admin/plan-templates",
     exact: false,
@@ -120,7 +133,11 @@ const NAV_ITEMS = [
   },
 ];
 
-export function AdminSidebar() {
+export function AdminSidebar({
+  pendingDocumentCount = 0,
+}: {
+  pendingDocumentCount?: number;
+}) {
   const pathname = usePathname();
 
   function isActive(item: { href: string; exact: boolean }): boolean {
@@ -161,7 +178,12 @@ export function AdminSidebar() {
                   }`}
                 >
                   {item.icon}
-                  {item.label}
+                  <span className="min-w-0 flex-1">{item.label}</span>
+                  {item.href === "/admin/documents" && pendingDocumentCount > 0 && (
+                    <span className="rounded-full bg-[var(--destructive)] px-1.5 py-0.5 text-[10px] font-semibold leading-none text-white">
+                      {pendingDocumentCount}
+                    </span>
+                  )}
                 </Link>
               </li>
             );

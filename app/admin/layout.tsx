@@ -3,19 +3,22 @@
 // Route protection lives in middleware.ts (is_admin check) so no auth guard here.
 
 import { AdminSidebar } from "@/components/admin/AdminSidebar";
+import { fetchPendingDocumentSubmissionCount } from "@/lib/admin/data";
 
 export const metadata = {
   title: "UStart Admin",
 };
 
-export default function AdminLayout({
+export default async function AdminLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const pendingDocumentCount = await fetchPendingDocumentSubmissionCount();
+
   return (
     <div className="min-h-screen bg-[var(--bg)] font-primary text-[var(--text)]">
-      <AdminSidebar />
+      <AdminSidebar pendingDocumentCount={pendingDocumentCount} />
       <main className="ml-[220px] min-h-screen">
         {children}
       </main>

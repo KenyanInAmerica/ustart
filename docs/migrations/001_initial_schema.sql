@@ -196,9 +196,10 @@ CREATE TABLE public.plan_task_templates (
   phase TEXT NOT NULL,
   title TEXT NOT NULL,
   description TEXT,
-  days_from_arrival INTEGER NOT NULL DEFAULT 0,
+  days_from_arrival INTEGER DEFAULT NULL,
   content_url TEXT,
   video_url TEXT,
+  accepts_upload BOOLEAN NOT NULL DEFAULT false,
   tier_required TEXT NOT NULL DEFAULT 'lite',
   display_order INTEGER NOT NULL DEFAULT 0,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -246,6 +247,47 @@ CREATE TABLE public.plan_tasks (
 -- Query convention for ordered plan reads:
 -- ORDER BY phase, display_order, created_at
 -- created_at is the secondary tiebreaker when display_order values are equal.
+
+CREATE TABLE public.document_submissions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  task_id UUID REFERENCES public.plan_tasks(id) ON DELETE SET NULL,
+  template_id UUID REFERENCES public.plan_task_templates(id) ON DELETE SET NULL,
+  section_label TEXT,
+  status TEXT NOT NULL DEFAULT 'pending_review',
+  admin_comment TEXT,
+  reviewed_by UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  reviewed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT document_submissions_status_check CHECK (
+    status = ANY (ARRAY['pending_review', 'approved', 'resubmit_requested', 'cancelled'])
+  )
+);
+
+CREATE TABLE public.document_submission_files (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  submission_id UUID NOT NULL REFERENCES public.document_submissions(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  file_type TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Supabase Storage bucket required outside this SQL:
+-- Bucket name: submissions
+-- Public: false
+-- File size limit: 10485760 bytes
+-- Allowed MIME types:
+--   image/jpeg
+--   image/png
+--   image/webp
+--   image/heic
+--   application/pdf
+--   application/msword
+--   application/vnd.openxmlformats-officedocument.wordprocessingml.document
+-- Storage paths use: {userId}/{submissionId}/{timestamp}_{filename}
 
 CREATE TABLE public.intake_responses (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -371,6 +413,10 @@ CREATE TRIGGER handle_updated_at_plan_tasks
   BEFORE UPDATE ON public.plan_tasks
   FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
 
+CREATE TRIGGER handle_updated_at_document_submissions
+  BEFORE UPDATE ON public.document_submissions
+  FOR EACH ROW EXECUTE FUNCTION public.handle_updated_at();
+
 -- -----------------------------------------------
 -- Views
 -- -----------------------------------------------
@@ -474,6 +520,8 @@ ALTER TABLE public.contact_submissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.plan_task_templates ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.plan_tasks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.document_submissions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.document_submission_files ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.intake_responses ENABLE ROW LEVEL SECURITY;
 
 -- Profiles
@@ -606,6 +654,52 @@ CREATE POLICY "Users can manage their own tasks"
 
 -- Admin cross-user reads for plan tasks intentionally stay in service-client
 -- server code instead of widening RLS with an extra admin-read policy here.
+
+CREATE POLICY "users_read_own_submissions"
+  ON public.document_submissions FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "users_insert_own_submissions"
+  ON public.document_submissions FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "users_update_own_pending_submissions"
+  ON public.document_submissions FOR UPDATE
+  USING (auth.uid() = user_id AND status = 'pending_review');
+
+CREATE POLICY "users_read_own_submission_files"
+  ON public.document_submission_files FOR SELECT
+  USING (
+    EXISTS (
+      SELECT 1 FROM public.document_submissions ds
+      WHERE ds.id = submission_id
+        AND ds.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "users_insert_own_submission_files"
+  ON public.document_submission_files FOR INSERT
+  WITH CHECK (
+    EXISTS (
+      SELECT 1 FROM public.document_submissions ds
+      WHERE ds.id = submission_id
+        AND ds.user_id = auth.uid()
+    )
+  );
+
+CREATE POLICY "users_upload_own_submissions"
+  ON storage.objects FOR INSERT
+  WITH CHECK (
+    bucket_id = 'submissions'
+      AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "users_read_own_submissions"
+  ON storage.objects FOR SELECT
+  USING (
+    bucket_id = 'submissions'
+      AND (storage.foldername(name))[1] = auth.uid()::text
+  );
 
 CREATE POLICY "Users can manage their own intake"
   ON public.intake_responses FOR ALL

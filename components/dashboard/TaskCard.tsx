@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { GeneralUploadModal } from "@/components/documents/GeneralUploadModal";
 import { type PlanTask, type PlanTaskStatus } from "@/lib/types/plan";
 
 interface TaskCardProps {
@@ -9,6 +11,7 @@ interface TaskCardProps {
   status: PlanTaskStatus;
   onToggle: (taskId: string, newStatus: PlanTaskStatus) => void;
   readOnly?: boolean;
+  accepts_upload?: boolean;
   video_url?: string | null;
 }
 
@@ -53,8 +56,10 @@ export function TaskCard({
   status,
   onToggle,
   readOnly = false,
+  accepts_upload = task.accepts_upload,
   video_url,
 }: TaskCardProps) {
+  const [isUploadOpen, setIsUploadOpen] = useState(false);
   const isOverdue = isOverdueTask({ ...task, status });
   const dueDateLabel = formatDueDate(task.due_date, isOverdue);
 
@@ -70,78 +75,139 @@ export function TaskCard({
     : null;
 
   return (
-    <div className="flex w-full items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
-      {/* Status toggle — only this element is interactive for toggling */}
-      {readOnly ? (
-        <span className="mt-0.5 shrink-0">
-          {renderStatusIndicator(status, phaseColor)}
-        </span>
-      ) : (
-        <button
-          type="button"
-          onClick={handleToggleStatus}
-          aria-label={`${task.title} status ${status}`}
-          className="mt-0.5 shrink-0"
-        >
-          {renderStatusIndicator(status, phaseColor)}
-        </button>
-      )}
-
-      {/* Task content */}
-      <div className="min-w-0 flex-1">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium leading-snug text-[var(--text)]">{task.title}</p>
-            {dueDateLabel && (
-              <p
-                className={`mt-0.5 text-xs ${
-                  isOverdue ? "text-[var(--destructive)]" : "text-[var(--text-muted)]"
-                }`}
-              >
-                {dueDateLabel}
-              </p>
-            )}
-            {task.description && (
-              <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
-                {task.description}
-              </p>
-            )}
-          </div>
-          <span
-            className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
-            style={{ backgroundColor: phaseColor }}
-            aria-hidden="true"
-            data-testid={`task-phase-dot-${task.id}`}
-          />
-        </div>
-
-        {(contentHref || video_url) && (
-          <div className="flex items-center gap-3 mt-2">
-            {contentHref && (
-              <Link
-                href={contentHref}
-                {...(!isInternalUrl ? { target: "_blank", rel: "noreferrer" } : {})}
-                className="inline-flex items-center gap-1 text-[var(--accent)] text-xs font-medium hover:underline"
-                onClick={(e) => e.stopPropagation()}
-              >
-                View Content →
-              </Link>
-            )}
-            {video_url && (
-              <a
-                href={video_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-[var(--text-muted)] text-xs hover:text-[var(--text)]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                ▶ Watch video
-              </a>
-            )}
-          </div>
+    <>
+      <div className="flex w-full items-start gap-3 rounded-[var(--radius-md)] border border-[var(--border)] bg-white p-4 shadow-[var(--shadow-sm)]">
+        {/* Status toggle — only this element is interactive for toggling */}
+        {readOnly ? (
+          <span className="mt-0.5 shrink-0">
+            {renderStatusIndicator(status, phaseColor)}
+          </span>
+        ) : (
+          <button
+            type="button"
+            onClick={handleToggleStatus}
+            aria-label={`${task.title} status ${status}`}
+            className="mt-0.5 shrink-0"
+          >
+            {renderStatusIndicator(status, phaseColor)}
+          </button>
         )}
+
+        {/* Task content */}
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium leading-snug text-[var(--text)]">
+                  {task.title}
+                </p>
+                {accepts_upload && <PaperclipIcon className="text-[var(--text-muted)]" />}
+                {video_url && <PlayIcon className="text-[var(--text-muted)]" />}
+              </div>
+              {dueDateLabel && (
+                <p
+                  className={`mt-0.5 text-xs ${
+                    isOverdue ? "text-[var(--destructive)]" : "text-[var(--text-muted)]"
+                  }`}
+                >
+                  {dueDateLabel}
+                </p>
+              )}
+              {task.description && (
+                <p className="mt-1 truncate text-xs text-[var(--text-muted)]">
+                  {task.description}
+                </p>
+              )}
+            </div>
+            <span
+              className="mt-1 h-2.5 w-2.5 shrink-0 rounded-full"
+              style={{ backgroundColor: phaseColor }}
+              aria-hidden="true"
+              data-testid={`task-phase-dot-${task.id}`}
+            />
+          </div>
+
+          {(contentHref || (accepts_upload && !task.content_url)) && (
+            <div className="mt-2 flex items-center gap-3">
+              {contentHref && (
+                <Link
+                  href={contentHref}
+                  {...(!isInternalUrl ? { target: "_blank", rel: "noreferrer" } : {})}
+                  className="inline-flex items-center gap-1 text-[var(--accent)] text-xs font-medium hover:underline"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  View Content →
+                </Link>
+              )}
+              {accepts_upload && !task.content_url && (
+                <button
+                  type="button"
+                  className="rounded-[var(--radius-sm)] border border-[var(--accent)] bg-[var(--accent)]/10 px-3 py-1.5 text-xs font-semibold text-[var(--accent)] transition-colors hover:bg-[var(--accent)] hover:text-white"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    setIsUploadOpen(true);
+                  }}
+                >
+                  Upload Document
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
-    </div>
+      <GeneralUploadModal
+        isOpen={isUploadOpen}
+        onClose={() => setIsUploadOpen(false)}
+        taskId={task.id}
+        sectionLabel={task.title}
+      />
+    </>
+  );
+}
+
+function PaperclipIcon({
+  className = "",
+  width = 13,
+  height = 13,
+}: {
+  className?: string;
+  width?: number;
+  height?: number;
+}) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width={width}
+      height={height}
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`shrink-0 ${className}`}
+    >
+      <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+    </svg>
+  );
+}
+
+function PlayIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="13"
+      height="13"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={`shrink-0 ${className}`}
+    >
+      <polygon points="5 3 19 12 5 21 5 3" />
+    </svg>
   );
 }
 

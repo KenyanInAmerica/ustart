@@ -98,7 +98,7 @@ export async function instantiatePlan(userId: string): Promise<InstantiatePlanRe
     const { data: templateData, error: templateError } = await service
       .from("plan_task_templates")
       .select(
-        "id, title, description, phase, days_from_arrival, content_url, tier_required, display_order, created_at, updated_at"
+        "id, title, description, phase, days_from_arrival, content_url, video_url, accepts_upload, tier_required, display_order, created_at, updated_at"
       )
       .in("tier_required", allowedTiers)
       .order("phase")
@@ -126,7 +126,10 @@ export async function instantiatePlan(userId: string): Promise<InstantiatePlanRe
       description: template.description,
       phase: template.phase,
       status: "not_started" as const,
-      due_date: addDays(profile.arrival_date!, template.days_from_arrival),
+      due_date:
+        template.days_from_arrival === null
+          ? null
+          : addDays(profile.arrival_date!, template.days_from_arrival),
       content_url: template.content_url,
       display_order: template.display_order,
     }));
@@ -202,7 +205,7 @@ export async function recalculatePlanDueDates(): Promise<
 
     type TaskRow = {
       id: string;
-      plan_task_templates: { days_from_arrival: number }[] | null;
+      plan_task_templates: { days_from_arrival: number | null }[] | null;
     };
 
     const rows = (taskData ?? []) as unknown as TaskRow[];
@@ -211,7 +214,15 @@ export async function recalculatePlanDueDates(): Promise<
         ? row.plan_task_templates[0]
         : row.plan_task_templates;
       if (!templateRow) return [];
-      return [{ id: row.id, due_date: addDays(newArrivalDate, templateRow.days_from_arrival) }];
+      return [
+        {
+          id: row.id,
+          due_date:
+            templateRow.days_from_arrival === null
+              ? null
+              : addDays(newArrivalDate, templateRow.days_from_arrival),
+        },
+      ];
     });
 
     if (updates.length === 0) return { success: true, updatedCount: 0 };

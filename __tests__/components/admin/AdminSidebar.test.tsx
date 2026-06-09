@@ -35,6 +35,7 @@ describe("AdminSidebar", () => {
     expect(screen.getByText("Invitations")).toBeInTheDocument();
     expect(screen.getByText("Community")).toBeInTheDocument();
     expect(screen.getByText("Content")).toBeInTheDocument();
+    expect(screen.getByText("Documents")).toBeInTheDocument();
     expect(screen.getByText("Plan Templates")).toBeInTheDocument();
     expect(screen.getByText("Admins")).toBeInTheDocument();
     expect(screen.getByText("Settings")).toBeInTheDocument();
@@ -53,6 +54,7 @@ describe("AdminSidebar", () => {
     expect(screen.getByRole("link", { name: /invitations/i })).toHaveAttribute("href", "/admin/invitations");
     expect(screen.getByRole("link", { name: /community/i })).toHaveAttribute("href", "/admin/community");
     expect(screen.getByRole("link", { name: /content/i })).toHaveAttribute("href", "/admin/content");
+    expect(screen.getByRole("link", { name: /documents/i })).toHaveAttribute("href", "/admin/documents");
     expect(screen.getByRole("link", { name: /plan templates/i })).toHaveAttribute("href", "/admin/plan-templates");
     expect(screen.getByRole("link", { name: /admins/i })).toHaveAttribute("href", "/admin/admins");
     expect(screen.getByRole("link", { name: /settings/i })).toHaveAttribute("href", "/admin/settings");
@@ -61,5 +63,11 @@ describe("AdminSidebar", () => {
   it("renders the sign out button", () => {
     render(<AdminSidebar />);
     expect(screen.getByRole("button", { name: /sign out/i })).toBeInTheDocument();
+  });
+
+  it("renders the pending documents badge", () => {
+    render(<AdminSidebar pendingDocumentCount={3} />);
+
+    expect(screen.getByRole("link", { name: /documents 3/i })).toBeInTheDocument();
   });
 });

@@ -32,6 +32,7 @@ const mockTemplate: PlanTaskTemplate = {
   days_from_arrival: 3,
   content_url: "https://notion.so/bank",
   video_url: null,
+  accepts_upload: false,
   tier_required: "explore",
   display_order: 2,
   created_at: "2026-04-21T12:00:00.000Z",
@@ -60,6 +61,7 @@ describe("PlanTemplateModal", () => {
     expect(screen.getByLabelText(/^phase$/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/days from arrival/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/tier required/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/enable document upload/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /generate ustart link/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /preview/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/display order/i)).not.toBeInTheDocument();
@@ -102,6 +104,7 @@ describe("PlanTemplateModal", () => {
         tier_required: "concierge",
         content_url: "https://notion.so/ssn",
         video_url: "",
+        accepts_upload: false,
       })
     );
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -132,6 +135,7 @@ describe("PlanTemplateModal", () => {
         tier_required: "explore",
         content_url: "https://notion.so/bank",
         video_url: "",
+        accepts_upload: false,
       })
     );
     expect(onClose).toHaveBeenCalledTimes(1);
@@ -168,6 +172,39 @@ describe("PlanTemplateModal", () => {
     await waitFor(() =>
       expect(createPlanTemplate).toHaveBeenCalledWith(
         expect.objectContaining({ days_from_arrival: -14 })
+      )
+    );
+  });
+
+  it("submits null days from arrival when the field is blank", async () => {
+    render(<PlanTemplateModal mode="create" onClose={jest.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/title/i), {
+      target: { value: "No due date task" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: /create template/i }));
+
+    await waitFor(() =>
+      expect(createPlanTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({ days_from_arrival: null })
+      )
+    );
+  });
+
+  it("submits the document upload toggle", async () => {
+    render(<PlanTemplateModal mode="create" onClose={jest.fn()} />);
+
+    fireEvent.change(screen.getByLabelText(/title/i), {
+      target: { value: "Submit I-20" },
+    });
+    fireEvent.click(screen.getByLabelText(/enable document upload/i));
+
+    fireEvent.click(screen.getByRole("button", { name: /create template/i }));
+
+    await waitFor(() =>
+      expect(createPlanTemplate).toHaveBeenCalledWith(
+        expect.objectContaining({ accepts_upload: true })
       )
     );
   });

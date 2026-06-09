@@ -2,6 +2,23 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { TaskCard } from "@/components/dashboard/TaskCard";
 import type { PlanTask } from "@/lib/types/plan";
 
+jest.mock("../../../components/documents/GeneralUploadModal", () => ({
+  GeneralUploadModal: ({
+    isOpen,
+    taskId,
+    sectionLabel,
+  }: {
+    isOpen: boolean;
+    taskId?: string;
+    sectionLabel?: string;
+  }) =>
+    isOpen ? (
+      <div data-testid="general-upload-modal-stub">
+        {taskId}:{sectionLabel}
+      </div>
+    ) : null,
+}));
+
 const task: PlanTask = {
   id: "task-1",
   title: "Open a bank account",
@@ -10,6 +27,8 @@ const task: PlanTask = {
   status: "not_started",
   due_date: "2099-09-01",
   content_url: "https://notion.so/task",
+  video_url: null,
+  accepts_upload: false,
   display_order: 1,
   completed_at: null,
 };
@@ -189,10 +208,10 @@ describe("TaskCard", () => {
     expect(screen.getByRole("link", { name: /view content/i })).toBeInTheDocument();
   });
 
-  // --- Video URL badge ---
+  // --- Title row indicators ---
 
-  it("renders a Watch video link when video_url is provided", () => {
-    render(
+  it("renders a play icon, not a Watch video link, when video_url is provided", () => {
+    const { container } = render(
       <TaskCard
         task={task}
         phaseColor={phaseColor}
@@ -201,11 +220,9 @@ describe("TaskCard", () => {
         video_url="https://www.youtube.com/watch?v=dQw4w9WgXcQ"
       />
     );
-    const link = screen.getByRole("link", { name: /watch video/i });
-    expect(link).toBeInTheDocument();
-    expect(link).toHaveAttribute("href", "https://www.youtube.com/watch?v=dQw4w9WgXcQ");
-    expect(link).toHaveAttribute("target", "_blank");
-    expect(link).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.queryByRole("link", { name: /watch video/i })).not.toBeInTheDocument();
+    expect(screen.queryByText(/watch video/i)).not.toBeInTheDocument();
+    expect(container.querySelector('polygon[points="5 3 19 12 5 21 5 3"]')).toBeInTheDocument();
   });
 
   it("does not render a Watch video link when video_url is not provided", () => {
@@ -234,7 +251,7 @@ describe("TaskCard", () => {
   });
 
   it("renders both View Content and Watch video when both are present", () => {
-    render(
+    const { container } = render(
       <TaskCard
         task={task}
         phaseColor={phaseColor}
@@ -244,11 +261,12 @@ describe("TaskCard", () => {
       />
     );
     expect(screen.getByRole("link", { name: /view content/i })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /watch video/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /watch video/i })).not.toBeInTheDocument();
+    expect(container.querySelector('polygon[points="5 3 19 12 5 21 5 3"]')).toBeInTheDocument();
   });
 
-  it("renders Watch video without View Content when content_url is null", () => {
-    render(
+  it("renders a video icon without View Content when content_url is null", () => {
+    const { container } = render(
       <TaskCard
         task={noContentTask}
         phaseColor={phaseColor}
@@ -258,6 +276,42 @@ describe("TaskCard", () => {
       />
     );
     expect(screen.queryByRole("link", { name: /view content/i })).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /watch video/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /watch video/i })).not.toBeInTheDocument();
+    expect(container.querySelector('polygon[points="5 3 19 12 5 21 5 3"]')).toBeInTheDocument();
+  });
+
+  it("renders an upload button when accepts_upload is true without content or video", () => {
+    render(
+      <TaskCard
+        task={{ ...noContentTask, accepts_upload: true, video_url: null }}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+      />
+    );
+
+    const button = screen.getByRole("button", { name: "Upload Document" });
+    fireEvent.click(button);
+    expect(screen.getByTestId("general-upload-modal-stub")).toHaveTextContent(
+      "task-1:Open a bank account"
+    );
+    expect(screen.queryByRole("link", { name: /view content/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /watch video/i })).not.toBeInTheDocument();
+  });
+
+  it("renders no upload helper or upload link when upload is available on a content-linked task", () => {
+    const { container } = render(
+      <TaskCard
+        task={{ ...task, accepts_upload: true }}
+        phaseColor={phaseColor}
+        status={task.status}
+        onToggle={onToggle}
+      />
+    );
+
+    expect(screen.queryByText(/document upload available/i)).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /upload document/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /upload document/i })).not.toBeInTheDocument();
+    expect(container.querySelector('path[d^="M21.44 11.05"]')).toBeInTheDocument();
   });
 });

@@ -533,23 +533,31 @@ describe("plan actions", () => {
 
   it("recalculatePlanDueDates updates due dates and returns correct count", async () => {
     mockGetUser.mockResolvedValue({ data: { user: { id: "u1", email: "u@test.com" } } });
+    const firstUpdate = makeAsyncChain({ error: null });
+    const secondUpdate = makeAsyncChain({ error: null });
     mockServerFrom
       .mockReturnValueOnce(makeAsyncChain({ data: { arrival_date: "2099-01-01" }, error: null }))
       .mockReturnValueOnce(
         makeAsyncChain({
           data: [
             { id: "task-1", plan_task_templates: [{ days_from_arrival: 0 }] },
-            { id: "task-2", plan_task_templates: [{ days_from_arrival: 7 }] },
+            { id: "task-2", plan_task_templates: [{ days_from_arrival: null }] },
           ],
           error: null,
         })
       );
     mockServiceFrom
-      .mockReturnValueOnce(makeAsyncChain({ error: null }))
-      .mockReturnValueOnce(makeAsyncChain({ error: null }));
+      .mockReturnValueOnce(firstUpdate)
+      .mockReturnValueOnce(secondUpdate);
 
     const result = await recalculatePlanDueDates();
     expect(result).toEqual({ success: true, updatedCount: 2 });
+    expect(firstUpdate.update as jest.Mock).toHaveBeenCalledWith({
+      due_date: "2099-01-01",
+    });
+    expect(secondUpdate.update as jest.Mock).toHaveBeenCalledWith({
+      due_date: null,
+    });
   });
 
   it("recalculatePlanDueDates returns error when a batch due-date update fails", async () => {

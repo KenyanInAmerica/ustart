@@ -35,6 +35,8 @@ describe("PlanCalendar", () => {
         status: "in_progress",
         due_date: today,
         content_url: "https://notion.so/bank",
+        video_url: null,
+        accepts_upload: false,
         display_order: 1,
         completed_at: null,
       },

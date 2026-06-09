@@ -31,6 +31,7 @@ interface FormState {
   tier_required: TierId;
   content_url: string;
   video_url: string;
+  accepts_upload: boolean;
 }
 
 const TIER_OPTIONS: { value: TierId; label: string }[] = [
@@ -44,10 +45,14 @@ function buildInitialState(template?: PlanTaskTemplate): FormState {
     title: template?.title ?? "",
     description: template?.description ?? "",
     phase: template?.phase ?? "before_arrival",
-    days_from_arrival: String(template?.days_from_arrival ?? 0),
+    days_from_arrival:
+      template?.days_from_arrival === null || template?.days_from_arrival === undefined
+        ? ""
+        : String(template.days_from_arrival),
     tier_required: template?.tier_required ?? "lite",
     content_url: template?.content_url ?? "",
     video_url: template?.video_url ?? "",
+    accepts_upload: template?.accepts_upload ?? false,
   };
 }
 
@@ -90,7 +95,8 @@ export function PlanTemplateModal({
     form.days_from_arrival !== initialForm.days_from_arrival ||
     form.tier_required !== initialForm.tier_required ||
     form.content_url !== initialForm.content_url ||
-    form.video_url !== initialForm.video_url;
+    form.video_url !== initialForm.video_url ||
+    form.accepts_upload !== initialForm.accepts_upload;
 
   function updateField<Key extends keyof FormState>(key: Key, value: FormState[Key]) {
     setForm((current) => ({ ...current, [key]: value }));
@@ -125,9 +131,11 @@ export function PlanTemplateModal({
     event.preventDefault();
     setError(null);
 
-    const daysFromArrival = Number(form.days_from_arrival);
+    const trimmedDaysFromArrival = form.days_from_arrival.trim();
+    const daysFromArrival =
+      trimmedDaysFromArrival === "" ? null : Number(trimmedDaysFromArrival);
 
-    if (!Number.isInteger(daysFromArrival)) {
+    if (daysFromArrival !== null && !Number.isInteger(daysFromArrival)) {
       setError("Days from arrival must be a whole number.");
       return;
     }
@@ -140,6 +148,7 @@ export function PlanTemplateModal({
       tier_required: form.tier_required,
       content_url: form.content_url,
       video_url: form.video_url,
+      accepts_upload: form.accepts_upload,
     };
 
     startTransition(async () => {
@@ -247,17 +256,16 @@ export function PlanTemplateModal({
           </div>
 
           <label className="block">
-            <span className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Days from arrival</span>
+            <span className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Days from arrival (optional)</span>
             <input
               id="plan-template-days-from-arrival"
-              required
               type="number"
               value={form.days_from_arrival}
               onChange={(event) => updateField("days_from_arrival", event.target.value)}
               className="w-full rounded-[var(--radius-sm)] border border-[var(--border)] bg-[var(--bg-subtle)] px-3 py-2 text-[13px] text-[var(--text)] focus:border-[var(--accent)] focus:outline-none"
             />
             <p className="mt-1 text-xs text-[var(--text-muted)]">
-              Negative numbers schedule tasks before arrival. 0 = day of arrival.
+              Leave blank for tasks with no due date. Negative numbers schedule tasks before arrival. 0 = day of arrival.
             </p>
           </label>
 
@@ -309,6 +317,24 @@ export function PlanTemplateModal({
               <p className="mt-1.5 text-xs text-[var(--destructive)]">{verificationError}</p>
             )}
           </div>
+
+          <label className="flex cursor-pointer items-center gap-3">
+            <input
+              type="checkbox"
+              checked={form.accepts_upload}
+              onChange={(event) => updateField("accepts_upload", event.target.checked)}
+              className="h-4 w-4 cursor-pointer accent-[var(--accent)]"
+            />
+
+            <div>
+              <p className="text-sm font-medium text-[var(--text)]">
+                Enable document upload
+              </p>
+              <p className="text-xs text-[var(--text-muted)]">
+                Students can submit documents for admin review on this task.
+              </p>
+            </div>
+          </label>
 
           <div className="block">
             <span className="mb-1.5 block text-[13px] text-[var(--text-mid)]">Video URL</span>

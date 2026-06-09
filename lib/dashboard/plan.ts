@@ -30,14 +30,40 @@ export const fetchUserPlan = cache(
     const { data } = await supabase
       .from("plan_tasks")
       .select(
-        "id, title, description, phase, status, due_date, content_url, display_order, completed_at"
+        `
+          id, template_id, title, description, phase, status,
+          due_date, content_url, display_order,
+          completed_at,
+          plan_task_templates (
+            accepts_upload,
+            video_url
+          )
+        `
       )
       .eq("user_id", userId)
       .order("phase")
       .order("display_order")
       .order("created_at");
 
-    const tasks = (data ?? []) as PlanTask[];
+    type RawPlanTaskRow = Omit<PlanTask, "accepts_upload" | "video_url"> & {
+      plan_task_templates:
+        | { accepts_upload: boolean | null; video_url: string | null }
+        | { accepts_upload: boolean | null; video_url: string | null }[]
+        | null;
+    };
+
+    const tasks = ((data ?? []) as unknown as RawPlanTaskRow[]).map((row) => {
+      const { plan_task_templates, ...task } = row;
+      const templateRow = Array.isArray(plan_task_templates)
+        ? plan_task_templates[0]
+        : plan_task_templates;
+
+      return {
+        ...task,
+        accepts_upload: templateRow?.accepts_upload === true,
+        video_url: templateRow?.video_url ?? null,
+      };
+    }) as PlanTask[];
 
     return PLAN_PHASES.map((phase) => {
       const phaseTasks = tasks.filter((task) => task.phase === phase);
@@ -63,7 +89,7 @@ export const getTaskForContentUrl = cache(
     const { data } = await supabase
       .from("plan_tasks")
       .select(
-        "id, title, description, phase, status, due_date, content_url, display_order, completed_at, plan_task_templates!template_id(video_url)"
+        "id, template_id, title, description, phase, status, due_date, content_url, display_order, completed_at, plan_task_templates!template_id(video_url, accepts_upload)"
       )
       .eq("user_id", userId)
       .not("content_url", "is", null);
@@ -72,6 +98,7 @@ export const getTaskForContentUrl = cache(
 
     type RawRow = {
       id: string;
+      template_id: string | null;
       title: string;
       description: string | null;
       phase: string;
@@ -81,7 +108,9 @@ export const getTaskForContentUrl = cache(
       display_order: number;
       completed_at: string | null;
       // Supabase returns one-to-one FK joins as an array in TypeScript inference
-      plan_task_templates: { video_url: string | null }[] | null;
+      plan_task_templates:
+        | { video_url: string | null; accepts_upload: boolean | null }[]
+        | null;
     };
 
     const rows = (data ?? []) as unknown as RawRow[];
@@ -99,6 +128,7 @@ export const getTaskForContentUrl = cache(
     return {
       ...(rest as PlanTask),
       video_url: templateRow?.video_url ?? null,
+      accepts_upload: templateRow?.accepts_upload === true,
     };
   }
 );

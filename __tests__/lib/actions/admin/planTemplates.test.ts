@@ -80,7 +80,26 @@ describe("planTemplates actions", () => {
       description: "Description",
       phase: "before_arrival",
       days_from_arrival: 0,
+      accepts_upload: true,
       content_url: "https://notion.so/task",
+      tier_required: "lite",
+    });
+
+    expect(result).toEqual({ success: true });
+  });
+
+  it("accepts nullable day offsets and upload flags", async () => {
+    mockGetUser.mockResolvedValue({ data: { user: ADMIN_USER } });
+    mockServiceFrom
+      .mockReturnValueOnce(makeChain({ data: { is_admin: true }, error: null }))
+      .mockReturnValueOnce(makeChain({ count: 0, error: null }))
+      .mockReturnValueOnce(makeChain({ data: { id: "template-1" }, error: null }));
+
+    const result = await createPlanTemplate({
+      title: "Upload task",
+      phase: "before_arrival",
+      days_from_arrival: null,
+      accepts_upload: true,
       tier_required: "lite",
     });
 
@@ -131,6 +150,8 @@ describe("planTemplates actions", () => {
             phase: "before_arrival",
             days_from_arrival: 0,
             content_url: null,
+            video_url: null,
+            accepts_upload: false,
             tier_required: "lite",
             display_order: 1,
             created_at: "2026-04-21T12:00:00.000Z",
