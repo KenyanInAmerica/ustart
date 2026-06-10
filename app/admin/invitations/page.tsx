@@ -57,10 +57,10 @@ export default async function AdminInvitationsPage({ searchParams }: PageProps) 
             <Link
               key={opt.value}
               href={href}
-              className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px] transition-colors ${
+              className={`rounded-[var(--radius-sm)] px-3 py-1.5 text-[13px] transition-colors duration-150 ${
                 active
                   ? "bg-[#3083DC]/10 text-[#3083DC]"
-                  : "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
+                  : "text-[var(--text-mid)] hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]"
               }`}
             >
               {opt.label}

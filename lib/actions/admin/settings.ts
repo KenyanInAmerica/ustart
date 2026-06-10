@@ -1,5 +1,5 @@
 // Server action for admin settings.
-// Currently covers: WhatsApp invite link stored in the config table.
+// Covers config-table values managed from /admin/settings.
 
 "use server";
 
@@ -14,6 +14,9 @@ type SettingsInput = {
   whatsappInviteLink: string;
   parentPackNotionUrl: string;
   parentContentNotionUrl: string;
+  instagramUrl: string;
+  tiktokUrl: string;
+  affiliateDisclosureEnabled: boolean;
 };
 
 async function requireAdmin(): Promise<
@@ -49,6 +52,11 @@ export async function saveAdminSettings(settings: SettingsInput): Promise<Action
       whatsappInviteLink: settings.whatsappInviteLink.trim(),
       parentPackNotionUrl: settings.parentPackNotionUrl.trim(),
       parentContentNotionUrl: settings.parentContentNotionUrl.trim(),
+      instagramUrl: settings.instagramUrl.trim(),
+      tiktokUrl: settings.tiktokUrl.trim(),
+      affiliateDisclosureEnabled: settings.affiliateDisclosureEnabled
+        ? "true"
+        : "false",
     };
 
     if (
@@ -67,6 +75,12 @@ export async function saveAdminSettings(settings: SettingsInput): Promise<Action
           { key: "whatsapp_invite_link", value: trimmed.whatsappInviteLink },
           { key: "parent_pack_notion_url", value: trimmed.parentPackNotionUrl },
           { key: "parent_content_notion_url", value: trimmed.parentContentNotionUrl },
+          { key: "instagram_url", value: trimmed.instagramUrl },
+          { key: "tiktok_url", value: trimmed.tiktokUrl },
+          {
+            key: "affiliate_disclosure_enabled",
+            value: trimmed.affiliateDisclosureEnabled,
+          },
         ],
         { onConflict: "key" }
       );
@@ -82,6 +96,9 @@ export async function saveAdminSettings(settings: SettingsInput): Promise<Action
           "whatsapp_invite_link",
           "parent_pack_notion_url",
           "parent_content_notion_url",
+          "instagram_url",
+          "tiktok_url",
+          "affiliate_disclosure_enabled",
         ],
       },
     });
@@ -90,6 +107,7 @@ export async function saveAdminSettings(settings: SettingsInput): Promise<Action
     // so the new link is reflected immediately.
     revalidatePath("/admin/settings");
     revalidatePath("/dashboard");
+    revalidatePath("/");
     return { success: true };
   } catch {
     return { success: false, error: "Something went wrong. Please try again." };
@@ -101,5 +119,8 @@ export async function saveWhatsappLink(link: string): Promise<ActionResult> {
     whatsappInviteLink: link,
     parentPackNotionUrl: "https://notion.so/placeholder",
     parentContentNotionUrl: "https://notion.so/placeholder",
+    instagramUrl: "",
+    tiktokUrl: "",
+    affiliateDisclosureEnabled: false,
   });
 }

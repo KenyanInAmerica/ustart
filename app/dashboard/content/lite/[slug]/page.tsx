@@ -108,7 +108,7 @@ export default async function LiteModulePage({
       {searchParams.from === "plan" && (
         <Link
           href="/dashboard"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text)]"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors duration-150 hover:text-[#E54B4B]"
         >
           ← Back to My Plan
         </Link>
@@ -145,7 +145,7 @@ export default async function LiteModulePage({
           {prevModule && (
             <Link
               href={`/dashboard/content/lite/${prevModule.slug}`}
-              className="flex items-center gap-2 text-[var(--text-muted)] text-sm hover:text-[var(--text)]"
+              className="flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors duration-150 hover:text-[#E54B4B]"
             >
               ← {prevModule.title}
             </Link>

@@ -83,10 +83,6 @@ jest.mock("../../../components/dashboard/SignOutButton", () => ({
   SignOutButton: () => <button type="button">Sign out</button>,
 }));
 
-jest.mock("../../../components/ui/Footer", () => ({
-  Footer: () => <footer>Footer</footer>,
-}));
-
 import DashboardLayout from "../../../app/dashboard/layout";
 import { redirect } from "next/navigation";
 
@@ -114,6 +110,7 @@ describe("DashboardLayout", () => {
 
     expect(screen.getByTestId("sidebar-stub")).toBeInTheDocument();
     expect(screen.getByText("Child page")).toBeInTheDocument();
+    expect(screen.queryByText("Footer")).not.toBeInTheDocument();
   });
 
   it("redirects signed-out users to /sign-in", async () => {

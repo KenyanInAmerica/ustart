@@ -18,14 +18,17 @@ describe("AdminSidebar", () => {
     expect(container).toBeTruthy();
   });
 
-  it("renders the UStart wordmark", () => {
+  it("renders the UStart logo", () => {
     render(<AdminSidebar />);
-    expect(screen.getByText("UStart")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "UStart" })).toHaveAttribute(
+      "href",
+      "/admin"
+    );
   });
 
   it("renders the Admin badge", () => {
     render(<AdminSidebar />);
-    expect(screen.getByText("Admin")).toBeInTheDocument();
+    expect(screen.getByText("ADMIN")).toBeInTheDocument();
   });
 
   it("renders all nav items", () => {

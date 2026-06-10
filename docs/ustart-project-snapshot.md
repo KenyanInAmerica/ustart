@@ -1,6 +1,6 @@
 # UStart Portal — Project Snapshot
 
-**Date:** June 9, 2026
+**Date:** June 10, 2026
 
 **Stack:** Next.js 14 (App Router) · TypeScript · Tailwind CSS · Supabase · Stripe (pending) · Resend · PostHog · Vercel
 
@@ -158,6 +158,7 @@ Defined in `lib/config/productAccents.ts`.
 ### Design System Notes
 
 - Tagline: `"Your Move, Made Simple"` (from `brand.ts`, easily configurable)
+- Public and dashboard nav surfaces use `/public/images/logomark-navy.png`; the public footer uses `/public/images/logomark-creme.png`.
 - Design system is now fully light mode — dark theme removed entirely
 - Signed-in users without `profiles.intake_completed_at` are redirected to `/intake` before the dashboard shell loads
 - Parent accounts bypass the intake redirect and land in `/dashboard/parent/plan`
@@ -248,7 +249,7 @@ Defined in `lib/config/productAccents.ts`.
     Button.tsx                    # Shared button component — primary, secondary, ghost, destructive variants with loading state
     Card.tsx                      # Shared card wrapper — configurable shadow and padding
     ChevronIcon.tsx, GetStartedLink.tsx
-    SignOutButton.tsx, Navbar.tsx, NavbarClient.tsx, Footer.tsx
+    SignOutButton.tsx, Navbar.tsx, NavbarClient.tsx, Footer.tsx, FooterView.tsx, FooterContactButton.tsx
     ContactFormProvider.tsx    # React context — exposes useContactForm() hook. Added Feature 14.
     ContactPanel.tsx           # Slide-out contact panel (auth + unauth variants). Added Feature 14.
     ContactTriggerLink.tsx     # Inline "use client" button for server-rendered pages. Added Feature 14.
@@ -349,7 +350,7 @@ Defined in `lib/config/productAccents.ts`.
     admin/planTemplates.ts      # CRUD + savePlanTemplateOrder() + ADMIN_PLAN_TEMPLATE_REORDERED logging
     admin/planTasks.ts          # adminFetchUserPlanTasks(), adminUpdatePlanTask(), adminAddPlanTask(), adminDeletePlanTask()
     admin/documents.ts          # adminReviewSubmission(), adminFetchUserDocumentSubmissions()
-    admin/settings.ts           # saveWhatsappLink()
+    admin/settings.ts           # saveAdminSettings() — config table values for links, Notion URLs, footer/legal controls
     admin/updatePricing.ts      # updatePricing() — diff-based, logs changes
     admin/users.ts              # setUserMembershipTier(), setUserAddon(), assignContentToUser(),
                                 #   revokeContentFromUser(), softDeleteUser(), hardDeleteUser(),
@@ -381,7 +382,16 @@ Defined in `lib/config/productAccents.ts`.
   setup-hubspot.ts            # One-time script — creates UStart property group and 12 custom contact properties
   purge-hubspot-staging.ts    # Purge script — deletes all staging-tagged contacts from HubSpot.
                               # Requires 'confirm' input before running.
-/public/favicon.ico    # Static favicon fallback
+/public
+  favicon.ico                 # Static favicon
+  apple-touch-icon.png        # Apple touch icon
+  /images
+    logomark-creme.png        # Crème logomark for navy footer
+    logomark-navy.png         # Navy logomark for nav/sidebar surfaces
+    logo-primary-navy.png     # Primary navy logo asset
+    logo-primary-creme.png    # Stacked crème logo for dark footer
+    logo-secondary-navy.png   # Horizontal navy logo for light nav/sidebar surfaces
+    logo-secondary-creme.png  # Horizontal crème logo for dark surfaces
 middleware.ts — updated Feature 13: /invite added as intentionally public route
 /.github
   /workflows   ci.yml (typecheck + lint + test on PRs to develop and main)
@@ -459,7 +469,7 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 | `parent_invitations`   | Tracks parent invitation state. Partial unique index on student_id for pending/accepted rows only. invite_token (UUID) and invite_token_expires_at added for pre-fetch-safe invitation flow. Token valid 72 hours. share_tasks/share_calendar/share_content default to true and are managed by the student from /dashboard/content/parent-pack. |
 | `parent_content`       | Curated content for parent accounts. Placeholder.                                                                                                                                          |
 | `community_agreements` | Tracks community rule acceptance per user.                                                                                                                                                 |
-| `config`               | Key-value config store. Holds whatsapp_invite_link, parent_pack_notion_url, and parent_content_notion_url.                                                                                |
+| `config`               | Key-value config store. Holds whatsapp_invite_link, parent_pack_notion_url, parent_content_notion_url, instagram_url, tiktok_url, and affiliate_disclosure_enabled.                      |
 | `content_items`        | PDF content library. Columns: id, title, description, tier, file_path, file_name, is_individual_only, uploaded_by, created_at, updated_at                                                  |
 | `user_content_items`   | Individual user PDF assignments. Unique on (user_id, content_item_id).                                                                                                                     |
 | `pricing`              | Single source of truth for all product pricing. Columns: id, name, description, price, billing, features (JSONB), is_public, display_order, stripe_product_id, stripe_price_id, updated_at |
@@ -501,6 +511,9 @@ Always run `typecheck`, `lint`, and `test` after changes before committing. All 
 - `document_submission_files.file_path` — bucket-relative path in the private `submissions` bucket: `{userId}/{submissionId}/{timestamp}_{filename}`.
 - `config.parent_pack_notion_url` — Notion link shown on the student Parent Pack page, editable in `/admin/settings`
 - `config.parent_content_notion_url` — Notion link shown in the parent Parent Hub, editable in `/admin/settings`
+- `config.instagram_url` — public Instagram profile URL shown in the footer when non-empty and not a placeholder.
+- `config.tiktok_url` — public TikTok profile URL shown in the footer when non-empty and not a placeholder.
+- `config.affiliate_disclosure_enabled` — string boolean (`'true'`/`'false'`) controlling footer affiliate disclosure visibility.
 
 ### Constraints
 
@@ -588,7 +601,7 @@ All live pricing data is fetched from the `public.pricing` table in Supabase. `l
 - Submission file path: `submissions/{userId}/{submissionId}/{timestamp}_{filename}`. The stored object path is bucket-relative: `{userId}/{submissionId}/{timestamp}_{filename}`.
 - Submission bucket file size limit: 10MB per file. Server validation allows PDF, JPEG, PNG, HEIC, and Word document MIME types, with up to 5 files per submission.
 - Submission signed URLs: 60 minute expiry for viewing and downloads
-- NOTE: `/icon.png` 404 in dev console is expected and harmless — Next.js ImageResponse only pre-renders at build time. `/public/favicon.ico` resolves correctly in all environments.
+- Favicon and Apple touch icon are static files in `/public`; there is no generated `app/icon.tsx` route.
 
 ---
 

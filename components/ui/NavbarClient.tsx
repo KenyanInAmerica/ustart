@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { brand } from "@/lib/config/brand";
 import { GetStartedLink } from "@/components/ui/GetStartedLink";
 import { SignOutButton } from "@/components/ui/SignOutButton";
 
@@ -13,10 +13,13 @@ interface NavbarClientProps {
 }
 
 const navLinkClassName =
-  "text-sm font-medium text-[var(--text-mid)] transition-colors duration-200 hover:text-[var(--text)]";
+  "text-sm font-medium text-[var(--text-mid)] transition-colors duration-150 hover:text-[#E54B4B]";
 
 const filledLinkClassName =
   "inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[var(--accent)] px-5 py-[9px] text-sm font-semibold text-white transition-colors duration-200 hover:bg-[var(--accent-hover)]";
+
+const adminLinkClassName =
+  "inline-flex items-center justify-center rounded-[var(--radius-sm)] bg-[#E54B4B] px-5 py-[9px] text-sm font-semibold text-white transition-colors duration-150 hover:bg-[#E54B4B]/90";
 
 export function NavbarClient({
   isAuthenticated,
@@ -50,12 +53,17 @@ export function NavbarClient({
         .join(" ")}
     >
       <div className="mx-auto flex h-20 max-w-[1280px] items-center justify-between gap-6 px-6 md-900:px-12">
-        <Link href="/" className="min-w-0">
-          <span className="block font-primary text-xl font-extrabold tracking-[-0.03em] text-[var(--text)]">
-            {brand.name}
-          </span>
-          <span className="block truncate text-xs font-medium uppercase tracking-wide text-[var(--text-mid)]">
-            {brand.tagline}
+        <Link href="/" className="flex items-center gap-2.5">
+          <Image
+            src="/images/logomark-navy.png"
+            alt=""
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-auto flex-shrink-0"
+          />
+          <span className="text-xl font-semibold tracking-tight text-[#1C2B3A]">
+            UStart
           </span>
         </Link>
 
@@ -63,7 +71,7 @@ export function NavbarClient({
           {isAuthenticated ? (
             <>
               {isAdmin && (
-                <Link href="/admin" className={navLinkClassName}>
+                <Link href="/admin" className={adminLinkClassName}>
                   Admin
                 </Link>
               )}
@@ -123,7 +131,7 @@ export function NavbarClient({
                 {isAdmin && (
                   <Link
                     href="/admin"
-                    className={navLinkClassName}
+                    className={adminLinkClassName}
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Admin

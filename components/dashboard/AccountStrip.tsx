@@ -57,7 +57,7 @@ export function AccountStrip({ access }: Props) {
             // No plan — link straight to pricing so there's a clear next action.
             <Link
               href="/pricing"
-              className="font-primary text-xs text-[var(--text-muted)] underline transition-colors hover:text-[var(--text)]"
+              className="font-primary text-xs text-[var(--text-muted)] underline transition-colors duration-150 hover:text-[#E54B4B]"
             >
               No active plan — view plans →
             </Link>

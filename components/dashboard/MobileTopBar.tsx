@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { brand } from "@/lib/config/brand";
+import Image from "next/image";
 
 type Props = {
   onOpen: () => void;
@@ -13,11 +13,18 @@ type Props = {
 export function MobileTopBar({ onOpen }: Props) {
   return (
     <div className="fixed left-0 right-0 top-0 z-[100] flex h-14 items-center justify-between border-b border-[var(--border)] bg-white px-5 min-[860px]:hidden">
-      <Link
-        href="/"
-        className="font-primary text-[16px] font-extrabold tracking-[-0.03em] text-[var(--text)]"
-      >
-        {brand.name}
+      <Link href="/dashboard" className="flex items-center gap-2.5">
+        <Image
+          src="/images/logomark-navy.png"
+          alt=""
+          width={36}
+          height={36}
+          priority
+          className="h-9 w-auto flex-shrink-0"
+        />
+        <span className="text-xl font-semibold tracking-tight text-[#1C2B3A]">
+          UStart
+        </span>
       </Link>
       <button
         onClick={onOpen}

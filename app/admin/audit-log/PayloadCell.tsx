@@ -20,7 +20,7 @@ export function PayloadCell({ payload }: PayloadCellProps) {
     <div>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="text-[12px] text-[var(--text-muted)] underline underline-offset-2 transition-colors hover:text-[var(--text)]"
+        className="text-[12px] text-[var(--text-muted)] underline underline-offset-2 transition-colors duration-150 hover:text-[#E54B4B]"
       >
         {open ? "hide" : "view"}
       </button>

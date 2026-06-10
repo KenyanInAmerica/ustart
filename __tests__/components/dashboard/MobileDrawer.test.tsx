@@ -68,7 +68,10 @@ describe("MobileDrawer", () => {
   it("renders when isOpen is true", () => {
     const { container } = render(<MobileDrawer {...defaultProps} />);
     expect(container).toBeTruthy();
-    expect(screen.getByText("UStart")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "UStart" })).toHaveAttribute(
+      "href",
+      "/dashboard"
+    );
   });
 
   it("renders nothing when isOpen is false", () => {
