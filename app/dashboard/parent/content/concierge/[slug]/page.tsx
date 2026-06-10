@@ -46,7 +46,7 @@ export default async function ParentConciergeModulePage({
       {searchParams.from === "plan" && (
         <Link
           href="/dashboard/parent/plan"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] hover:text-[var(--text)]"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm text-[var(--text-muted)] transition-colors duration-150 hover:text-[#E54B4B]"
         >
           ← Back to My Student&apos;s Plan
         </Link>
@@ -79,7 +79,7 @@ export default async function ParentConciergeModulePage({
           {prevModule && (
             <Link
               href={`/dashboard/parent/content/concierge/${prevModule.slug}`}
-              className="flex items-center gap-2 text-[var(--text-muted)] text-sm hover:text-[var(--text)]"
+              className="flex items-center gap-2 text-sm text-[var(--text-muted)] transition-colors duration-150 hover:text-[#E54B4B]"
             >
               ← {prevModule.title}
             </Link>

@@ -72,7 +72,7 @@ export function DeleteUserModal({ user, onClose, onDeleted }: DeleteUserModalPro
         <div className="w-full max-w-[480px] overflow-hidden rounded-[var(--radius-lg)] bg-white shadow-[var(--shadow-lg)]">
           <div className="flex items-center justify-between border-b border-[var(--border)] px-6 py-5">
             <div className="flex items-center gap-3">
-              <svg className="h-5 w-5 text-[#E54B4B]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+              <svg className="h-5 w-5 text-[var(--destructive)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                 <path d="M12 9v4" />
                 <path d="M12 17h.01" />
                 <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" />
@@ -149,7 +149,7 @@ export function DeleteUserModal({ user, onClose, onDeleted }: DeleteUserModalPro
                       type="checkbox"
                       checked={hardAck}
                       onChange={(e) => setHardAck(e.target.checked)}
-                      className="mt-0.5 shrink-0 cursor-pointer accent-[#E54B4B]"
+                      className="mt-0.5 shrink-0 cursor-pointer accent-[var(--destructive)]"
                     />
                     <span className="text-[13px] leading-relaxed text-[var(--text-mid)] transition-colors group-hover:text-[var(--text)]">
                       I acknowledge that this will permanently and irreversibly delete all data for this user, including their profile, memberships, purchases, and add-ons.

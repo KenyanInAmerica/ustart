@@ -21,9 +21,11 @@ export default async function AdminSettingsPage() {
       </p>
 
       <div className="mb-6 rounded-[var(--radius-lg)] border border-[var(--border)] bg-white px-6 py-5">
-        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">Platform links</h2>
+        <h2 className="mb-4 text-[13px] font-medium text-[var(--text)]">
+          Platform configuration
+        </h2>
         <p className="mb-5 max-w-md text-[13px] text-[var(--text-muted)]">
-          Manage the external links used across the dashboard and Parent Pack flows.
+          Manage external links, content sources, and footer legal controls.
         </p>
         <SettingsForm initialValues={settings} />
       </div>

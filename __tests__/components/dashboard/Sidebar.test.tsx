@@ -70,7 +70,10 @@ describe("Sidebar", () => {
 
   it("renders the UStart wordmark", () => {
     render(<Sidebar {...defaultProps} />);
-    expect(screen.getByText("UStart")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "UStart" })).toHaveAttribute(
+      "href",
+      "/dashboard"
+    );
   });
 
   it("renders all nav section labels", () => {

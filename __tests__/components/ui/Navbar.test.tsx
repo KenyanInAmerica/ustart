@@ -64,13 +64,10 @@ describe("Navbar", () => {
   it("renders the UStart wordmark", async () => {
     mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
     render(await Navbar());
-    expect(screen.getByText("UStart")).toBeInTheDocument();
-  });
-
-  it("renders the brand tagline", async () => {
-    mockGetUser.mockResolvedValueOnce({ data: { user: null }, error: null });
-    render(await Navbar());
-    expect(screen.getByText("Your Move, Made Simple")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "UStart" })).toHaveAttribute(
+      "href",
+      "/"
+    );
   });
 
   it("renders Sign In and Get Started links when logged out", async () => {
