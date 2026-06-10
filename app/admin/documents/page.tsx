@@ -57,10 +57,10 @@ export default async function AdminDocumentsPage({ searchParams }: PageProps) {
             <Link
               key={filter.value}
               href={href}
-              className={`rounded-[var(--radius-sm)] border px-3 py-2 text-sm font-semibold transition-colors ${
+              className={`rounded-[var(--radius-sm)] border px-3 py-2 text-sm font-semibold transition-colors duration-150 ${
                 isActive
                   ? "border-[var(--accent)] bg-[var(--accent)] text-white"
-                  : "border-[var(--border)] bg-white text-[var(--text-mid)] hover:text-[var(--text)]"
+                  : "border-[var(--border)] bg-white text-[var(--text-mid)] hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]"
               }`}
             >
               {filter.label}

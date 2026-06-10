@@ -57,7 +57,7 @@ function ActionDropdown({ selected, onChange }: ActionDropdownProps) {
             <button
               type="button"
               onClick={toggleAll}
-              className="text-[12px] text-[var(--text-muted)] transition-colors hover:text-[var(--text)]"
+              className="text-[12px] text-[var(--text-muted)] transition-colors duration-150 hover:text-[#E54B4B]"
             >
               {allSelected ? "Deselect all" : "Select all"}
             </button>

@@ -5,7 +5,6 @@ import { MobileDashboardNav } from "@/components/dashboard/MobileDashboardNav";
 import { ParentShell } from "@/components/dashboard/ParentShell";
 import { fetchDashboardAccess } from "@/lib/dashboard/access";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
-import { Footer } from "@/components/ui/Footer";
 import { createServiceClient } from "@/lib/supabase/service";
 
 // Maps DB tier slugs to sidebar footer display names.
@@ -114,9 +113,8 @@ export default async function DashboardLayout({
         access={access}
       />
 
-      {/* Main content area — fills remaining width; flex-col so Footer stays at bottom */}
+      {/* Main content area — fills remaining width. */}
       <main className="flex flex-1 flex-col bg-[var(--bg)] px-5 pb-0 pt-[80px] min-[860px]:ml-[240px] min-[860px]:px-[56px] min-[860px]:pt-[48px]">
-        {/* flex-1 lets this wrapper grow and push the Footer to the bottom of the viewport */}
         <div className="flex-1 max-w-5xl mx-auto w-full pb-8">
           {/* Desktop-only top bar with sign out — mobile nav has its own drawer */}
           <div className="hidden min-[860px]:flex justify-end mb-6">
@@ -126,7 +124,6 @@ export default async function DashboardLayout({
           </div>
           {children}
         </div>
-        <Footer />
       </main>
     </div>
   );

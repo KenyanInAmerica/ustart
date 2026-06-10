@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
@@ -36,13 +37,31 @@ function ParentTopBar({
 }) {
   return (
     <div className="fixed left-0 right-0 top-0 z-[100] flex h-14 items-center justify-between border-b border-[var(--border)] bg-white px-5 min-[860px]:hidden">
-      <div>
-        <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]">
-          Parent View
-        </p>
-        <p className="font-primary text-sm font-bold text-[var(--text)]">
-          {studentFirstName}&apos;s UStart
-        </p>
+      <div className="flex items-center gap-3">
+        <Link
+          href="/dashboard/parent/plan"
+          className="flex items-center gap-2.5"
+        >
+          <Image
+            src="/images/logomark-navy.png"
+            alt=""
+            width={36}
+            height={36}
+            priority
+            className="h-9 w-auto flex-shrink-0"
+          />
+          <span className="text-xl font-semibold tracking-tight text-[#1C2B3A]">
+            UStart
+          </span>
+        </Link>
+        <div>
+          <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]">
+            Parent View
+          </p>
+          <p className="font-primary text-sm font-bold text-[var(--text)]">
+            {studentFirstName}&apos;s UStart
+          </p>
+        </div>
       </div>
       <button
         onClick={onOpen}
@@ -96,6 +115,23 @@ export function ParentMobileNav({
           <div className="absolute bottom-0 left-0 top-0 flex w-[280px] flex-col overflow-y-auto border-r border-[var(--border)] bg-white py-6">
             <div className="mb-5 flex items-center justify-between border-b border-[var(--border)] px-6 pb-6">
               <div>
+                <Link
+                  href="/dashboard/parent/plan"
+                  onClick={() => setIsOpen(false)}
+                  className="mb-4 flex items-center gap-2.5"
+                >
+                  <Image
+                    src="/images/logomark-navy.png"
+                    alt=""
+                    width={40}
+                    height={40}
+                    priority
+                    className="h-10 w-auto flex-shrink-0"
+                  />
+                  <span className="text-xl font-semibold tracking-tight text-[#1C2B3A]">
+                    UStart
+                  </span>
+                </Link>
                 <p className="mb-1 text-[11px] font-semibold uppercase tracking-widest text-[var(--accent)]">
                   Parent View
                 </p>
@@ -130,7 +166,7 @@ export function ParentMobileNav({
                         className={`flex items-center rounded-[var(--radius-sm)] px-3 py-[9px] text-sm transition-colors duration-150 ${
                           isActive(item.href)
                             ? "bg-[var(--accent)]/10 font-semibold text-[var(--accent)]"
-                            : "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
+                            : "text-[var(--text-mid)] hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]"
                         }`}
                       >
                         {item.label}

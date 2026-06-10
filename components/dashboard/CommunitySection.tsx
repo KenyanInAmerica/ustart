@@ -101,7 +101,7 @@ export function CommunitySection({
           href="/community-rules"
           target="_blank"
           rel="noopener noreferrer"
-          className="mb-4 block font-primary text-xs text-[var(--text-muted)] underline transition-colors hover:text-[var(--text)]"
+          className="mb-4 block font-primary text-xs text-[var(--text-muted)] underline transition-colors duration-150 hover:text-[#E54B4B]"
         >
           Read the full rules →
         </Link>

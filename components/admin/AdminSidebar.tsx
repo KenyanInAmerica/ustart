@@ -1,9 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
-import { brand } from "@/lib/config/brand";
 
 const NAV_ITEMS = [
   {
@@ -146,16 +146,26 @@ export function AdminSidebar({
 
   return (
     <aside className="fixed left-0 top-0 z-40 flex h-screen w-[220px] flex-col border-r border-[var(--border)] bg-white">
-      <div className="border-b border-[var(--border)] px-5 pb-5 pt-6">
-        <div className="flex items-center gap-2">
+      <div className="border-b border-[var(--border)] px-5 pb-3 pt-6">
+        <div>
           <Link
-            href="/"
-            className="font-primary text-lg font-extrabold tracking-[-0.03em] text-[var(--text)]"
+            href="/admin"
+            className="flex items-center gap-2.5"
           >
-            {brand.name}
+            <Image
+              src="/images/logomark-navy.png"
+              alt=""
+              width={40}
+              height={40}
+              priority
+              className="h-10 w-auto flex-shrink-0"
+            />
+            <span className="text-xl font-semibold tracking-tight text-[#1C2B3A]">
+              UStart
+            </span>
           </Link>
-          <span className="rounded-full bg-[#E54B4B]/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-widest text-[#E54B4B]">
-            Admin
+          <span className="mt-2 inline-block rounded-full bg-[var(--destructive)]/10 px-2 py-0.5 text-xs font-semibold uppercase text-[var(--destructive)]">
+            ADMIN
           </span>
         </div>
       </div>
@@ -174,7 +184,7 @@ export function AdminSidebar({
                   className={`flex items-center gap-3 rounded-[var(--radius-sm)] px-3 py-2 text-[13px] font-primary transition-colors duration-150 ${
                     active
                       ? "bg-[#3083DC]/10 font-semibold text-[#3083DC]"
-                      : "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
+                      : "text-[var(--text-mid)] hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]"
                   }`}
                 >
                   {item.icon}

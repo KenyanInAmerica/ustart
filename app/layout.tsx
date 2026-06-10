@@ -16,14 +16,9 @@ export const metadata: Metadata = {
   description:
     "UStart gives international students the tools, resources, and guidance to navigate life in the US with confidence.",
   icons: {
-    // /favicon.ico is a static fallback for dev (ImageResponse doesn't serve in
-    // the dev pipeline); app/icon.tsx takes over in production builds.
-    icon: [
-      { url: "/favicon.ico", sizes: "32x32", type: "image/x-icon" },
-      { url: "/icon.png", type: "image/png" },
-    ],
+    icon: "/favicon.ico",
     shortcut: "/favicon.ico",
-    apple: "/favicon.ico",
+    apple: "/apple-touch-icon.png",
   },
 };
 

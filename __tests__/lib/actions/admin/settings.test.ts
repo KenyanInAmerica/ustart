@@ -88,6 +88,9 @@ describe("saveAdminSettings", () => {
       whatsappInviteLink: "https://chat.whatsapp.com/abc123",
       parentPackNotionUrl: "https://notion.so/student",
       parentContentNotionUrl: "https://notion.so/parent",
+      instagramUrl: "https://instagram.com/ustart.us",
+      tiktokUrl: "",
+      affiliateDisclosureEnabled: false,
     });
     expect(result).toEqual({ success: true });
   });
@@ -102,6 +105,9 @@ describe("saveAdminSettings", () => {
       whatsappInviteLink: "https://chat.whatsapp.com/abc123",
       parentPackNotionUrl: "https://notion.so/student",
       parentContentNotionUrl: "https://notion.so/parent",
+      instagramUrl: "",
+      tiktokUrl: "",
+      affiliateDisclosureEnabled: true,
     });
     expect(result).toEqual({ success: false, error: "DB constraint violation" });
   });

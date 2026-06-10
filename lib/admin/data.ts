@@ -735,6 +735,9 @@ export interface AdminSettingsValues {
   whatsappInviteLink: string;
   parentPackNotionUrl: string;
   parentContentNotionUrl: string;
+  instagramUrl: string;
+  tiktokUrl: string;
+  affiliateDisclosureEnabled: boolean;
 }
 
 // Fetches admin-editable config values from the config table.
@@ -747,6 +750,9 @@ export async function fetchAdminSettingsValues(): Promise<AdminSettingsValues> {
       "whatsapp_invite_link",
       "parent_pack_notion_url",
       "parent_content_notion_url",
+      "instagram_url",
+      "tiktok_url",
+      "affiliate_disclosure_enabled",
     ]);
 
   const rows = (data ?? []) as { key: string; value: string }[];
@@ -756,5 +762,9 @@ export async function fetchAdminSettingsValues(): Promise<AdminSettingsValues> {
     whatsappInviteLink: config.get("whatsapp_invite_link") ?? "",
     parentPackNotionUrl: config.get("parent_pack_notion_url") ?? "",
     parentContentNotionUrl: config.get("parent_content_notion_url") ?? "",
+    instagramUrl: config.get("instagram_url") ?? "",
+    tiktokUrl: config.get("tiktok_url") ?? "",
+    affiliateDisclosureEnabled:
+      config.get("affiliate_disclosure_enabled") === "true",
   };
 }

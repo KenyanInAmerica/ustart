@@ -151,7 +151,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           {page > 1 && (
             <Link
               href={pageHref(page - 1)}
-              className="rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
+              className="rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors duration-150 hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]"
             >
               ← Prev
             </Link>
@@ -162,7 +162,7 @@ export default async function AuditLogPage({ searchParams }: PageProps) {
           {page < totalPages && (
             <Link
               href={pageHref(page + 1)}
-              className="rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]"
+              className="rounded-[var(--radius-sm)] border border-[var(--border)] px-3 py-1.5 text-[13px] text-[var(--text-mid)] transition-colors duration-150 hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]"
             >
               Next →
             </Link>

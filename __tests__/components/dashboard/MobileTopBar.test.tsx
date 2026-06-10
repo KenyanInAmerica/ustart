@@ -15,7 +15,7 @@ describe("MobileTopBar", () => {
 
   it("renders the UStart wordmark", () => {
     render(<MobileTopBar onOpen={jest.fn()} />);
-    expect(screen.getByText("UStart")).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "UStart" })).toBeInTheDocument();
   });
 
   it("renders the hamburger button", () => {

@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { Footer } from "@/components/ui/Footer";
 import { ParentMobileNav } from "@/components/dashboard/ParentMobileNav";
 import { ParentSidebar } from "@/components/dashboard/ParentSidebar";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
@@ -53,7 +52,6 @@ export async function ParentShell({
           </div>
           {children}
         </div>
-        <Footer />
       </main>
     </div>
   );

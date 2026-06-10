@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { navSections, isNavItemLocked } from "@/components/dashboard/navItems";
 import { SignOutButton } from "@/components/dashboard/SignOutButton";
-import { brand } from "@/lib/config/brand";
 import { accentHexByProduct, type ProductAccent } from "@/lib/config/productAccents";
 import type { DashboardAccess } from "@/types";
 
@@ -38,7 +38,7 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
   const itemClassName =
     "flex items-center gap-[10px] rounded-[var(--radius-sm)] px-3 py-[9px] text-sm transition-colors duration-150";
   const inactiveClassName =
-    "text-[var(--text-mid)] hover:bg-[var(--bg-subtle)] hover:text-[var(--text)]";
+    "text-[var(--text-mid)] hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]";
 
   function isActiveHref(href: string): boolean {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -62,11 +62,21 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
       <div className="absolute bottom-0 left-0 top-0 flex w-[280px] flex-col overflow-y-auto border-r border-[var(--border)] bg-white py-6">
         <div className="mb-5 flex items-center justify-between border-b border-[var(--border)] px-6 pb-6">
           <Link
-            href="/"
+            href="/dashboard"
             onClick={onClose}
-            className="font-primary text-[18px] font-extrabold tracking-[-0.03em] text-[var(--text)]"
+            className="flex items-center gap-2.5"
           >
-            {brand.name}
+            <Image
+              src="/images/logomark-navy.png"
+              alt=""
+              width={40}
+              height={40}
+              priority
+              className="h-10 w-auto flex-shrink-0"
+            />
+            <span className="text-xl font-semibold tracking-tight text-[#1C2B3A]">
+              UStart
+            </span>
           </Link>
           <button
             onClick={onClose}
@@ -99,7 +109,7 @@ export function MobileDrawer({ isOpen, onClose, userEmail, userInitials, planNam
                       key={item.href}
                       href={item.href === "/dashboard/content/parent-pack" ? "/pricing" : item.href}
                       onClick={onClose}
-                      className={`${itemClassName} text-[var(--text-muted)] hover:bg-[var(--bg-subtle)]`}
+                      className={`${itemClassName} text-[var(--text-muted)] hover:bg-[#E54B4B]/5 hover:text-[#E54B4B]`}
                     >
                       <svg className="h-4 w-4 flex-shrink-0 opacity-70" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />

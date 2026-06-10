@@ -1,12 +1,12 @@
 "use client";
 
 import { Suspense, useState } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
-import { Footer } from "@/components/ui/Footer";
-import { brand } from "@/lib/config/brand";
+import { FooterView } from "@/components/ui/FooterView";
 import { createClient } from "@/lib/supabase/client";
 
 function isValidEmail(value: string): boolean {
@@ -148,19 +148,30 @@ function SignInContent() {
 
 export default function SignInPage() {
   return (
-    <>
-      <main className="flex min-h-screen flex-col items-center justify-center bg-[var(--bg)] px-6 py-16">
-        <Link
-          href="/"
-          className="mb-10 font-primary text-2xl font-bold tracking-[-0.03em] text-[var(--accent)]"
-        >
-          {brand.name}
-        </Link>
-        <Suspense>
-          <SignInContent />
-        </Suspense>
+    <div className="flex min-h-screen flex-col bg-[var(--bg)]">
+      <main className="flex flex-1 items-center justify-center px-6 py-12">
+        <div className="flex w-full flex-col items-center">
+          <Link
+            href="/"
+            aria-label="UStart"
+            className="mb-8 flex justify-center"
+          >
+            <Image
+              src="/images/logo-primary-navy.png"
+              alt="UStart — Your Move, Made Simple"
+              width={200}
+              height={160}
+              priority
+              className="w-auto"
+              style={{ maxHeight: "160px" }}
+            />
+          </Link>
+          <Suspense>
+            <SignInContent />
+          </Suspense>
+        </div>
       </main>
-      <Footer />
-    </>
+      <FooterView />
+    </div>
   );
 }

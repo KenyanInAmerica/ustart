@@ -33,7 +33,7 @@ export function NotionSidebar({
         className={
           isActive
             ? "block bg-[var(--accent)]/10 text-[var(--accent)] font-semibold rounded-[var(--radius-sm)] px-3 py-2 text-sm"
-            : "block text-[var(--text-mid)] px-3 py-2 text-sm hover:bg-[var(--bg-subtle)] hover:text-[var(--text)] rounded-[var(--radius-sm)]"
+            : "block text-[var(--text-mid)] px-3 py-2 text-sm transition-colors duration-150 hover:bg-[#E54B4B]/5 hover:text-[#E54B4B] rounded-[var(--radius-sm)]"
         }
       >
         {mod.title}
@@ -47,7 +47,7 @@ export function NotionSidebar({
       <aside className="hidden min-[860px]:flex flex-col w-64 flex-shrink-0 bg-[var(--bg-card)] border-r border-[var(--border)] p-4 min-h-full overflow-y-auto">
         <Link
           href={resolvedBackHref}
-          className="text-[var(--text-muted)] text-sm mb-4 inline-block hover:text-[var(--text)]"
+          className="mb-4 inline-block text-sm text-[var(--text-muted)] transition-colors duration-150 hover:text-[#E54B4B]"
         >
           {resolvedBackLabel}
         </Link>
